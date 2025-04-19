@@ -11,14 +11,6 @@
           "line": "Line identifier (e.g. N31)",
           "departures": "Number of upcoming departures to display"
         }
-      },
-      "options": {
-        "init": {
-          "title": "Configure number of upcoming departures",
-          "data": {
-            "departures": "Number of upcoming departures to display"
-          }
-        }
       }
     },
     "error": {
@@ -34,6 +26,16 @@
       "single_instance_allowed": "Only one instance is allowed."
     },
     "title": "Warsaw Public Transport"
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure number of upcoming departures",
+        "data": {
+          "departures": "Number of upcoming departures to display"
+        }
+      }
+    }
   },
   "entity": {
     "sensor": {

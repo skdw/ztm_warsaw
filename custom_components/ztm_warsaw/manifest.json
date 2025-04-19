@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "documentation": "https://github.com/solarssk/ztm_warsaw",
   "issue_tracker": "https://github.com/solarssk/ztm_warsaw/issues",
-  "requirements": [],
   "dependencies": [],
   "codeowners": ["@solarssk"],
+  "requirements": [],
   "config_flow": true,
   "iot_class": "cloud_polling"
 }
