@@ -1,0 +1,9 @@
+{
+  "name": "Warsaw Public Transport",
+  "content_in_root": false,
+  "domains": ["sensor"],
+  "country": "PL",
+  "homeassistant": "2024.4.0",
+  "iot_class": "Cloud Polling",
+  "render_readme": true
+}
