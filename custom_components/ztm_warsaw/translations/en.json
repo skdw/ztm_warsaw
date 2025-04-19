@@ -1,9 +1,8 @@
 {
+  "title": "Warsaw Public Transport",
   "config": {
-    "title": "Warsaw Public Transport",
     "step": {
       "user": {
-        "title": "Configure ZTM Warsaw integration",
         "description": "Please provide information about the line you want to track. For more help, refer to the documentation on GitHub.",
         "data": {
           "api_key": "API Key from City of Warsaw (api.um.warszawa.pl)",
