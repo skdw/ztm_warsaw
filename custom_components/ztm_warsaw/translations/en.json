@@ -13,12 +13,10 @@
         }
       },
       "options": {
-        "step": {
-          "init": {
-            "title": "Configure number of upcoming departures",
-            "data": {
-              "departures": "Number of upcoming departures to display"
-            }
+        "init": {
+          "title": "Configure number of upcoming departures",
+          "data": {
+            "departures": "Number of upcoming departures to display"
           }
         }
       }
