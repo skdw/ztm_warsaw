@@ -1,0 +1,11 @@
+{
+  "domain": "ztm_warsaw",
+  "name": "Warsaw Public Transport",
+  "version": "1.0.0",
+  "documentation": "https://github.com/solarssk/ztm_warsaw",
+  "issue_tracker": "https://github.com/solarssk/ztm_warsaw/issues",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@solarssk"],
+  "config_flow": true
+}

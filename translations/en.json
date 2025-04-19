@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure ZTM Warsaw integration",
+        "description": "Please provide information about the line you want to track. For more help, refer to the documentation on GitHub.",
+        "data": {
+          "api_key": "API Key from City of Warsaw (api.um.warszawa.pl)",
+          "busstop_id": "Bus stop ID (e.g. 3044)",
+          "busstop_nr": "Stop number (e.g. 02)",
+          "line": "Line identifier (e.g. N31)",
+          "departures": "Number of upcoming departures to display"
+        }
+      },
+      "options": {
+        "step": {
+          "init": {
+            "title": "Configure number of upcoming departures",
+            "data": {
+              "departures": "Number of upcoming departures to display"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Provided stop number is incorrect. It must be two digits (e.g. “01”).",
+      "invalid_api_key": "Invalid API key. Please check your API key provided by the City of Warsaw.",
+      "api_http_error": "Could not connect to the City of Warsaw API.",
+      "api_connection_error": "Connection error with the City of Warsaw API.",
+      "no_departures": "The selected line is not available for this stop and pole.",
+      "no_valid_times": "No valid departure times returned by the API.",
+      "unknown": "An unknown error occurred."
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance is allowed."
+    },
+    "title": "Warsaw Public Transport"
+  },
+  "entity": {
+    "sensor": {
+      "ztm_warsaw": {
+        "name": "ZTM Line"
+      }
+    }
+  },
+  "select_departure_count": {
+    "1": "Next departure",
+    "2": "Next two departures",
+    "3": "Next three departures"
+  }
+}
