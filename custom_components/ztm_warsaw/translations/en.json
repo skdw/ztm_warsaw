@@ -30,6 +30,7 @@
   "options": {
     "step": {
       "init": {
+        "title": "ZTM Warsaw Options",
         "data": {
           "departures": "Number of upcoming departures to display"
         }
@@ -42,10 +43,5 @@
         "name": "ZTM Line"
       }
     }
-  },
-  "select_departure_count": {
-    "1": "Next departure",
-    "2": "Next two departures",
-    "3": "Next three departures"
   }
 }

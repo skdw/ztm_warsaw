@@ -1,12 +1,12 @@
 {
   "domain": "ztm_warsaw",
   "name": "Warsaw Public Transport",
-  "version": "1.0.0",
-  "documentation": "https://github.com/solarssk/ztm_warsaw",
-  "issue_tracker": "https://github.com/solarssk/ztm_warsaw/issues",
-  "dependencies": [],
-  "codeowners": ["@solarssk"],
-  "requirements": [],
   "config_flow": true,
-  "iot_class": "cloud_polling"
+  "codeowners": ["@solarssk"],
+  "dependencies": [],
+  "documentation": "https://github.com/solarssk/ztm_warsaw",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/solarssk/ztm_warsaw/issues",
+  "requirements": [],
+  "version": "1.0.0"
 }
