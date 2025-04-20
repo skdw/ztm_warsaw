@@ -56,11 +56,8 @@ class ZTMStopClient:
                         _data = {entry["key"]: entry["value"] for entry in reading}
                         try:
                             parsed = ZTMDepartureDataReading.from_dict(_data)
-                            if parsed.dt:
-                                # Allow departures slightly past midnight to be counted (e.g., until 4 AM)
-                                delta = (parsed.dt - now).total_seconds() / 60
-                                if -180 <= delta:
-                                    _departures.append(parsed)
+                            if parsed.dt and parsed.dt >= now:
+                                _departures.append(parsed)
                         except Exception as e:
                             _LOGGER.debug("Invalid reading skipped: %s", _data)
 

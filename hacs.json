@@ -1,5 +1,4 @@
 {
-  "domain": "ztm_warsaw",
   "name": "Warsaw Public Transport",
   "integrations": ["ztm_warsaw"],
   "content_in_root": false,
