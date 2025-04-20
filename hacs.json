@@ -3,7 +3,6 @@
   "integrations": ["ztm_warsaw"],
   "content_in_root": false,
   "country": "PL",
-  "domains": ["sensor"],
   "homeassistant": "2024.4.0",
   "iot_class": "Cloud Polling",
   "render_readme": true
