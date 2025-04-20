@@ -1,6 +1,5 @@
 {
   "name": "Warsaw Public Transport",
-  "integrations": ["ztm_warsaw"],
   "content_in_root": false,
   "country": "PL",
   "homeassistant": "2024.4.0",
