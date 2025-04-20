@@ -62,7 +62,7 @@ class ZTMSensor(SensorEntity):
     @property
     def unit_of_measurement(self):
         """Return 'min' only when we have real departures; hide unit on errors/no data."""
-        if self._state is None:
+        if self._state in ("No data available", "No departures available"):
             return None
         return "min" if self._return_type == "TIME_TO_DEPART" else None
 
@@ -72,31 +72,23 @@ class ZTMSensor(SensorEntity):
 
     async def async_update(self):
         """Fetch new data from ZTM API and update state + attributes."""
-        data = await self.client.get()
-
-        # 1) No data or connection error
-        if not data:
-            _LOGGER.debug("No result from API for %s", self._name)
-            self._state = "60+"
+        try:
+            data = await self.client.get()
+        except Exception as e:
+            _LOGGER.warning("Exception while fetching data: %s", e)
+            self._state = "No data available"
             self._attributes.clear()
             self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-            self._attributes["Note"] = (
-                "This line is not currently listed for this stop. "
-                "It may not operate today or during this time. "
-                "Check wtp.waw.pl or call 19115 for confirmation."
-            )
             return
 
         departures = data.departures
 
-        # 2) No departures at all (line exists, but nothing today or upcoming)
+        # 2) No departures at all
         if not departures:
             self._state = "60+"
             self._attributes.clear()
             self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-            self._attributes["Note"] = (
-                "No upcoming schedule available. Check wtp.waw.pl or call 19115 for details."
-            )
+            self._attributes["note"] = "No upcoming schedule available. Please verify on wtp.waw.pl or call 19115 for more information."
             return
 
         # 3) Filter to next 60 minutes

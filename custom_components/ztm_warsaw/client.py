@@ -40,25 +40,35 @@ class ZTMStopClient:
                 async with self._session.get(self._endpoint, params=self._params) as response:
                     if response.status != 200:
                         _LOGGER.error("Error fetching data: %s", await response.text())
-                        return None
+                        return ZTMDepartureData(departures=[])
 
                     json_response = await response.json()
 
                     result = json_response.get("result")
-                    if result is None:
-                        _LOGGER.info("No departures currently available for this stop/line.")
+                    if not isinstance(result, list):
+                        if result is None:
+                            # _LOGGER.warning("API returned null result.")
+                            return ZTMDepartureData(departures=[])
+                        if isinstance(result, str):
+                            # _LOGGER.warning("API returned error string instead of result list: %s", result)
+                            return ZTMDepartureData(departures=[])
+                        # _LOGGER.warning("Unexpected result format from API: %s", type(result))
                         return ZTMDepartureData(departures=[])
 
                     _departures = []
                     now = datetime.now().astimezone()
 
                     for reading in result:
-                        _data = {entry["key"]: entry["value"] for entry in reading}
+                        if not isinstance(reading, list):
+                            _LOGGER.warning("Unexpected entry format in result: %s", reading)
+                            continue
+
+                        _data = {entry["key"]: entry["value"] for entry in reading if isinstance(entry, dict) and "key" in entry and "value" in entry}
                         try:
                             parsed = ZTMDepartureDataReading.from_dict(_data)
                             if parsed.dt and parsed.dt >= now:
                                 _departures.append(parsed)
-                        except Exception as e:
+                        except Exception:
                             _LOGGER.debug("Invalid reading skipped: %s", _data)
 
                     _departures.sort(key=lambda x: x.time_to_depart)
@@ -68,4 +78,4 @@ class ZTMStopClient:
             _LOGGER.error("Connection error: %s", e)
         except ValueError:
             _LOGGER.error("Non-JSON data received from API")
-        return None
+        return ZTMDepartureData(departures=[])
