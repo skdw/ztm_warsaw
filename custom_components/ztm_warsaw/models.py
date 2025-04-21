@@ -51,8 +51,14 @@ class ZTMDepartureDataReading:
                 day_offset = 0
 
             local_now = dt_util.now().astimezone(ZTMTimeZone)
+            local_date = local_now.date()
+
+            # If it is after midnight, but before 5 am - we treat the day as “yesterday”
+            if local_now.hour < 5:
+                local_date -= timedelta(days=1)
+
             dt_combined = datetime.combine(
-                local_now.date() + timedelta(days=day_offset),
+                local_date + timedelta(days=day_offset),
                 dt_util.parse_time(f"{hour:02d}:{minute:02d}")
             ).astimezone(timezone.utc)
 

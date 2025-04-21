@@ -47,12 +47,9 @@ class ZTMStopClient:
                     result = json_response.get("result")
                     if not isinstance(result, list):
                         if result is None:
-                            # _LOGGER.warning("API returned null result.")
                             return ZTMDepartureData(departures=[])
                         if isinstance(result, str):
-                            # _LOGGER.warning("API returned error string instead of result list: %s", result)
                             return ZTMDepartureData(departures=[])
-                        # _LOGGER.warning("Unexpected result format from API: %s", type(result))
                         return ZTMDepartureData(departures=[])
 
                     _departures = []
