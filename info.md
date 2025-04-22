@@ -57,13 +57,23 @@ ZTM Warsaw Integration brings real-time public transport departure data from the
 
 ## 📦 Installation
 
-1. Manual installation:
-   - Download the latest version from GitHub Releases.
-   - Copy the `ztm_warsaw` folder to `/config/custom_components/`
-   - Restart Home Assistant
+### Manual installation:
 
-2. Install using [HACS](https://hacs.xyz/):
-   - Will be available in HACS once the integration is reviewed.
+1. Download the latest version from [GitHub Releases](https://github.com/solarssk/ztm_warsaw/releases).
+2. Copy the `ztm_warsaw` folder to `/config/custom_components/`.
+3. Restart Home Assistant.
+
+### Installation via HACS:
+
+> 🧪 Until reviewed and officially included in HACS, you can add this integration manually as a custom repository.
+
+1. In Home Assistant, go to **HACS → Integrations**.
+2. Click the three dots in the top-right corner and choose **Custom repositories**.
+3. Paste this repository URL:  
+   `https://github.com/solarssk/ztm_warsaw`
+4. Set category to **Integration** and confirm.
+5. Find and install the **Warsaw Public Transport** integration from the list.
+6. Restart Home Assistant.
 
 ---
 
@@ -107,10 +117,15 @@ This integration depends on the official City of Warsaw public API, which has se
     ```
 
 - **🔍 Some lines visible on wtp.waw.pl are not available in the API**  
-  The official journey planner (wtp.waw.pl) uses internal ZTM/WTP systems, not the public API. If a line exists on the website but not in the integration, that’s due to API limitations — **i cannot fix this**.
+  The official journey planner (wtp.waw.pl) uses internal systems that may include more complete data than what’s exposed by the public API. If a line exists on the website but not in the integration — that’s a limitation of the API. Nothing can be done on my end.
 
-- **🌙 Night line schedules can disappear after midnight**  
-  Some night buses (e.g., `N31`) may disappear temporarily from the API after their last departure near midnight. Upcoming departures may be restored only later during the night.
+- **🌙 Night line schedules (e.g. `N01`, `N44`) and how they’re handled**  
+  ZTM (Zarząd Transportu Publicznego) treats the **entire night as part of the same service day**, so buses departing at `24:50`, `26:20`, etc. are **still part of the "previous" day’s schedule**.
+
+  This integration now correctly interprets such hours by **treating all times up to 4:59 as part of the previous service day**. This fix has been implemented starting from version `v1.0.2`.
+
+  - This ensures that **night departures do not disappear after midnight**.
+  - You can expect to see accurate countdowns like "15 min" even if it’s `02:00` and the bus is scheduled for `02:15` (`26:15` in the API).
 
 **Important Reminder**
 These limitations are caused by the official API and are **out of scope of this integration**. I always recommend checking the official journey planner: [wtp.waw.pl](https://wtp.waw.pl)
