@@ -16,6 +16,37 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up ZTM Warsaw from a config entry."""
+    # Build a per-entry DataUpdateCoordinator that caches the full timetable for 24 h
+    hass.data.setdefault(DOMAIN, {})
+
+    session = async_get_clientsession(hass)
+
+    api_key = entry.data.get("api_key")
+    stop_id = entry.data["busstop_id"]
+    stop_nr = entry.data["busstop_nr"]
+    line = entry.data.get("line")
+
+    client = ZTMStopClient(session, api_key, stop_id, stop_nr, line)
+
+    async def _async_update_data():
+        """Fetch full timetable once a day and cache it."""
+        try:
+            return await client.get()  # returns list[ZTMDepartureDataReading]
+        except Exception as err:
+            raise UpdateFailed(err) from err
+
+    coordinator = DataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name=f"ztm_{stop_id}_{line}",
+        update_method=_async_update_data,
+        update_interval=timedelta(hours=1),
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+
     entry.async_on_unload(entry.add_update_listener(_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     return True
