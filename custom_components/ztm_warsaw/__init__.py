@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .client import ZTMStopClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,7 +22,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload ZTM Warsaw config entry."""
-    return await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    result = await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    hass.data[DOMAIN].pop(entry.entry_id, None)
+    return result
 
 @callback
 async def _update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

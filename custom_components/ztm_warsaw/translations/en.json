@@ -18,7 +18,8 @@
       "invalid_api_key": "Invalid API key. Please check your API key provided by the City of Warsaw.",
       "api_http_error": "Could not connect to the City of Warsaw API.",
       "api_connection_error": "Connection error with the City of Warsaw API.",
-      "no_departures": "The selected line is not available for this stop and pole.",
+      "line_not_found": "The specified line was not found for the selected stop ID and stop number.",
+      "no_departures": "There are no departures scheduled for this line at the selected stop today.",
       "no_valid_times": "No valid departure times returned by the API.",
       "unknown": "An unknown error occurred."
     },

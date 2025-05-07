@@ -27,7 +27,15 @@ DATA_SCHEMA = vol.Schema({
 
 async def validate_input(api_key, stop_id, stop_nr, line):
     """Validate input against City of Warsaw API."""
-    url = (
+    line_check_url = (
+        "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
+        "?id=88cd555f-6f31-43ca-9de4-66c479ad5942"
+        f"&busstopId={stop_id}"
+        f"&busstopNr={stop_nr}"
+        f"&apikey={api_key}"
+    )
+
+    timetable_url = (
         "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
         "?id=e923fa0e-d96c-43f9-ae6e-60518c9f3238"
         f"&busstopId={stop_id}"
@@ -38,7 +46,7 @@ async def validate_input(api_key, stop_id, stop_nr, line):
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
+            async with session.get(line_check_url, timeout=10) as resp:
                 if resp.status != 200:
                     raise ValueError("api_http_error")
 
@@ -47,7 +55,27 @@ async def validate_input(api_key, stop_id, stop_nr, line):
                     raise ValueError("invalid_api_key")
 
                 result = data.get("result")
+                if result is None:
+                    raise ValueError("line_check_failed")
 
+                available_lines = [
+                    val["value"]
+                    for item in result if isinstance(item, dict)
+                    for val in item.get("values", [])
+                    if val.get("key") == "linia"
+                ]
+                if line not in available_lines:
+                    raise ValueError("line_not_found")
+
+            async with session.get(timetable_url, timeout=10) as resp:
+                if resp.status != 200:
+                    raise ValueError("api_http_error")
+
+                data = await resp.json()
+                if data.get("result") == "false":
+                    raise ValueError("invalid_api_key")
+
+                result = data.get("result")
                 if result is None:
                     raise ValueError("no_departures")
 
@@ -64,7 +92,6 @@ async def validate_input(api_key, stop_id, stop_nr, line):
         _LOGGER.error("API connection error: %s", e)
         raise ValueError("api_connection_error")
     except ValueError:
-        # Propagate known validation errors
         raise
     except Exception as e:
         _LOGGER.exception("Unexpected error: %s", e)
