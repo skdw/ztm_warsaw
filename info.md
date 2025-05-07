@@ -3,6 +3,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-%F0%9F%A7%A1-blue)](https://www.home-assistant.io)
+[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
+[![Validate with hassfest](https://github.com/solarssk/ztm_warsaw/actions/workflows/hassfest.yaml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions)
+[![custom_component](https://img.shields.io/badge/type-custom_component-red.svg)](https://github.com/solarssk/ztm_warsaw)
 
 ZTM Warsaw Integration brings real-time public transport departure data from the City of Warsaw API directly into Home Assistant. Whether you're tracking buses, trams, or metro lines, this integration allows you to view live departures at a glance.
 
@@ -13,30 +16,31 @@ ZTM Warsaw Integration brings real-time public transport departure data from the
 ## 🔧 Features
 
 - 🇵🇱 Made for Warsaw, Poland
-- ✅ Get real-time departures for buses, trams, metro, night and local lines.
-- ✅ Supports multiple instances (multiple stops/lines).
-- ✅ Shows current departure in minutes or time (HH:MM).
-- ✅ Select how many upcoming departures to display.
-- ✅ Recognizes special cases: unavailable schedules, night-only lines, weekend gaps.
-- ✅ Fully integrated with Home Assistant UI – easy to set up, no YAML required.
+- ✅ Real-time and static timetable support for buses, trams, metro, night, cemetery, express and local lines.
+- ✅ Supports multiple instances (you can monitor multiple stops and lines).
+- ✅ Displays current or upcoming departure as timestamp (compatible with UI and automations).
+- ✅ Optional display of up to 3 upcoming departures.
+- ✅ Automatically recognizes and handles no-schedule days, seasonal or partial-day routes.
+- ✅ Full Home Assistant UI configuration – no YAML needed.
+- ✅ Custom attributes: stop info, direction, timetable link and contextual notes.
 
 ---
 
 ## 📸 Screenshots
 
 ### Integration Setup
-
 *Add your API key and stop info...*
 
 <div align="center"><img width="478" alt="image" src="https://github.com/user-attachments/assets/9a77591e-5b1a-4fe5-a29d-637d3c9b566c" /></div>
 
----
-
 ### Entity Display
 
+<div align="center"><img width="555" alt="image" src="https://github.com/user-attachments/assets/ef709b81-1575-4718-9c39-f6c135cf3cca" /></div>
+
+### Attributes
 *Example entity showing departures with attributes like time, direction...*
 
-<div align="center"><img width="478" alt="image" src="https://github.com/user-attachments/assets/71121bef-8b58-4245-8f07-9366390262d1" /></div>
+<div align="center"><img width="530" alt="image" src="https://github.com/user-attachments/assets/95cde9db-1182-41ba-9ae6-3187bd6a527c" /></div>
 
 ---
 
