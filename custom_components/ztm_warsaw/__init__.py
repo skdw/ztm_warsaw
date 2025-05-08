@@ -30,6 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def _async_update_data():
         """Fetch full timetable once a day and cache it."""
+        _LOGGER.debug("Fetching data from ZTM API")
         try:
             return await client.get()  # returns list[ZTMDepartureDataReading]
         except Exception as err:
@@ -38,7 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
-        name=f"ztm_{stop_id}_{line}",
+        name=f"ztm_{stop_id}_{stop_nr}_{line}",
         update_method=_async_update_data,
         update_interval=timedelta(hours=1),
     )

@@ -13,8 +13,6 @@ from .models import ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(minutes=1)
-
 LINE_TYPE_MAP = {
     # Buses
     "1": "Normal bus",
@@ -106,8 +104,10 @@ class ZTMSensor(SensorEntity):
 
     async def async_update(self):
         """Fetch new data from coordinator and update state + attributes."""
+        _LOGGER.debug("Running async_update for %s", self._attr_unique_id)
         coordinator: DataUpdateCoordinator = self._hass.data[DOMAIN][self._entry_id]
         data = coordinator.data
+        _LOGGER.debug("Data from coordinator: %s", data)
         if data is None:
             _LOGGER.warning("No timetable data available from coordinator")
             self._next_departure = None
@@ -126,6 +126,10 @@ class ZTMSensor(SensorEntity):
         departures = [d for d in departures if d.dt is not None]
 
         # Find the soonest departure (if any) and expose it as timestamp
+        if departures:
+            _LOGGER.debug("Next departure time for %s: %s", self._attr_unique_id, departures[0].dt)
+        else:
+            _LOGGER.debug("No departures found for %s", self._attr_unique_id)
         self._next_departure = departures[0].dt if departures else None
 
         # 2) No departures at all
