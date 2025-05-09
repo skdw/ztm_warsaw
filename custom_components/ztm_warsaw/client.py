@@ -53,7 +53,6 @@ class ZTMStopClient:
                         return ZTMDepartureData(departures=[])
 
                     _departures = []
-                    now = datetime.now().astimezone()
 
                     for reading in result:
                         if not isinstance(reading, list):
@@ -63,12 +62,14 @@ class ZTMStopClient:
                         _data = {entry["key"]: entry["value"] for entry in reading if isinstance(entry, dict) and "key" in entry and "value" in entry}
                         try:
                             parsed = ZTMDepartureDataReading.from_dict(_data)
-                            if parsed.dt and parsed.dt >= now:
+                            # Pobierz wszystkie odjazdy, bez filtrowania czasowego
+                            if parsed.dt:
                                 _departures.append(parsed)
                         except Exception:
                             _LOGGER.debug("Invalid reading skipped: %s", _data)
 
                     _departures.sort(key=lambda x: x.time_to_depart)
+                    _LOGGER.debug("Loaded %d departures from API", len(_departures))
                     return ZTMDepartureData(departures=_departures)
 
         except (asyncio.TimeoutError, aiohttp.ClientError) as e:
