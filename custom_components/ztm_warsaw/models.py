@@ -78,3 +78,4 @@ class ZTMDepartureDataReading:
 @dataclass
 class ZTMDepartureData:
     departures: list[ZTMDepartureDataReading]
+    stop_info: Optional[dict] = field(default_factory=dict)
