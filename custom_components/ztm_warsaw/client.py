@@ -132,3 +132,4 @@ class ZTMStopClient:
         if self._stop_name and "nazwa_zespolu" in self._stop_name:
             self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
         return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+    

@@ -63,17 +63,20 @@ class ZTMSensor(SensorEntity):
         self._attributes = {}
         self._max_departures = max_departures
         self._coordinator = coordinator
-        # expose as timestamp sensor
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._next_departure = None
-        self._attr_unique_id = f"ztm_{line}_{stop_id}_{stop_number}"
+        self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}"
 
         # Explicitly set friendly name
         stop_name = coordinator.data.stop_info.get("nazwa_zespolu") if coordinator.data and coordinator.data.stop_info else None
         if stop_name:
-            self._attr_name = f"Line {line}, {stop_name} {stop_number}"
+            self._attr_name = f"Line {line} {stop_name} {stop_number}"
         else:
             self._attr_name = f"Line {line} from {stop_id}/{stop_number}"
+
+        # Force entity_id only if entity does not already exist in registry
+        if not hasattr(self, 'entity_id') or not self.entity_id:
+            self.entity_id = f"sensor.line_{line}_from_{stop_id}_{stop_number}"
 
         # static line-level and stop-level attributes
         self._attributes["Line, Number"] = self._line
@@ -269,6 +272,22 @@ class ZTMSensor(SensorEntity):
             self._next_departure,
             self._max_departures
         )
+
+    @property
+    def device_info(self):
+        stop_info = self._coordinator.data.stop_info if self._coordinator.data else {}
+        today_str = datetime.now(tz=timezone.utc).astimezone().strftime("%Y-%m-%d")
+        timetable_url = f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={self._line}"
+
+        return {
+            "identifiers": {(DOMAIN, f"line_{self._line}")},
+            "name": f"Line {self._line}",
+            "manufacturer": "Zarząd Transportu Miejskiego",
+            "entry_type": "service",
+            "model": _line_type(self._line),
+            "sw_version": stop_info.get("obowiazuje_od"),
+            "configuration_url": timetable_url,
+        }
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up ZTM sensor from a config entry."""
