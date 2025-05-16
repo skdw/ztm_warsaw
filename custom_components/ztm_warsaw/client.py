@@ -38,8 +38,12 @@ class ZTMStopClient:
             "line": line,
         }
         self._stop_name = None
+        self._stop_info_cache = {}
 
     async def get_stop_name(self) -> Optional[dict]:
+        cache_key = (self._params["busstopId"], self._params["busstopNr"])
+        if cache_key in self._stop_info_cache:
+            return self._stop_info_cache[cache_key]
         try:
             # Prepare request parameters to fetch stop metadata
             params = {
@@ -59,11 +63,15 @@ class ZTMStopClient:
                         # Match stop ID ("zespol") and optionally match post number ("slupek")
                         if values.get("zespol") == self._params["busstopId"]:
                             if values.get("slupek") == self._params["busstopNr"]:
-                                return {k: v for k, v in values.items() if k not in ["zespol", "slupek"]}
+                                result = {k: v for k, v in values.items() if k not in ["zespol", "slupek"]}
+                                self._stop_info_cache[cache_key] = result
+                                return result
                             # use as fallback if exact post is not found
                             if fallback is None:
                                 fallback = {k: v for k, v in values.items() if k not in ["zespol", "slupek"]}
-                    return fallback
+                    if fallback is not None:
+                        self._stop_info_cache[cache_key] = fallback
+                        return fallback
         except Exception as e:
             _LOGGER.warning("Failed to fetch stop name: %s", e)
         return None
@@ -132,4 +140,3 @@ class ZTMStopClient:
         if self._stop_name and "nazwa_zespolu" in self._stop_name:
             self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
         return ZTMDepartureData(departures=[], stop_info=self._stop_name)
-    
