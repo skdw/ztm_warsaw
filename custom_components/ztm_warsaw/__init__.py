@@ -3,7 +3,6 @@ from __future__ import annotations
 from .coordinator import ZTMStopCoordinator
 
 import logging
-from datetime import timedelta
 
 # Home Assistant core types and helpers
 from homeassistant.config_entries import ConfigEntry
@@ -40,8 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         client=client,
         stop_id=stop_id,
         stop_nr=stop_nr,
-        line=line,
-        update_interval=timedelta(hours=1)
+        line=line
     )
 
     # Trigger the first data fetch immediately
