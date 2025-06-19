@@ -8,7 +8,6 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 
 from .const import DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
-import os, json
 
 
 _LOGGER = logging.getLogger(__name__)

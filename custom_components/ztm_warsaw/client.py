@@ -73,7 +73,7 @@ class ZTMStopClient:
                         self._stop_info_cache[cache_key] = fallback
                         return fallback
         except Exception as e:
-            _LOGGER.warning("Failed to fetch stop name: %s", e)
+            _LOGGER.warning("Failed to fetch stop name: %s", e, exc_info=True)
         return None
 
     async def get(self) -> Optional[ZTMDepartureData]:
@@ -133,9 +133,9 @@ class ZTMStopClient:
                     return ZTMDepartureData(departures=_departures, stop_info=self._stop_name)
 
         except (asyncio.TimeoutError, aiohttp.ClientError) as e:
-            _LOGGER.error("Connection error: %s", e)
+            _LOGGER.error("Connection error: %s", e, exc_info=True)
         except ValueError:
-            _LOGGER.error("Non-JSON data received from API")
+            _LOGGER.error("Non-JSON data received from API", exc_info=True)
         self._stop_name = await self.get_stop_name()
         if self._stop_name and "nazwa_zespolu" in self._stop_name:
             self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
