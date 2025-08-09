@@ -1,8 +1,9 @@
 import logging
 import voluptuous as vol
 import aiohttp
-from datetime import datetime
 import re
+import asyncio
+import json
 
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -10,7 +11,53 @@ from homeassistant.core import callback
 from .const import DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
 
 
+
 _LOGGER = logging.getLogger(__name__)
+
+TIMEOUT = 20  # seconds
+RETRIES = 1   # number of retries for timeout/5xx during validation
+BACKOFF = 1.5 # seconds backoff multiplier
+
+
+def _sanitize_url(url: str) -> str:
+    """Mask apikey in URL for safe logging."""
+    return re.sub(r"(apikey=)([^&]+)", r"\1****", url)
+
+
+async def _get_json(session: aiohttp.ClientSession, url: str) -> dict:
+    """GET URL and return parsed JSON with a small retry.
+    # English-only comments for OSS clarity
+    """
+    attempt = 0
+    while True:
+        try:
+            async with session.get(url, timeout=TIMEOUT) as resp:
+                text = await resp.text()
+                # Retry on 5xx
+                if 500 <= resp.status <= 599 and attempt < RETRIES:
+                    _LOGGER.warning("HTTP %s for %s; retrying (%s/%s)", resp.status, _sanitize_url(url), attempt + 1, RETRIES)
+                    attempt += 1
+                    await asyncio.sleep(BACKOFF * attempt)
+                    continue
+                if resp.status != 200:
+                    _LOGGER.error("API HTTP error %s for %s body=%s", resp.status, _sanitize_url(url), text[:300])
+                    raise ValueError("api_http_error")
+                try:
+                    return json.loads(text)
+                except Exception:
+                    _LOGGER.error("API returned invalid JSON for %s body=%s", _sanitize_url(url), text[:300])
+                    raise ValueError("api_http_error")
+        except asyncio.TimeoutError:
+            if attempt < RETRIES:
+                _LOGGER.warning("Timeout for %s; retrying (%s/%s)", _sanitize_url(url), attempt + 1, RETRIES)
+                attempt += 1
+                await asyncio.sleep(BACKOFF * attempt)
+                continue
+            _LOGGER.error("API timeout after %ss for %s", TIMEOUT, _sanitize_url(url))
+            raise ValueError("api_connection_error")
+        except aiohttp.ClientError as e:
+            _LOGGER.error("API connection error for %s: %s", _sanitize_url(url), e)
+            raise ValueError("api_connection_error")
 
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
@@ -45,55 +92,55 @@ async def validate_input(api_key, stop_id, stop_nr, line):
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(line_check_url, timeout=10) as resp:
-                if resp.status != 200:
-                    raise ValueError("api_http_error")
+            # 1) Verify stop/line exists for given stop_id/stop_nr
+            data = await _get_json(session, line_check_url)
+            if data.get("result") == "false":
+                # ZTM returns string "false" on errors (incl. bad apikey)
+                raise ValueError("invalid_api_key")
+            result = data.get("result")
+            if result is None:
+                raise ValueError("line_check_failed")
+            if not isinstance(result, list):
+                _LOGGER.error("Unexpected result type in line_check: %s", type(result).__name__)
+                raise ValueError("line_check_failed")
 
-                data = await resp.json()
-                if data.get("result") == "false":
-                    raise ValueError("invalid_api_key")
+            available_lines = []
+            for item in result:
+                if not isinstance(item, dict):
+                    continue
+                vals = item.get("values") or []
+                if isinstance(vals, list):
+                    for val in vals:
+                        if isinstance(val, dict) and val.get("key") == "linia":
+                            available_lines.append(val.get("value"))
 
-                result = data.get("result")
-                if result is None:
-                    raise ValueError("line_check_failed")
+            if line not in available_lines:
+                raise ValueError("line_not_found")
 
-                available_lines = [
-                    val["value"]
-                    for item in result if isinstance(item, dict)
-                    for val in item.get("values", [])
-                    if val.get("key") == "linia"
-                ]
-                if line not in available_lines:
-                    raise ValueError("line_not_found")
+            # 2) Verify timetable returns at least one valid HH:MM:SS entry
+            data = await _get_json(session, timetable_url)
+            if data.get("result") == "false":
+                raise ValueError("invalid_api_key")
+            result = data.get("result")
+            if result is None:
+                raise ValueError("no_departures")
+            if not isinstance(result, list):
+                _LOGGER.error("Unexpected result type in timetable: %s", type(result).__name__)
+                raise ValueError("no_departures")
 
-            async with session.get(timetable_url, timeout=10) as resp:
-                if resp.status != 200:
-                    raise ValueError("api_http_error")
+            for item in result:
+                if not isinstance(item, list):
+                    continue
+                czas = next((v.get("value") for v in item if isinstance(v, dict) and v.get("key") == "czas"), None)
+                if isinstance(czas, str) and re.match(r"^\d{2}:\d{2}:\d{2}$", czas):
+                    return True
 
-                data = await resp.json()
-                if data.get("result") == "false":
-                    raise ValueError("invalid_api_key")
+            raise ValueError("no_valid_times")
 
-                result = data.get("result")
-                if result is None:
-                    raise ValueError("no_departures")
-
-                for item in result:
-                    if not isinstance(item, list):
-                        continue
-                    czas = next((v["value"] for v in item if isinstance(v, dict) and v.get("key") == "czas"), None)
-                    if czas and isinstance(czas, str) and re.match(r"^\d{2}:\d{2}:\d{2}$", czas):
-                        return True
-
-                raise ValueError("no_valid_times")
-
-    except aiohttp.ClientError as e:
-        _LOGGER.error("API connection error: %s", e)
-        raise ValueError("api_connection_error")
     except ValueError:
         raise
     except Exception as e:
-        _LOGGER.exception("Unexpected error: %s", e)
+        _LOGGER.exception("Unexpected error during validation: %s", e)
         raise ValueError("unknown")
 
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

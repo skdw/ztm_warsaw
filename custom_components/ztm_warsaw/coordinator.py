@@ -1,8 +1,12 @@
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_track_time_change
+
+import asyncio
+import random
+from homeassistant.helpers.event import async_call_later
 
 from .client import ZTMStopClient
 from .models import ZTMDepartureData, ZTMDepartureDataReading
@@ -25,6 +29,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.last_update_success_time: datetime | None = None
         self._initial_refresh_done = False
         self._daily_refresh_unsub = None
+        self._retry_unsub = None
+        self._retry_delay_seconds = 120  # seconds; coordinator-level retry after a failed 02:30 refresh
+        self._jitter_max_seconds = 45    # spread refresh calls to avoid thundering herd
 
     async def async_config_entry_first_refresh(self):
         """Perform first refresh and set up schedules."""
@@ -37,6 +44,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if self._daily_refresh_unsub:
             self._daily_refresh_unsub()
             self._daily_refresh_unsub = None
+        if self._retry_unsub:
+            self._retry_unsub()
+            self._retry_unsub = None
 
         # Harmonogram o 2:30 czasu lokalnego (jedyny harmonogram działa o 2:30 jako bufor po aktualizacji rozkładu o 2:10)
         self._daily_refresh_unsub = async_track_time_change(
@@ -54,8 +64,32 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
 
     async def _daily_refresh_callback(self, now):
         warsaw_now = dt_util.as_local(now)
-        _LOGGER.debug("ZTM Coordinator [%s] — refresh triggered at %s", self.name, warsaw_now)
-        await self.async_request_refresh()
+        # Add a small random jitter so multiple entities don't hammer the API at the exact same second.
+        jitter = random.randint(0, self._jitter_max_seconds)
+        _LOGGER.debug("ZTM Coordinator [%s] — daily refresh triggered at %s; applying jitter=%ss", self.name, warsaw_now, jitter)
+        await asyncio.sleep(jitter)
+
+        # Perform the refresh
+        await self.async_refresh()
+
+        # If refresh failed, schedule a one-off retry after a short delay
+        if not self.last_update_success:
+            delay = self._retry_delay_seconds
+            _LOGGER.warning("ZTM Coordinator [%s] — daily refresh failed; scheduling retry in %ss", self.name, delay)
+            if self._retry_unsub:
+                self._retry_unsub()
+                self._retry_unsub = None
+
+            def _retry_cb(_ts):
+                self._retry_unsub = None
+                self.hass.async_create_task(self.async_request_refresh())
+
+            self._retry_unsub = async_call_later(self.hass, delay, _retry_cb)
+        else:
+            # Clear any pending retry if we succeeded today
+            if self._retry_unsub:
+                self._retry_unsub()
+                self._retry_unsub = None
 
     async def _async_update_data(self) -> ZTMDepartureData:
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)
@@ -84,10 +118,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             
             if data_changed:
                 _LOGGER.info("ZTM Coordinator [%s] — new schedule data available, notifying sensors", self.name)
-            
+            count = len(new_data.departures)
             _LOGGER.debug(
-                "ZTM Coordinator [%s] — successfully fetched %d departures", 
-                self.name, len(new_data.departures)
+                "ZTM Coordinator [%s] — successfully fetched %d departures%s",
+                self.name,
+                count,
+                " (empty set)" if count == 0 else "",
             )
             return new_data
             
@@ -100,5 +136,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if self._daily_refresh_unsub:
             self._daily_refresh_unsub()
             self._daily_refresh_unsub = None
+        if self._retry_unsub:
+            self._retry_unsub()
+            self._retry_unsub = None
         self.data = None
         _LOGGER.info("ZTM Coordinator [%s] — shutdown complete", self.name)

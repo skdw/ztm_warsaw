@@ -4,6 +4,10 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 import homeassistant.util.dt as dt_util
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 ZTMTimeZone = ZoneInfo("Europe/Warsaw")
 
 @dataclass
@@ -26,6 +30,7 @@ class ZTMDepartureDataReading:
             brygada=data.get("brygada"),
         )
 
+    # Night buses in ZTM use hours >= 24; day services after midnight keep 00:xx
     @property
     def night_bus(self) -> bool:
         try:
@@ -37,9 +42,14 @@ class ZTMDepartureDataReading:
     @property
     def dt(self):
         try:
-            hour, minute, _ = self.czas.split(":")
-            hour = int(hour)
-            minute = int(minute)
+            # Validate time format HH:MM:SS
+            if not isinstance(self.czas, str) or len(self.czas.split(":")) != 3:
+                _LOGGER.warning("Invalid time format for 'czas': %r", self.czas)
+                return None
+
+            hour_str, minute_str, _ = self.czas.split(":")
+            hour = int(hour_str)
+            minute = int(minute_str)
 
             local_now = dt_util.now().astimezone(ZTMTimeZone)
             base_date = local_now.date()
@@ -52,20 +62,20 @@ class ZTMDepartureDataReading:
             else:
                 dt_hour = hour
 
-            # Has it already passed today?
+            # Decide target date: today if time is still ahead, otherwise tomorrow
             if (dt_hour > current_hour) or (dt_hour == current_hour and minute > current_minute):
                 target_date = base_date
             else:
                 target_date = base_date + timedelta(days=1)
 
-            dt_combined = datetime.combine(
-                target_date,
-                dt_util.parse_time(f"{dt_hour:02d}:{minute:02d}")
-            ).astimezone(timezone.utc)
-            return dt_combined
+            # Build timezone-aware datetime in Europe/Warsaw and convert to UTC
+            naive = datetime.combine(target_date, dt_util.parse_time(f"{dt_hour:02d}:{minute:02d}"))
+            local_dt = naive.replace(tzinfo=ZTMTimeZone)
+            utc_dt = local_dt.astimezone(timezone.utc)
+            return utc_dt
 
         except Exception as e:
-            print(f"Error while calculating dt: {e}")
+            _LOGGER.warning("Error while calculating dt: %s (czas=%r)", e, self.czas)
             return None
 
     @property
