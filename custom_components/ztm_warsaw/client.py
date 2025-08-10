@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import asyncio
 import logging
 from typing import Optional
@@ -46,7 +47,7 @@ def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str
     if stop_nr is not None:
         parts.append(f"stop_nr={_safe(stop_nr)}")
     if line is not None:
-        parts.append(f"line=={_safe(line)}")
+        parts.append(f"line={_safe(line)}")
     return ", ".join(parts)
 
 
@@ -76,10 +77,10 @@ class ZTMStopClient:
     ):
         # Endpoint to fetch the timetable for a given stop, line, and post number
         self._endpoint = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
-        self._data_id = "e923fa0e-d96c-43f9-ae6e-60518c9f3238"
         # Endpoint to fetch metadata for stops (name, location, etc.)
         self._stop_info_endpoint = "https://api.um.warszawa.pl/api/action/dbstore_get/"
         self._stop_info_data_id = "ab75c33d-3a26-4342-b36a-6e5fef0a3ac3"
+        self._data_id = "e923fa0e-d96c-43f9-ae6e-60518c9f3238"  # timetable endpoint id (dbtimetable_get)
         self._timeout = timeout or 20
         self._session = session
         self._stop_info_ttl = stop_info_ttl  # seconds; None means never refresh automatically
@@ -107,7 +108,7 @@ class ZTMStopClient:
         while True:
             try:
                 async with async_timeout.timeout(self._timeout):
-                    async with self._session.get(url, params=params) as resp:
+                    async with self._session.get(url, params=params, allow_redirects=True) as resp:
                         text = await resp.text()
                         # Retry on 5xx
                         if 500 <= resp.status <= 599 and attempt < self._max_retries:
@@ -197,15 +198,24 @@ class ZTMStopClient:
             return self._stop_name
 
         if isinstance(result, str):
-            # ZTM returns "false" on errors; log error field if present
-            _LOGGER.warning(
-                "Stop info returned string result=%r, error=%r for stop_id=%s stop_nr=%s",
-                result,
-                json_response.get("error"),
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-            )
-            return self._stop_name
+            # ZTM sometimes returns a localized string message instead of a list (transient backend state).
+            # Treat ANY string result as transient; retry once after a short backoff.
+            await asyncio.sleep(0.8)
+            retry_resp = await self._get_with_retry(self._stop_info_endpoint, params)
+            if isinstance(retry_resp, dict):
+                result = retry_resp.get("result")
+                if isinstance(result, list):
+                    json_response = retry_resp  # continue with normal parsing below
+                else:
+                    _LOGGER.debug(
+                        "Stop info string result persisted after retry: %r (stop_id=%s stop_nr=%s)",
+                        result,
+                        self._params.get("busstopId"),
+                        self._params.get("busstopNr"),
+                    )
+                    return self._stop_name
+            else:
+                return self._stop_name
 
         if not isinstance(result, list):
             _LOGGER.error(
