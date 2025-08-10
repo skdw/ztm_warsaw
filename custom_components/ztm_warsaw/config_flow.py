@@ -2,6 +2,7 @@ import logging
 import voluptuous as vol
 import aiohttp
 import re
+import urllib.parse
 import asyncio
 import json
 
@@ -21,7 +22,13 @@ BACKOFF = 1.5 # seconds backoff multiplier
 
 def _sanitize_url(url: str) -> str:
     """Mask apikey in URL for safe logging."""
-    return re.sub(r"(apikey=)([^&]+)", r"\1****", url)
+    parsed = urllib.parse.urlparse(url)
+    query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+    if "apikey" in query:
+        query["apikey"] = ["****"] * len(query["apikey"])
+    masked_query = urllib.parse.urlencode(query, doseq=True)
+    sanitized_url = urllib.parse.urlunparse(parsed._replace(query=masked_query))
+    return sanitized_url
 
 
 async def _get_json(session: aiohttp.ClientSession, url: str) -> dict:
