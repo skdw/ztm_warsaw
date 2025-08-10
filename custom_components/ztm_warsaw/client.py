@@ -98,7 +98,7 @@ class ZTMStopClient:
         self._stop_name = None
         self._stop_info_cache = {}
 
-    async def _get_with_retry(self, url: str, params: dict, *, expect_json: bool = True, tag: str = "endpoint"):
+    async def _get_with_retry(self, url: str, params: dict, *, expect_json: bool = True):
         """Perform GET with timeout and a small retry on timeout/5xx.
         # English-only comments for OSS clarity
         """
@@ -113,15 +113,15 @@ class ZTMStopClient:
                         if 500 <= resp.status <= 599 and attempt < self._max_retries:
                             _LOGGER.warning(
                                 "HTTP %s from %s; retrying (%s/%s)",
-                                resp.status, tag, attempt + 1, self._max_retries
+                                resp.status, url, attempt + 1, self._max_retries
                             )
                             attempt += 1
                             await asyncio.sleep(self._retry_backoff * attempt)
                             continue
                         if resp.status != 200:
                             _LOGGER.error(
-                                "HTTP %s from %s (%s)",
-                                resp.status, tag, _ctxp(params)
+                                "HTTP %s from %s",
+                                resp.status, url
                             )
                             return None if not expect_json else {}
                         if expect_json:
@@ -129,8 +129,8 @@ class ZTMStopClient:
                                 return json.loads(text)
                             except Exception:
                                 _LOGGER.error(
-                                    "Invalid JSON from %s (%s)",
-                                    tag, _ctxp(params)
+                                    "Invalid JSON from %s",
+                                    url
                                 )
                                 return {}
                         return text
@@ -139,20 +139,20 @@ class ZTMStopClient:
                 if attempt < self._max_retries:
                     _LOGGER.warning(
                         "Timeout talking to %s; retrying (%s/%s)",
-                        tag, attempt + 1, self._max_retries
+                        url, attempt + 1, self._max_retries
                     )
                     attempt += 1
                     await asyncio.sleep(self._retry_backoff * attempt)
                     continue
                 _LOGGER.error(
-                    "Timeout after %ss for %s (%s)",
-                    self._timeout, tag, _ctxp(self._params)
+                    "Timeout after %ss for %s",
+                    self._timeout, url
                 )
                 return None if not expect_json else {}
             except aiohttp.ClientError as e:
                 _LOGGER.error(
-                    "Network error for %s: %s (%s)",
-                    tag, e, _ctxp(params)
+                    "Network error for %s: %s",
+                    url, e
                 )
                 return None if not expect_json else {}
 
@@ -182,7 +182,7 @@ class ZTMStopClient:
             "apikey": self._params["apikey"],
         }
 
-        json_response = await self._get_with_retry(self._stop_info_endpoint, params, tag="stop_info")
+        json_response = await self._get_with_retry(self._stop_info_endpoint, params)
         if not isinstance(json_response, dict):
             return self._stop_name
 
@@ -256,7 +256,7 @@ class ZTMStopClient:
             # Ensure stop info is cached; this will be a no-op after the first successful fetch
             await self.get_stop_name()
 
-            json_response = await self._get_with_retry(self._endpoint, self._params, tag="timetable")
+            json_response = await self._get_with_retry(self._endpoint, self._params)
             if not isinstance(json_response, dict):
                 await self.get_stop_name()
                 if self._stop_name and "nazwa_zespolu" in self._stop_name:
