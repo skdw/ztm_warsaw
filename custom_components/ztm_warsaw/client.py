@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 import time
 import json
+import re
 
 import aiohttp
 import async_timeout
@@ -20,17 +21,32 @@ def _sanitize_params(params: dict) -> dict:
         red["apikey"] = "****"
     return red
 
-def _ctx(stop_id: str = None, stop_nr: str = None, line: str = None) -> str:
+def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str | None = None, line: str | None = None) -> str:
     """Return a short, non-sensitive context string for logs.
-    Only includes busstopId, busstopNr, and line. Sensitive fields are omitted."""
-    parts = []
+    Accepts a full params dict (from which only whitelisted keys are read), or explicit kwargs.
+    Values are sanitized to avoid leaking sensitive/free-form data.
+    """
+    # If a dict is passed, extract only whitelisted keys
+    if isinstance(params, dict):
+        stop_id = params.get("busstopId") if stop_id is None else stop_id
+        stop_nr = params.get("busstopNr") if stop_nr is None else stop_nr
+        line = params.get("line") if line is None else line
+
+    def _safe(v: str | None) -> str:
+        if v is None:
+            return ""
+        # Keep only alphanumerics and a few safe characters; mask the rest
+        s = str(v)
+        s = re.sub(r"[^A-Za-z0-9_\-]", "*", s)
+        return s
+
+    parts: list[str] = []
     if stop_id is not None:
-        parts.append(f"stop_id={stop_id}")
+        parts.append(f"stop_id={_safe(stop_id)}")
     if stop_nr is not None:
-        parts.append(f"stop_nr={stop_nr}")
+        parts.append(f"stop_nr={_safe(stop_nr)}")
     if line is not None:
-        parts.append(f"line={line}")
-    # Never include apikey or other sensitive fields
+        parts.append(f"line=={_safe(line)}")
     return ", ".join(parts)
 
 # Client for interacting with the Warsaw ZTM public transport API
@@ -92,7 +108,7 @@ class ZTMStopClient:
                         if resp.status != 200:
                             _LOGGER.error(
                                 "HTTP %s from %s (%s)",
-                                resp.status, url, _ctx(params)
+                                resp.status, url, _ctx(stop_id=params.get("busstopId"), stop_nr=params.get("busstopNr"), line=params.get("line"))
                             )
                             return None if not expect_json else {}
                         if expect_json:
@@ -121,21 +137,15 @@ class ZTMStopClient:
                     continue
                 _LOGGER.error(
                     "Timeout after %ss for %s (%s)",
-                    self._timeout, url, _ctx({
-                        "busstopId": self._params.get("busstopId"),
-                        "busstopNr": self._params.get("busstopNr"),
-                        "line": self._params.get("line"),
-                    })
+                    self._timeout, url,
+                    _ctx(stop_id=self._params.get("busstopId"), stop_nr=self._params.get("busstopNr"), line=self._params.get("line"))
                 )
                 return None if not expect_json else {}
             except aiohttp.ClientError as e:
                 _LOGGER.error(
                     "Network error for %s: %s (%s)",
-                    url, e, _ctx({
-                        "busstopId": params.get("busstopId"),
-                        "busstopNr": params.get("busstopNr"),
-                        "line": params.get("line"),
-                    })
+                    url, e,
+                    _ctx(stop_id=params.get("busstopId"), stop_nr=params.get("busstopNr"), line=params.get("line"))
                 )
                 return None if not expect_json else {}
 
