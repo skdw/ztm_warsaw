@@ -49,6 +49,19 @@ def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str
         parts.append(f"line=={_safe(line)}")
     return ", ".join(parts)
 
+
+# Helper to build safe context string from a params dict
+def _ctxp(params: dict | None) -> str:
+    """Build safe context string from a params dict.
+    Values are first sanitized via `_sanitize_params`, then only whitelisted keys are used.
+    """
+    sp = _sanitize_params(params or {})
+    return _ctx(
+        stop_id=sp.get("busstopId"),
+        stop_nr=sp.get("busstopNr"),
+        line=sp.get("line"),
+    )
+
 # Client for interacting with the Warsaw ZTM public transport API
 class ZTMStopClient:
     def __init__(
@@ -108,7 +121,7 @@ class ZTMStopClient:
                         if resp.status != 200:
                             _LOGGER.error(
                                 "HTTP %s from %s (%s)",
-                                resp.status, url, _ctx(stop_id=params.get("busstopId"), stop_nr=params.get("busstopNr"), line=params.get("line"))
+                                resp.status, url, _ctxp(params)
                             )
                             return None if not expect_json else {}
                         if expect_json:
@@ -117,11 +130,7 @@ class ZTMStopClient:
                             except Exception:
                                 _LOGGER.error(
                                     "Invalid JSON from %s (%s)",
-                                    url, _ctx(
-                                        stop_id=params.get("busstopId"),
-                                        stop_nr=params.get("busstopNr"),
-                                        line=params.get("line"),
-                                    )
+                                    url, _ctxp(params)
                                 )
                                 return {}
                         return text
@@ -137,15 +146,13 @@ class ZTMStopClient:
                     continue
                 _LOGGER.error(
                     "Timeout after %ss for %s (%s)",
-                    self._timeout, url,
-                    _ctx(stop_id=self._params.get("busstopId"), stop_nr=self._params.get("busstopNr"), line=self._params.get("line"))
+                    self._timeout, url, _ctxp(self._params)
                 )
                 return None if not expect_json else {}
             except aiohttp.ClientError as e:
                 _LOGGER.error(
                     "Network error for %s: %s (%s)",
-                    url, e,
-                    _ctx(stop_id=params.get("busstopId"), stop_nr=params.get("busstopNr"), line=params.get("line"))
+                    url, e, _ctxp(params)
                 )
                 return None if not expect_json else {}
 
