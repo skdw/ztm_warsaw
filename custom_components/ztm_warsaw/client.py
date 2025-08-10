@@ -123,7 +123,11 @@ class ZTMStopClient:
                     continue
                 _LOGGER.error(
                     "Timeout after %ss for %s (%s)",
-                    self._timeout, url, _ctx(params)
+                    self._timeout, url, _ctx({
+                        "busstopId": self._params.get("busstopId"),
+                        "busstopNr": self._params.get("busstopNr"),
+                        "line": self._params.get("line"),
+                    })
                 )
                 return None if not expect_json else {}
             except aiohttp.ClientError as e:
