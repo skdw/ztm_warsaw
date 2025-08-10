@@ -133,7 +133,11 @@ class ZTMStopClient:
             except aiohttp.ClientError as e:
                 _LOGGER.error(
                     "Network error for %s: %s (%s)",
-                    url, e, _ctx(params)
+                    url, e, _ctx({
+                        "busstopId": params.get("busstopId"),
+                        "busstopNr": params.get("busstopNr"),
+                        "line": params.get("line"),
+                    })
                 )
                 return None if not expect_json else {}
 
