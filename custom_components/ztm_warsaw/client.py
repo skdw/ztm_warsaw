@@ -21,9 +21,11 @@ def _sanitize_params(params: dict) -> dict:
     return red
 
 def _ctx(params: dict) -> str:
-    """Return a short, non-sensitive context string for logs."""
+    """Return a short, non-sensitive context string for logs.
+    Only includes busstopId, busstopNr, and line. Sensitive fields are omitted."""
     if not isinstance(params, dict):
         return ""
+    # Only include explicitly non-sensitive fields
     stop_id = params.get("busstopId")
     stop_nr = params.get("busstopNr")
     line = params.get("line")
@@ -34,6 +36,7 @@ def _ctx(params: dict) -> str:
         parts.append(f"stop_nr={stop_nr}")
     if line is not None:
         parts.append(f"line={line}")
+    # Never include apikey or other sensitive fields
     return ", ".join(parts)
 
 # Client for interacting with the Warsaw ZTM public transport API
