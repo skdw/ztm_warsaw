@@ -20,15 +20,9 @@ def _sanitize_params(params: dict) -> dict:
         red["apikey"] = "****"
     return red
 
-def _ctx(params: dict) -> str:
+def _ctx(stop_id: str = None, stop_nr: str = None, line: str = None) -> str:
     """Return a short, non-sensitive context string for logs.
     Only includes busstopId, busstopNr, and line. Sensitive fields are omitted."""
-    if not isinstance(params, dict):
-        return ""
-    # Only include explicitly non-sensitive fields
-    stop_id = params.get("busstopId")
-    stop_nr = params.get("busstopNr")
-    line = params.get("line")
     parts = []
     if stop_id is not None:
         parts.append(f"stop_id={stop_id}")
@@ -107,11 +101,11 @@ class ZTMStopClient:
                             except Exception:
                                 _LOGGER.error(
                                     "Invalid JSON from %s (%s)",
-                                    url, _ctx({
-                                        "busstopId": params.get("busstopId"),
-                                        "busstopNr": params.get("busstopNr"),
-                                        "line": params.get("line"),
-                                    })
+                                    url, _ctx(
+                                        stop_id=params.get("busstopId"),
+                                        stop_nr=params.get("busstopNr"),
+                                        line=params.get("line"),
+                                    )
                                 )
                                 return {}
                         return text
