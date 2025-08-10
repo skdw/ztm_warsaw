@@ -107,7 +107,11 @@ class ZTMStopClient:
                             except Exception:
                                 _LOGGER.error(
                                     "Invalid JSON from %s (%s)",
-                                    url, _ctx(params)
+                                    url, _ctx({
+                                        "busstopId": params.get("busstopId"),
+                                        "busstopNr": params.get("busstopNr"),
+                                        "line": params.get("line"),
+                                    })
                                 )
                                 return {}
                         return text
