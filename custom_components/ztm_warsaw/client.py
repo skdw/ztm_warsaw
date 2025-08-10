@@ -20,6 +20,22 @@ def _sanitize_params(params: dict) -> dict:
         red["apikey"] = "****"
     return red
 
+def _ctx(params: dict) -> str:
+    """Return a short, non-sensitive context string for logs."""
+    if not isinstance(params, dict):
+        return ""
+    stop_id = params.get("busstopId")
+    stop_nr = params.get("busstopNr")
+    line = params.get("line")
+    parts = []
+    if stop_id is not None:
+        parts.append(f"stop_id={stop_id}")
+    if stop_nr is not None:
+        parts.append(f"stop_nr={stop_nr}")
+    if line is not None:
+        parts.append(f"line={line}")
+    return ", ".join(parts)
+
 # Client for interacting with the Warsaw ZTM public transport API
 class ZTMStopClient:
     def __init__(
@@ -78,8 +94,8 @@ class ZTMStopClient:
                             continue
                         if resp.status != 200:
                             _LOGGER.error(
-                                "HTTP %s from %s params=%s body=%s",
-                                resp.status, url, _sanitize_params(params), text[:300]
+                                "HTTP %s from %s (%s)",
+                                resp.status, url, _ctx(params)
                             )
                             return None if not expect_json else {}
                         if expect_json:
@@ -87,8 +103,8 @@ class ZTMStopClient:
                                 return json.loads(text)
                             except Exception:
                                 _LOGGER.error(
-                                    "Invalid JSON from %s params=%s body=%s",
-                                    url, _sanitize_params(params), text[:300]
+                                    "Invalid JSON from %s (%s)",
+                                    url, _ctx(params)
                                 )
                                 return {}
                         return text
@@ -103,14 +119,14 @@ class ZTMStopClient:
                     await asyncio.sleep(self._retry_backoff * attempt)
                     continue
                 _LOGGER.error(
-                    "Timeout after %ss for %s params=%s",
-                    self._timeout, url, _sanitize_params(params)
+                    "Timeout after %ss for %s (%s)",
+                    self._timeout, url, _ctx(params)
                 )
                 return None if not expect_json else {}
             except aiohttp.ClientError as e:
                 _LOGGER.error(
-                    "Network error for %s: %s params=%s",
-                    url, e, _sanitize_params(params)
+                    "Network error for %s: %s (%s)",
+                    url, e, _ctx(params)
                 )
                 return None if not expect_json else {}
 
