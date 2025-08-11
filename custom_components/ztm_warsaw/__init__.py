@@ -1,121 +1,105 @@
-from datetime import timedelta
-import random
-import asyncio
-from homeassistant.helpers.event import async_call_later, async_track_point_in_time
-from homeassistant.util import dt as dt_util
+# -*- coding: utf-8 -*-
+"""Home Assistant setup for the Warsaw Public Transport custom integration."""
+from __future__ import annotations
 
-class ZTMStopCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, client, stop_id, stop_nr, line):
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"ztm_warsaw_{stop_id}_{stop_nr}_{line}",
-            update_interval=timedelta(hours=1),
+import logging
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from collections.abc import Mapping
+
+from .const import DOMAIN, PLATFORMS
+from .client import ZTMStopClient
+from .coordinator import ZTMStopCoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the integration from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
+    # Merge data and options (options override data) for robustness
+    merged: dict[str, Any] = {}
+    if isinstance(entry.data, Mapping):
+        merged.update(entry.data)
+    if isinstance(entry.options, Mapping):
+        merged.update(entry.options)
+
+    def _first_nonempty(*keys: str) -> str | None:
+        for k in keys:
+            v = merged.get(k)
+            if v is None:
+                continue
+            # Normalize to string, strip spaces
+            s = str(v).strip()
+            if s:
+                return s
+        return None
+
+    api_key = _first_nonempty("api_key", "apikey", "apiKey")
+    stop_id = _first_nonempty("stop_id", "busstop_id", "busstopId", "busstopID", "stopId", "zespol")
+    stop_nr = _first_nonempty("stop_nr", "busstop_nr", "busstopNr", "stopNr", "slupek")
+    line = _first_nonempty("line", "linia")
+
+    missing = [name for name, val in [("api_key", api_key), ("stop_id", stop_id), ("stop_nr", stop_nr), ("line", line)] if val is None]
+    if missing:
+        _LOGGER.error(
+            "Missing required config: %s (provided keys=%s)",
+            ", ".join(missing),
+            ", ".join(sorted(merged.keys())),
         )
-        self.hass = hass
-        self.client = client
-        self.stop_id = stop_id
-        self.stop_nr = stop_nr
-        self.line = line
+        return False
 
-        self._retry_unsub = None
-        self._jitter_max_seconds = 45
+    session = async_get_clientsession(hass)
 
-        self._midnight_unsub = None
-        self._daily_unsub = None  # keep alias for clarity if not present
-        self._last_success_local_date = None  # date in Europe/Warsaw of last successful fetch
+    client = ZTMStopClient(
+        session=session,
+        api_key=api_key,
+        stop_id=stop_id,
+        stop_number=stop_nr,
+        line=line,
+    )
 
-    def _next_local_time(self, hour: int, minute: int = 0, second: int = 0):
-        """Return next datetime (tz-aware) at given local time (Europe/Warsaw)."""
-        now = dt_util.now()
-        target = now.replace(hour=hour, minute=minute, second=second, microsecond=0)
-        if target <= now:
-            target += timedelta(days=1)
-        return target
+    coordinator = ZTMStopCoordinator(
+        hass=hass,
+        client=client,
+        stop_id=stop_id,
+        stop_nr=stop_nr,
+        line=line,
+    )
 
-    def _schedule_daily_jobs(self):
-        # Cancel previous timers
-        if getattr(self, "_daily_refresh_unsub", None):
-            self._daily_refresh_unsub()
-            self._daily_refresh_unsub = None
-        if self._midnight_unsub:
-            self._midnight_unsub()
-            self._midnight_unsub = None
-
-        # Schedule midnight+few minutes refresh (00:03 local)
-        run_at_midnight = self._next_local_time(0, 3, 0)
-        self._midnight_unsub = async_track_point_in_time(
-            self.hass, self._midnight_refresh_callback, run_at_midnight
+    # Do not block setup on a transient API failure
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as err:  # noqa: BLE001 - surface initial error but continue
+        _LOGGER.warning(
+            "Initial fetch failed for %s/%s line %s: %s", stop_id, stop_nr, line, err
         )
 
-        # Keep existing 02:30 refresh
-        run_at_0230 = self._next_local_time(2, 30, 0)
-        self._daily_refresh_unsub = async_track_point_in_time(
-            self.hass, self._daily_refresh_callback, run_at_0230
-        )
+    hass.data[DOMAIN][entry.entry_id] = {
+        "coordinator": coordinator,
+        "client": client,
+    }
 
-        _LOGGER.debug(
-            "ZTM Coordinator [%s] — scheduled midnight refresh at %s and 02:30 refresh at %s",
-            self.name,
-            dt_util.as_local(run_at_midnight),
-            dt_util.as_local(run_at_0230),
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
 
-    async def async_config_entry_first_refresh(self):
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    stored = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    if stored and (coord := stored.get("coordinator")):
         try:
-            await self.async_refresh()
-        finally:
-            # (Re)schedule our daily jobs (00:03 and 02:30)
-            self._schedule_daily_jobs()
+            await coord.async_shutdown()
+        except Exception:  # noqa: BLE001 - shutdown should not crash unload
+            _LOGGER.debug("Coordinator shutdown raised; ignoring", exc_info=True)
 
-            # Day-change guard: if we started after midnight and last success was on a previous day, request a refresh soon.
-            if self._last_success_local_date:
-                today_local = dt_util.now().date()
-                if self._last_success_local_date != today_local:
-                    jitter = random.randint(0, getattr(self, "_jitter_max_seconds", 45))
-                    _LOGGER.debug("ZTM Coordinator [%s] — day-change guard scheduling immediate refresh (jitter=%ss)", self.name, jitter)
-                    async_call_later(self.hass, jitter, lambda _ts: self.hass.async_create_task(self.async_request_refresh()))
+    if not hass.data.get(DOMAIN):
+        hass.data.pop(DOMAIN, None)
 
-    async def _midnight_refresh_callback(self, now):
-        warsaw_now = dt_util.as_local(now)
-        jitter = random.randint(0, getattr(self, "_jitter_max_seconds", 45))
-        _LOGGER.debug("ZTM Coordinator [%s] — midnight refresh triggered at %s; applying jitter=%ss", self.name, warsaw_now, jitter)
-        await asyncio.sleep(jitter)
-
-        await self.async_refresh()
-
-        if not self.last_update_success:
-            delay = getattr(self, "_retry_delay_seconds", 120)
-            _LOGGER.warning("ZTM Coordinator [%s] — midnight refresh failed; scheduling retry in %ss", self.name, delay)
-            if getattr(self, "_retry_unsub", None):
-                self._retry_unsub()
-                self._retry_unsub = None
-
-            def _retry_cb(_ts):
-                self._retry_unsub = None
-                self.hass.async_create_task(self.async_request_refresh())
-
-            self._retry_unsub = async_call_later(self.hass, delay, _retry_cb)
-        else:
-            if getattr(self, "_retry_unsub", None):
-                self._retry_unsub()
-                self._retry_unsub = None
-
-    async def _async_update_data(self):
-        new_data = await self.client.async_get_departures()
-        if new_data is not None:
-            _LOGGER.debug("ZTM Coordinator [%s] — fetched new data successfully", self.name)
-            # Track last success date in local time (Europe/Warsaw)
-            self._last_success_local_date = dt_util.now().date()
-        return new_data
-
-    async def async_shutdown(self):
-        if self._midnight_unsub:
-            self._midnight_unsub()
-            self._midnight_unsub = None
-        if getattr(self, "_daily_refresh_unsub", None):
-            self._daily_refresh_unsub()
-            self._daily_refresh_unsub = None
-        if self._retry_unsub:
-            self._retry_unsub()
-            self._retry_unsub = None
+    return unload_ok
