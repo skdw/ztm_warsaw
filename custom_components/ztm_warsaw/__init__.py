@@ -55,9 +55,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             # Sensitive field missing – keep ERROR generic and move details to DEBUG, redacting
             _LOGGER.error("Missing required configuration. Please reconfigure this integration.")
+            # Do not log any sensitive field names or values, even at DEBUG level
             _LOGGER.debug(
-                "Missing (non-sensitive) fields: %s; provided keys: %s",
-                ", ".join(non_sensitive_missing) if non_sensitive_missing else "none",
+                "Some required fields are missing (at least one is sensitive). Provided non-sensitive keys: %s",
                 ", ".join(sorted(k for k in merged.keys() if k not in sensitive)),
             )
         return False
