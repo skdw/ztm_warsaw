@@ -57,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Missing required configuration. Please reconfigure this integration.")
             _LOGGER.debug(
                 "Missing (non-sensitive) fields: %s; provided keys: %s",
-                ", ".join(non_sensitive_missing) or "none",
+                ", ".join(non_sensitive_missing) if non_sensitive_missing else "none",
                 ", ".join(sorted(k for k in merged.keys() if k not in sensitive)),
             )
         return False
