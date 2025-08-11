@@ -46,11 +46,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     missing = [name for name, val in [("api_key", api_key), ("stop_id", stop_id), ("stop_nr", stop_nr), ("line", line)] if val is None]
     if missing:
-        _LOGGER.error(
-            "Missing required config: %s (provided keys=%s)",
-            ", ".join(missing),
-            ", ".join(sorted(merged.keys())),
-        )
+        sensitive = {"api_key", "apikey", "apiKey"}
+        non_sensitive_missing = [m for m in missing if m not in sensitive]
+
+        if len(non_sensitive_missing) == len(missing):
+            # No sensitive fields missing – safe to list them
+            _LOGGER.error("Missing required config: %s", ", ".join(non_sensitive_missing))
+        else:
+            # Sensitive field missing – keep ERROR generic and move details to DEBUG, redacting
+            _LOGGER.error("Missing required configuration. Please reconfigure this integration.")
+            _LOGGER.debug(
+                "Missing (non-sensitive) fields: %s; provided keys: %s",
+                ", ".join(non_sensitive_missing) or "none",
+                ", ".join(sorted(k for k in merged.keys() if k not in sensitive)),
+            )
         return False
 
     session = async_get_clientsession(hass)
