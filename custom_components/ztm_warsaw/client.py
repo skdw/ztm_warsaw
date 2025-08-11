@@ -263,32 +263,24 @@ class ZTMStopClient:
 
     async def get(self) -> Optional[ZTMDepartureData]:
         try:
-            # Ensure stop info is cached; this will be a no-op after the first successful fetch
-            await self.get_stop_name()
+            # Ensure stop info only if missing; otherwise avoid any network call
+            if self._stop_name is None:
+                await self.get_stop_name()
+
+            def _stop_info_with_name():
+                si = self._stop_name
+                if si and "nazwa_zespolu" in si:
+                    si = dict(si)
+                    si["stop_name"] = si["nazwa_zespolu"]
+                return si
 
             json_response = await self._get_with_retry(self._endpoint, self._params)
             if not isinstance(json_response, dict):
-                await self.get_stop_name()
-                if self._stop_name and "nazwa_zespolu" in self._stop_name:
-                    self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-                return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+                return ZTMDepartureData(departures=[], stop_info=_stop_info_with_name())
 
             result = json_response.get("result")
             if not isinstance(result, list):
-                if result is None:
-                    await self.get_stop_name()
-                    if self._stop_name and "nazwa_zespolu" in self._stop_name:
-                        self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-                    return ZTMDepartureData(departures=[], stop_info=self._stop_name)
-                if isinstance(result, str):
-                    await self.get_stop_name()
-                    if self._stop_name and "nazwa_zespolu" in self._stop_name:
-                        self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-                    return ZTMDepartureData(departures=[], stop_info=self._stop_name)
-                await self.get_stop_name()
-                if self._stop_name and "nazwa_zespolu" in self._stop_name:
-                    self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-                return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+                return ZTMDepartureData(departures=[], stop_info=_stop_info_with_name())
 
             # Parse each departure from the API response
             _departures = []
@@ -310,15 +302,8 @@ class ZTMStopClient:
             # Sort departures by their scheduled time
             _departures.sort(key=lambda x: x.time_to_depart)
             _LOGGER.debug("Loaded %d departures from API", len(_departures))
-            # Fetch stop metadata (name, location, etc.) after loading departures
-            await self.get_stop_name()
-            if self._stop_name and "nazwa_zespolu" in self._stop_name:
-                self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-            return ZTMDepartureData(departures=_departures, stop_info=self._stop_name)
+            return ZTMDepartureData(departures=_departures, stop_info=_stop_info_with_name())
 
         except Exception as e:
             _LOGGER.error("Unexpected error in timetable fetch: %s", e, exc_info=True)
-        await self.get_stop_name()
-        if self._stop_name and "nazwa_zespolu" in self._stop_name:
-            self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-        return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+        return ZTMDepartureData(departures=[], stop_info=_stop_info_with_name())
