@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Home Assistant setup for the Warsaw Public Transport custom integration."""
 from __future__ import annotations
 
