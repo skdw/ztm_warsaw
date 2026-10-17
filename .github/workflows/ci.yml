@@ -1,10 +1,10 @@
 name: CI
 
 # Lint, type check, tests, the Home Assistant and HACS validators, a dependency
-# audit, a secret scan, a workflow lint and the release bookkeeping check. Replaces
-# ruff.yaml, mypy.yaml, hassfest.yaml and hacs.yaml. The documentation-impact check
-# is its own workflow (docs-impact.yml) because it must also run when a pull request
-# description is edited.
+# audit, a secret scan, a workflow lint, the release bookkeeping check and the
+# coverage signals. Replaces ruff.yaml, mypy.yaml, hassfest.yaml and hacs.yaml. The
+# documentation-impact check is its own workflow (docs-impact.yml) because it must
+# also run when a pull request description is edited.
 #
 # The `name:` of every job below is the status-check name that branch protection
 # will require (docs/governance.md in the playbook). Rename one only together
@@ -124,7 +124,67 @@ jobs:
       # pytest-socket (part of the plugin) blocks real network access, so the suite
       # cannot reach the City of Warsaw API or leak a key.
       - name: pytest
-        run: pytest
+        run: pytest --cov --cov-report=xml --junitxml=junit.xml
+      - name: Keep the coverage and test reports for the coverage-signals job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: test-reports
+          path: |
+            coverage.xml
+            junit.xml
+          retention-days: 7
+          if-no-files-found: error
+
+  # Signals, not gates: this job is deliberately NOT a required status check and
+  # nothing in it can fail the Tests (pytest) job above. It only reports where the
+  # tests stand (Codecov: coverage of the diff; SonarCloud: coverage plus code
+  # smells and duplication). Pull requests from forks and from Dependabot cannot
+  # read repository secrets, so each step skips itself when its token is empty. A
+  # step's own `env:` is evaluated before its `if:`, which is what makes that work.
+  # SonarCloud's Automatic Analysis must stay OFF for the project (Administration >
+  # Analysis Method), or the CI-based scan below fails; sonar-project.properties
+  # explains why.
+  coverage-signals:
+    name: Coverage signals (Codecov, SonarCloud)
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          # The scan attributes new versus existing code by git blame: it needs
+          # the full history, not the default shallow clone.
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: test-reports
+      - name: Upload coverage to Codecov
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: coverage.xml
+          # A Codecov outage must not turn a signal into a failure.
+          fail_ci_if_error: false
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3  # v1.2.1
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: junit.xml
+      # CI-based analysis (sonar-project.properties), not SonarCloud's Automatic
+      # Analysis; the two are mutually exclusive.
+      - name: SonarCloud scan
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4  # v8.2.2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
 
   hassfest:
     name: Hassfest

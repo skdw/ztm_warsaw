@@ -219,6 +219,24 @@ async def test_h03_hang_blocks_until_released(fake_city):
     assert status == 200
 
 
+async def test_h03_waiting_for_a_hang_does_not_depend_on_how_fast_the_request_arrives(fake_city):
+    """A bounded spin of ``sleep(0)`` ran out on a slow CI runner with coverage tracing; the wait is event-driven."""
+    import asyncio
+
+    fake_city.always("timetable", Hang())
+    waiter = asyncio.ensure_future(fake_city.wait_hung(1))
+    for _ in range(10_000):  # far more loop turns than the old spin budget (3000), with no request in flight
+        await asyncio.sleep(0)
+    assert not waiter.done()
+    async with aiohttp.ClientSession() as s:
+        task = asyncio.ensure_future(legacy_get(s, LEGACY_TIMETABLE_ID, busstopId="7009", busstopNr="01", line="151"))
+        await asyncio.wait_for(waiter, timeout=30)
+        fake_city.heal()
+        status, _ = await task
+    assert status == 200
+    assert fake_city._hang_waiters == []
+
+
 # ---------------------------------------------------------------------- H-04 sandbox
 async def test_h04_only_the_fake_city_is_reachable(fake_city):
     async with aiohttp.ClientSession() as s:
