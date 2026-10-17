@@ -14,6 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "release_preflight.py"
 CI = ROOT / ".github" / "workflows" / "ci.yml"
+RELEASE = ROOT / ".github" / "workflows" / "release.yml"
 
 
 @pytest.fixture(scope="module")
@@ -246,3 +247,13 @@ def test_a_fast_forwarded_release_commit_is_on_the_mainline(preflight: ModuleTyp
     git(repo, "checkout", "-q", "main")
     git(repo, "merge", "-q", "--ff-only", "release-pr")
     assert preflight.on_mainline(bump, git(repo, "rev-list", "--first-parent", "main").splitlines())
+
+
+def test_release_runs_never_cancel_each_other_and_do_not_share_one_pending_slot() -> None:
+    """A concurrency group keeps one pending run and cancels older pending ones: with one group for every tag,
+    three tags pushed close together would lose a draft. The group is per ref and nothing is cancelled."""
+    text = RELEASE.read_text(encoding="utf-8")
+    block = re.search(r"^concurrency:\n((?:  .+\n)+)", text, re.MULTILINE)
+    assert block is not None
+    assert "group: ${{ github.workflow }}-${{ github.ref }}" in block.group(1)
+    assert "cancel-in-progress: false" in block.group(1)

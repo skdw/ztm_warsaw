@@ -28,10 +28,12 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+"
 
-# Never cancel a release mid-flight, only queue behind it (playbook
-# docs/ci-cookbook.md #2b).
+# Never cancel a release mid-flight (playbook docs/ci-cookbook.md #2b). One group per
+# tag, not one for the workflow: a group keeps a single pending run and cancels any
+# older pending one, so releases of several tags pushed close together would lose
+# drafts. Runs of different tags are independent, each creates its own draft.
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
