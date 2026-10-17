@@ -15,4 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
         with:
+          # Pinned on purpose: ruff 0.16.0 raised the default rule set from 59 to
+          # 413 rules, which turned this job red with no change to the code.
+          # Bump the version deliberately, together with the rules in pyproject.toml.
+          version: "0.17.1"
           args: check custom_components/ztm_warsaw
