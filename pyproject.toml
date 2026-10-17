@@ -13,3 +13,9 @@ target-version = "py312"
 # explicitly so that a ruff upgrade cannot add rules to a pull request's CI.
 # Widening this set, and fixing what it finds, is a separate change.
 select = ["E4", "E7", "E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Needed as soon as a test uses an async fixture such as `hass` from
+# pytest-homeassistant-custom-component: pytest 9 rejects async fixtures in strict mode.
+asyncio_mode = "auto"
