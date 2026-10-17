@@ -468,3 +468,41 @@ def test_a_rule_after_a_blank_line_does_not_end_the_section(docs_impact: ModuleT
 def test_an_empty_atx_heading_ends_the_section(docs_impact: ModuleType, heading: str) -> None:
     description = f"## Documentation impact\n\n- [ ] Docs updated\n\n{heading}\n- [x] Docs updated\n"
     assert docs_impact.read_declaration(description) == (False, False)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["#hashtag", "#5", "-foo", "+x", "*x", "1.x", "<3 you", "Text\n    indented continuation", "Text\n\ttabbed continuation"],
+)
+def test_text_that_only_looks_like_a_block_marker_is_a_setext_heading(docs_impact: ModuleType, text: str) -> None:
+    body = f"## Documentation impact\n\n- [ ] Docs updated\n\n{text}\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (False, False)
+
+
+@pytest.mark.parametrize("block", ["- item", "1. item", "> quote", "    indented code", "***"])
+def test_a_rule_after_another_block_does_not_end_the_section(docs_impact: ModuleType, block: str) -> None:
+    body = f"## Documentation impact\n\n- [ ] Docs updated\n\n{block}\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (True, False)
+
+
+@pytest.mark.parametrize("marker", ["+", "-", "*", "1.", "2.", "3)"])
+def test_an_empty_list_item_cannot_interrupt_a_paragraph(docs_impact: ModuleType, marker: str) -> None:
+    body = f"## Documentation impact\n\n- [ ] Docs updated\n\nText\n{marker}\n===\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (False, False)
+
+
+@pytest.mark.parametrize("marker", ["2. x", "10) x", "7. x"])
+def test_an_ordered_item_not_starting_at_one_cannot_interrupt_a_paragraph(docs_impact: ModuleType, marker: str) -> None:
+    body = f"## Documentation impact\n\n- [ ] Docs updated\n\nText\n{marker}\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (False, False)
+
+
+@pytest.mark.parametrize("marker", ["1. x", "01. x", "- x", "* x"])
+def test_a_list_item_that_can_interrupt_a_paragraph_does_end_it(docs_impact: ModuleType, marker: str) -> None:
+    body = f"## Documentation impact\n\n- [ ] Docs updated\n\nText\n{marker}\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (True, False)
+
+
+def test_a_rule_after_a_paragraph_and_a_blank_line_does_not_end_the_section(docs_impact: ModuleType) -> None:
+    body = "## Documentation impact\n\n- [ ] Docs updated\n\nSome text\n\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(body) == (True, False)

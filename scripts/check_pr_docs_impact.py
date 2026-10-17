@@ -32,9 +32,16 @@ FENCE_CLOSE = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*$")
 SECTION_HEADING = re.compile(r"^ {0,3}## Documentation impact[ \t]*$", re.MULTILINE | re.IGNORECASE)
 ATX_H1_H2 = re.compile(r"^ {0,3}#{1,2}(?:[ \t]|$)")
 SETEXT_UNDERLINE = re.compile(r"^ {0,3}(?:=+|-+)[ \t]*$")
-# A line that starts some other block (code, list, quote, heading, HTML, fence); any
-# other non-blank line is paragraph text, which a setext underline turns into a heading.
-OTHER_BLOCK = re.compile(r"^(?: {4}|\t| {0,3}(?:[-*+>#<]|\d{1,9}[.)]|`{3}|~{3}))")
+# A line that starts a block of its own: an ATX heading, a list item or a quote. Markers
+# need the whitespace Markdown requires ("#hashtag" and "-foo" are paragraph text). Any
+# other non-blank line is paragraph text, which a setext underline turns into a heading;
+# when unsure the scanner reads text as a paragraph, which can only end the section early.
+BLOCK_START = re.compile(r"^ {0,3}(?:#{1,6}|[-*+]|\d{1,9}[.)])(?:[ \t]|$)|^ {0,3}>")
+# These list items cannot interrupt a paragraph: an empty one, and an ordered one that
+# does not start at 1. Inside a paragraph they are plain text.
+PLAIN_IN_PARAGRAPH = re.compile(r"^ {0,3}(?:(?:[-*+]|\d{1,9}[.)])[ \t]*$|(?!0*1[.)])\d{1,9}[.)](?:[ \t]|$))")
+THEMATIC_BREAK = re.compile(r"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$")
+INDENTED = re.compile(r"^(?: {4}|\t)")
 HTML_COMMENT_BLOCK = re.compile(r"^ {0,3}<!--")
 
 DOCS_UPDATED = re.compile(r"^- \[[xX]\] Docs updated\s*$", re.MULTILINE)
@@ -133,13 +140,25 @@ def declaration_section(body: str) -> str | None:
     if heading is None:
         return None
     lines = text[heading.end() :].split("\n")
+    return "\n".join(lines[: section_end(lines)])
+
+
+def section_end(lines: Sequence[str]) -> int:
+    """Return the index of the line where the section ends: an ATX heading, or the paragraph a setext underline turns into one."""
+    paragraph_start: int | None = None
     for i, line in enumerate(lines):
         if ATX_H1_H2.match(line):
-            return "\n".join(lines[:i])
-        # Paragraph text over "---" or "===" is a heading too: the text line starts it.
-        if i and SETEXT_UNDERLINE.match(line) and lines[i - 1].strip() and not OTHER_BLOCK.match(lines[i - 1]):
-            return "\n".join(lines[: i - 1])
-    return "\n".join(lines)
+            return i
+        if paragraph_start is not None and SETEXT_UNDERLINE.match(line):
+            return paragraph_start
+        if not line.strip():
+            paragraph_start = None
+        elif BLOCK_START.match(line) or THEMATIC_BREAK.match(line):
+            if paragraph_start is None or not PLAIN_IN_PARAGRAPH.match(line):
+                paragraph_start = None
+        elif paragraph_start is None and not INDENTED.match(line):
+            paragraph_start = i
+    return len(lines)
 
 
 def read_declaration(body: str) -> tuple[bool, bool]:
