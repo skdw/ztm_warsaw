@@ -7,8 +7,9 @@ changed doc path, and "No doc update needed" must not coexist with one. Runs onl
 on pull_request events; on anything else it exits cleanly.
 
 One deliberate difference from the original, which searches the whole description:
-only the ``## Documentation impact`` section counts. A ticked item quoted in another
-section, or sitting in a code block or an HTML comment, is not a declaration.
+only the ``## Documentation impact`` section counts, and only the text a reader can see.
+A ticked item quoted in another section, or sitting in a code block or an HTML comment
+(closed or not), is not a declaration.
 
 Every message printed here is a constant: the pull request body, branch names and
 file names never reach the log or a workflow command.
@@ -25,12 +26,16 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-# Quoted or hidden text never counts: fenced code blocks (an unterminated fence runs to
-# the end, as GitHub renders it) and HTML comments are removed before looking for the section.
-FENCE = re.compile(r"^(```|~~~)[^\n]*\n.*?(?:^\1[^\n]*$|\Z)", re.MULTILINE | re.DOTALL)
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-SECTION_HEADING = re.compile(r"^## Documentation impact[ \t]*$", re.MULTILINE | re.IGNORECASE)
-NEXT_HEADING = re.compile(r"^#{1,2} ", re.MULTILINE)
+# Markdown allows a heading or a fence to be indented by up to three spaces.
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+FENCE_CLOSE = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*$")
+SECTION_HEADING = re.compile(r"^ {0,3}## Documentation impact[ \t]*$", re.MULTILINE | re.IGNORECASE)
+ATX_H1_H2 = re.compile(r"^ {0,3}#{1,2}(?:[ \t]|$)")
+SETEXT_UNDERLINE = re.compile(r"^ {0,3}(?:=+|-+)[ \t]*$")
+# A line that starts some other block (code, list, quote, heading, HTML, fence); any
+# other non-blank line is paragraph text, which a setext underline turns into a heading.
+OTHER_BLOCK = re.compile(r"^(?: {4}|\t| {0,3}(?:[-*+>#<]|\d{1,9}[.)]|`{3}|~{3}))")
+HTML_COMMENT_BLOCK = re.compile(r"^ {0,3}<!--")
 
 DOCS_UPDATED = re.compile(r"^- \[[xX]\] Docs updated\s*$", re.MULTILINE)
 NO_DOC_UPDATE_TICKED = re.compile(r"^- \[[xX]\] No doc update needed:", re.MULTILINE)
@@ -59,19 +64,82 @@ def is_doc_path(path: str) -> bool:
     return path.startswith("docs/") or ("/" not in path and path.endswith(".md"))
 
 
+def visible_text(body: str) -> str:
+    """Return the description as GitHub shows it: without code blocks and HTML comments.
+
+    Scans line by line, so whichever of a fence and a comment starts first wins, as in
+    Markdown. A fenced code block (indented by up to three spaces) ends at a matching
+    closing fence; one that is never closed runs to the end of the description. An HTML
+    comment ends at ``-->``; one that is never closed hides the rest of the description,
+    which is how GitHub renders it. A comment that opens a line is an HTML block, so the
+    text after its ``-->`` on that same line is hidden too. Windows line endings are
+    normalised.
+    """
+    visible: list[str] = []
+    fence: str | None = None
+    in_comment = False
+    comment_block = False
+    for line in body.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if fence is not None:
+            closing = FENCE_CLOSE.match(line)
+            if closing and closing.group(1)[0] == fence[0] and len(closing.group(1)) >= len(fence):
+                fence = None
+            continue
+        if in_comment:
+            end = line.find("-->")
+            if end == -1:
+                continue
+            in_comment = False
+            if comment_block:
+                continue
+            line = line[end + 3 :]
+        else:
+            opening = FENCE_OPEN.match(line)
+            # The info string of a backtick fence cannot contain a backtick (that is inline code).
+            if opening and not (opening.group(1)[0] == "`" and "`" in opening.group(2)):
+                fence = opening.group(1)
+                continue
+            if HTML_COMMENT_BLOCK.match(line):
+                # A comment that opens a line is an HTML block: it runs to the line that
+                # contains the closing arrow, and that whole line belongs to the block.
+                in_comment = comment_block = "-->" not in line[line.index("<!--") + 2 :]
+                continue
+        kept: list[str] = []
+        rest = line
+        while True:
+            start = rest.find("<!--")
+            if start == -1:
+                kept.append(rest)
+                break
+            kept.append(rest[:start])
+            end = rest.find("-->", start + 4)
+            if end == -1:
+                in_comment = True
+                comment_block = False
+                break
+            rest = rest[end + 3 :]
+        visible.append("".join(kept))
+    return "\n".join(visible)
+
+
 def declaration_section(body: str) -> str | None:
     """Return the text of the ``## Documentation impact`` section, or None if there is none.
 
-    The section runs to the next level-1 or level-2 heading (or the end). Code blocks and
-    HTML comments are removed first, and Windows line endings are normalised.
+    The section runs to the next level-1 or level-2 heading (or the end) of the text a
+    reader sees (see ``visible_text``). A setext heading (text over ``---`` or ``===``) ends it as well.
     """
-    text = HTML_COMMENT.sub("", FENCE.sub("", body.replace("\r\n", "\n")))
+    text = visible_text(body)
     heading = SECTION_HEADING.search(text)
     if heading is None:
         return None
-    rest = text[heading.end() :]
-    following = NEXT_HEADING.search(rest)
-    return rest[: following.start()] if following else rest
+    lines = text[heading.end() :].split("\n")
+    for i, line in enumerate(lines):
+        if ATX_H1_H2.match(line):
+            return "\n".join(lines[:i])
+        # Paragraph text over "---" or "===" is a heading too: the text line starts it.
+        if i and SETEXT_UNDERLINE.match(line) and lines[i - 1].strip() and not OTHER_BLOCK.match(lines[i - 1]):
+            return "\n".join(lines[: i - 1])
+    return "\n".join(lines)
 
 
 def read_declaration(body: str) -> tuple[bool, bool]:

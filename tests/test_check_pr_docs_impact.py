@@ -343,3 +343,128 @@ def test_a_lower_level_heading_does_not_end_the_section(docs_impact: ModuleType)
 def test_a_windows_description_is_read_like_a_unix_one(docs_impact: ModuleType) -> None:
     description = "## Description\r\n\r\ntext\r\n\r\n## Documentation impact\r\n\r\n- [x] Docs updated\r\n\r\n## Checklist\r\n"
     assert docs_impact.read_declaration(description) == (True, False)
+
+
+# --- the text a reader sees: comments and code blocks as GitHub renders them -----------
+
+
+def test_an_unterminated_html_comment_hides_the_rest_of_the_description(docs_impact: ModuleType) -> None:
+    description = "## Description\n\n<!-- forgot to close this\n\n## Documentation impact\n\n- [x] Docs updated\n"
+    assert docs_impact.declaration_section(description) is None
+    assert docs_impact.evaluate(description, ["README.md"]) == [docs_impact.MSG_NO_SECTION]
+
+
+def test_an_unterminated_comment_started_mid_line_also_hides_the_rest(docs_impact: ModuleType) -> None:
+    description = in_section(f"{UNTOUCHED}text <!-- never closed\n- [x] Docs updated\n")
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_a_tick_before_an_unterminated_comment_still_counts(docs_impact: ModuleType) -> None:
+    description = in_section("- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n<!-- never closed\n")
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_text_around_a_closed_comment_stays_visible(docs_impact: ModuleType) -> None:
+    description = in_section("- [x] Docs updated <!-- reviewer note --> \n- [ ] No doc update needed: <state the reason><!---->\n")
+    assert docs_impact.read_declaration(description) == (True, False)
+    mid_line_start = in_section("note <!-- start\nend -->\n- [x] Docs updated\n")
+    assert docs_impact.read_declaration(mid_line_start) == (True, False)
+
+
+@pytest.mark.parametrize("indent", ["", " ", "  ", "   "])
+def test_a_fence_indented_by_up_to_three_spaces_is_a_code_block(docs_impact: ModuleType, indent: str) -> None:
+    description = in_section(f"{UNTOUCHED}{indent}```\n- [x] Docs updated\n{indent}```\n")
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_four_spaces_of_indentation_is_not_a_fence(docs_impact: ModuleType) -> None:
+    description = in_section("    ```\n- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n")
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_a_fence_needs_a_matching_closing_fence(docs_impact: ModuleType) -> None:
+    long_fence = in_section(f"{UNTOUCHED}````\n```\n- [x] Docs updated\n```\n````\n")
+    assert docs_impact.read_declaration(long_fence) == (False, False)  # the inner ``` does not close a 4-backtick fence
+    other_char = in_section(f"{UNTOUCHED}```\n~~~\n- [x] Docs updated\n~~~\n```\n")
+    assert docs_impact.read_declaration(other_char) == (False, False)  # ~~~ does not close a ``` fence
+    reopened = in_section("```\ncode\n```\n- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n")
+    assert docs_impact.read_declaration(reopened) == (True, False)  # a closed fence ends
+
+
+def test_a_backtick_fence_with_a_backtick_in_its_info_string_is_inline_code(docs_impact: ModuleType) -> None:
+    description = in_section("``` not a `fence`\n- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n")
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_whichever_of_a_fence_and_a_comment_starts_first_wins(docs_impact: ModuleType) -> None:
+    fence_in_comment = in_section(f"<!--\n```\n-->\n{UNTOUCHED}- [x] Docs updated\n")
+    assert docs_impact.read_declaration(fence_in_comment) == (True, False)  # the fence marker sat inside the comment, so no fence opened
+    comment_in_fence = in_section("```\n<!--\n```\n- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n")
+    assert docs_impact.read_declaration(comment_in_fence) == (True, False)  # the comment never started
+
+
+def test_a_heading_indented_by_up_to_three_spaces_ends_the_section(docs_impact: ModuleType) -> None:
+    three = "## Documentation impact\n\n- [ ] Docs updated\n   ## Checklist\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(three) == (False, False)
+    four = "## Documentation impact\n\n    ## not a heading\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(four) == (True, False)
+
+
+def test_a_section_heading_may_be_indented_by_up_to_three_spaces(docs_impact: ModuleType) -> None:
+    assert docs_impact.read_declaration("   ## Documentation impact\n\n- [x] Docs updated\n") == (True, False)
+    assert docs_impact.read_declaration("    ## Documentation impact\n\n- [x] Docs updated\n") == (False, False)
+
+
+def test_a_stray_closing_arrow_does_not_close_a_later_comment(docs_impact: ModuleType) -> None:
+    description = in_section(f"{UNTOUCHED}--> <!-- never closed\n- [x] Docs updated\n")
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_text_before_a_comment_is_kept_once_even_after_a_stray_closing_arrow(docs_impact: ModuleType) -> None:
+    assert docs_impact.visible_text("a --> b <!-- c --> d") == "a --> b  d"
+
+
+def test_text_after_a_comment_that_opens_a_line_is_part_of_the_comment_block(docs_impact: ModuleType) -> None:
+    # CommonMark HTML block: the whole line that contains the closing arrow is raw HTML.
+    glued = in_section("<!-- c -->- [x] Docs updated\n")
+    assert docs_impact.read_declaration(glued) == (False, False)
+    multi = in_section("<!-- c\nstill comment -->- [x] Docs updated\n")
+    assert docs_impact.read_declaration(multi) == (False, False)
+
+
+def test_text_after_a_comment_that_opens_mid_line_stays_visible(docs_impact: ModuleType) -> None:
+    assert docs_impact.visible_text("a <!-- c -->\n- [x] Docs updated") == "a \n- [x] Docs updated"
+    assert docs_impact.visible_text("a <!-- c\nd --> e\nf") == "a \n e\nf"
+
+
+def test_a_setext_heading_ends_the_section(docs_impact: ModuleType) -> None:
+    for underline in ("---", "===", "  --", "="):
+        body = f"## Documentation impact\n\n- [ ] Docs updated\n\nNext\n{underline}\n- [x] Docs updated\n"
+        assert docs_impact.read_declaration(body) == (False, False), underline
+
+
+def test_a_rule_after_a_list_item_or_a_blank_line_is_not_a_setext_heading(docs_impact: ModuleType) -> None:
+    after_item = "## Documentation impact\n\n- [x] Docs updated\n---\n"
+    after_blank = "## Documentation impact\n\n- [x] Docs updated\n\n---\n"
+    assert docs_impact.read_declaration(after_item) == (True, False)
+    assert docs_impact.read_declaration(after_blank) == (True, False)
+
+
+def test_a_comment_that_closes_on_its_own_opening_line_hides_nothing_after_it(docs_impact: ModuleType) -> None:
+    description = in_section("<!-->\n- [x] Docs updated\n")
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_an_inline_comment_after_a_block_comment_keeps_the_text_after_its_arrow(docs_impact: ModuleType) -> None:
+    assert docs_impact.visible_text("<!-- a\nb -->\nnote <!-- c\nd --> e") == "note \n e"
+
+
+def test_a_rule_after_a_blank_line_does_not_end_the_section(docs_impact: ModuleType) -> None:
+    description = "## Documentation impact\n\n- [ ] Docs updated\n\n---\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+@pytest.mark.parametrize("heading", ["#", "##"])
+def test_an_empty_atx_heading_ends_the_section(docs_impact: ModuleType, heading: str) -> None:
+    description = f"## Documentation impact\n\n- [ ] Docs updated\n\n{heading}\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(description) == (False, False)
