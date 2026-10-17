@@ -1,8 +1,10 @@
 name: CI
 
-# Lint, type check, the Home Assistant and HACS validators, a dependency audit, a
-# secret scan and a workflow lint. Replaces ruff.yaml, mypy.yaml, hassfest.yaml and
-# hacs.yaml. Tests are added to this file by a follow-up pull request.
+# Lint, type check, tests, the Home Assistant and HACS validators, a dependency
+# audit, a secret scan, a workflow lint and the release bookkeeping check. Replaces
+# ruff.yaml, mypy.yaml, hassfest.yaml and hacs.yaml. The documentation-impact check
+# is its own workflow (docs-impact.yml) because it must also run when a pull request
+# description is edited.
 #
 # The `name:` of every job below is the status-check name that branch protection
 # will require (docs/governance.md in the playbook). Rename one only together
@@ -103,6 +105,27 @@ jobs:
             exit 1
           fi
 
+  tests:
+    name: Tests (pytest)
+    # Pinned for the same reason as the mypy job: it installs the Home Assistant tree.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      - name: Install requirements_test.txt
+        run: python -m pip install -r requirements_test.txt
+      # pytest-socket (part of the plugin) blocks real network access, so the suite
+      # cannot reach the City of Warsaw API or leak a key.
+      - name: pytest
+        run: pytest
+
   hassfest:
     name: Hassfest
     runs-on: ubuntu-latest
@@ -112,24 +135,26 @@ jobs:
         with:
           persist-credentials: false
       # Pinned to a commit of the default branch (the repository has no recent
-      # release). The date is the commit date. The trailing comment is
-      # deliberately not a bare branch name: zizmor's ref-version-mismatch audit
-      # fails as soon as that branch moves past the pin. The wrapper starts the
-      # ghcr.io/home-assistant/hassfest image, which this pin does not freeze.
-      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6  # master 2026-09-27
+      # release). The trailing comment is deliberately not a branch name and not a
+      # date: zizmor's ref-version-mismatch audit fails as soon as a named branch
+      # moves past the pin, and Dependabot bumps the SHA without touching the
+      # comment, so a date would go stale. Prefer a commit at least 7 days old when
+      # bumping by hand. The wrapper starts the ghcr.io/home-assistant/hassfest
+      # image, which this pin does not freeze.
+      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6  # default branch
 
   hacs:
     name: HACS validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # Pinned to a commit of the default branch (the last release is from 2022).
-      # The date is the commit date; see the hassfest job for why the comment is
-      # not a bare branch name. The wrapper starts the ghcr.io/hacs/action:main
-      # image, which this pin does not freeze. The validator fetches brand assets
+      # Pinned to a commit of the default branch (the last release is from 2022);
+      # see the hassfest job for why the comment is not a branch name or a date.
+      # The wrapper starts the ghcr.io/hacs/action:main image, which this pin does
+      # not freeze. The validator fetches brand assets
       # from brands.home-assistant.io, so a run can fail on a network error alone:
       # re-run the job before suspecting the change, and do not require this check.
-      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # main 2026-06-08
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # default branch
         with:
           category: integration
 
@@ -245,3 +270,16 @@ jobs:
           version: v1.30.1
           advanced-security: false
           annotations: true
+
+  release-bookkeeping:
+    name: Release bookkeeping
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      # manifest.json "version" must have a non-empty CHANGELOG.md section, so a
+      # release commit that forgets one of the two fails here, not at tag time.
+      - name: manifest.json version and CHANGELOG.md agree
+        run: python3 scripts/release_check.py

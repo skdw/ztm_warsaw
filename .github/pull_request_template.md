@@ -28,10 +28,11 @@ meanings are unchanged. If one changes, link the migration plan.
 ## Documentation impact
 
 <!--
-Select exactly one. "Docs updated" means README.md, CHANGELOG.md, SECURITY.md,
-CONTRIBUTING.md, AGENTS.md or docs/ changed in this PR. A test-only, CI-only or
-code-only change with no user-visible effect is the case for "No doc update
-needed", with a real reason after the colon.
+Select exactly one. "Docs updated" means a Markdown file in the repository root
+(README.md, CHANGELOG.md, SECURITY.md, CONTRIBUTING.md, AGENTS.md, ...) or anything
+under docs/ changed in this PR. A test-only, CI-only or code-only change with no
+user-visible effect is the case for "No doc update needed", with a real reason
+after the colon.
 -->
 
 - [ ] Docs updated
