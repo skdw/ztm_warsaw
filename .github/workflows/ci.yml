@@ -8,7 +8,9 @@ name: CI
 #
 # The `name:` of every job below is the status-check name that branch protection
 # will require (docs/governance.md in the playbook). Rename one only together
-# with the branch protection list, or every pull request stays blocked.
+# with the branch protection list, or every pull request stays blocked, and with
+# REQUIRED in scripts/release_preflight.py (a test checks the latter), or every
+# release stays blocked.
 #
 # There is deliberately no `schedule:` here. GitHub disables a scheduled
 # workflow after 60 days without repository activity, and a disabled workflow

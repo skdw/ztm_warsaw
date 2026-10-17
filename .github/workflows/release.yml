@@ -1,0 +1,89 @@
+name: Release
+
+# Pushing a version tag prepares a DRAFT GitHub Release; publishing it is a
+# decision the maintainer takes by hand. HACS offers an update only for a
+# published Release, so nothing reaches users until then.
+#
+# To release:
+#   1. In one pull request, set "version" in custom_components/ztm_warsaw/manifest.json
+#      and move the notes under a "## [X.Y.Z]" heading in CHANGELOG.md (a beta,
+#      X.Y.ZbN, takes its notes from "## [Unreleased]"). Merge it.
+#   2. Wait for CI on main to finish, then tag that merge commit vX.Y.Z (or vX.Y.ZbN)
+#      and push the tag.
+#   3. This workflow checks, in this order, and creates the draft only if all pass:
+#        - the tagged commit is on main;
+#        - the tag is "v" + the manifest.json version and CHANGELOG.md has real notes
+#          for it (scripts/release_check.py, which also writes the notes);
+#        - the CI checks listed in scripts/release_preflight.py succeeded on that
+#          commit, among them HACS validation, which is not required to merge.
+#   4. Read the draft, then publish it (a beta is published as a pre-release).
+#
+# If a check was still running when the tag was pushed, re-run this workflow
+# afterwards. A failed check is fixed with a new commit and a new tag; do not move
+# a tag that was already pushed.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+
+# Never cancel a release mid-flight, only queue behind it (playbook
+# docs/ci-cookbook.md #2b).
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  draft-release:
+    name: Draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create the draft Release
+      checks: read # read the check runs of the tagged commit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the branch history, to see that the tagged commit is on main
+
+      - name: The tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit is not on main. Tag the merge commit on main."
+            exit 1
+          fi
+
+      - name: Check the tag against manifest.json and CHANGELOG.md, and write the notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          NOTES_OUT: ${{ runner.temp }}/release-notes.md
+        run: python3 scripts/release_check.py
+
+      - name: Read the check runs of the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/${REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" \
+            --jq '.check_runs[] | {id, name, status, conclusion, app: .app.slug}' \
+            > "${RUNNER_TEMP}/check-runs.jsonl"
+
+      - name: Require the CI checks on that commit to have succeeded
+        run: python3 scripts/release_preflight.py "${RUNNER_TEMP}/check-runs.jsonl"
+
+      - name: Create the draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md
+        run: |
+          set -euo pipefail
+          if [[ "$TAG" == *b[0-9]* ]]; then
+            gh release create "$TAG" --draft --prerelease --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+          fi
