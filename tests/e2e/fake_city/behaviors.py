@@ -172,6 +172,7 @@ class Hang(Behavior):
     async def respond(self, fake, call, request):
         call.hanging = True
         fake._hanging += 1
+        fake._hang_started()
         try:
             await fake._gate.wait()
         finally:

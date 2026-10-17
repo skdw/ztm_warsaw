@@ -31,7 +31,6 @@ from homeassistant.util import dt as dt_util
 
 from . import data
 from .behaviors import BadKey, Behavior, NullResult, ParamError, Respond
-from .routing import HarnessError
 from .data import (
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
@@ -125,6 +124,7 @@ class FakeCity:
         self._rules: list[_Rule] = []
         self._gate = asyncio.Event()
         self._hanging = 0
+        self._hang_waiters: list[tuple[int, asyncio.Future]] = []
         self._offline = False
         self._legacy = TestServer(self._legacy_app(), host="127.0.0.1", port=0)
         self._new = TestServer(self._new_app(), host="127.0.0.1", port=0)
@@ -190,13 +190,30 @@ class FakeCity:
         """How many requests have entered a Hang behavior so far (finished or not)."""
         return sum(1 for c in self.calls if c.hanging)
 
-    async def wait_hung(self, n: int = 1, *, spins: int = 3000) -> None:
-        """Wait (real I/O, no sleeping on the clock) until ``n`` requests in total have hit a Hang."""
-        for _ in range(spins):
-            if self.hung_total() >= n:
-                return
-            await asyncio.sleep(0)
-        raise HarnessError(f"only {self.hung_total()} of {n} requests reached the hanging fake")
+    def _hang_started(self) -> None:
+        """Called by the Hang behavior once a request is stuck: wake the waiters whose threshold is met."""
+        total = self.hung_total()
+        for waiter in list(self._hang_waiters):
+            threshold, future = waiter
+            if total >= threshold and not future.done():
+                future.set_result(None)
+            if future.done():
+                self._hang_waiters.remove(waiter)
+
+    async def wait_hung(self, n: int = 1) -> None:
+        """Wait until ``n`` requests in total have hit a Hang.
+
+        Event-driven, not a bounded spin: a spin budget is a race against the speed of the machine (it ran out
+        on a CI runner with coverage tracing). If a request never arrives, the per-test timeout ends the test.
+        """
+        if self.hung_total() >= n:
+            return
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+        self._hang_waiters.append((n, future))
+        try:
+            await future
+        finally:
+            self._hang_waiters[:] = [w for w in self._hang_waiters if w[1] is not future]
 
     # ------------------------------------------------------------------ counting
     def count(self, endpoint: str | None = None, contract: str | None = None, **match: str) -> int:
