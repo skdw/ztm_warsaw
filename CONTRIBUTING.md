@@ -151,12 +151,16 @@ CodeRabbit on request) may comment on your pull request; their findings are inpu
   every pull request and reports only):
 
   ```bash
-  git clone https://github.com/solarssk/playbook.git ../playbook   # once
+  [ -d ../playbook ] || git clone https://github.com/solarssk/playbook.git ../playbook
+  git -C ../playbook fetch --tags origin
+  git -C ../playbook checkout "$(gh release view --repo solarssk/playbook --json tagName --jq .tagName)"
   GITHUB_REPOSITORY=solarssk/ztm_warsaw GH_TOKEN="$(gh auth token)" ADMIN_TOKEN="$(gh auth token)" \
     node ../playbook/scripts/verify-tier.mjs
   ```
 
-  Expected: no failures, and the two warnings listed in AGENTS.md (`sast`, `readme-opens-well`).
+  The two middle lines move the checkout to the playbook's latest release on every run, so a check
+  that a newer release added is not missed by a clone that was made a year ago. Expected: no
+  failures, and the two warnings listed in AGENTS.md (`sast`, `readme-opens-well`).
 
 ## Questions
 
