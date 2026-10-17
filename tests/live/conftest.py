@@ -18,13 +18,27 @@ def pytest_collection_modifyitems(config, items):
         return
     skip = pytest.mark.skip(reason="set ZTM_LIVE_API_KEY (and run `pytest -m live`) to validate the real API")
     for item in items:
-        if "live" in item.keywords:
+        if item.get_closest_marker("live"):
             item.add_marker(skip)
 
 
+class LiveKey(str):
+    """The key as a ``str`` whose ``repr`` is redacted.
+
+    pytest prints the arguments of a failing test and of the last traceback frame, and assertion
+    introspection prints the operands of a failed ``assert``; both use ``repr``. ``str()``, f-strings and
+    the value itself are unchanged, so the key still works as a request parameter or header.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "<ZTM_LIVE_API_KEY redacted>"
+
+
 @pytest.fixture
-def live_key() -> str:
-    return os.environ["ZTM_LIVE_API_KEY"].strip()
+def live_key() -> LiveKey:
+    return LiveKey(os.environ["ZTM_LIVE_API_KEY"].strip())
 
 
 @pytest.fixture

@@ -8,7 +8,8 @@ against api.um.warszawa.pl / dane.um.warszawa.pl.
 Rules
 * never in PR CI; never without a key. ``-m live`` AND ``ZTM_LIVE_API_KEY`` are both required.
 * at most 6 requests per run, one per test, at human pace. The stops catalogue (1.6 MB) is opt-in.
-* the key is never printed: errors are re-raised as the exception class name only, no URL, no headers.
+* the key is never printed: errors are re-raised as the exception class name only, no URL, no headers, and the
+  key fixture's repr is redacted, so neither pytest's failure report nor assertion introspection shows it.
 
     ZTM_LIVE_API_KEY=<uuid or jwt> python -m pytest -m live tests/live -p no:cacheprovider
     ZTM_LIVE_STOP_ID=7009 ZTM_LIVE_STOP_NR=01  # optional, these are the defaults
