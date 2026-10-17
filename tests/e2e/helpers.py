@@ -1,0 +1,70 @@
+"""Small pure helpers shared by the e2e tests: the reference oracle, mark factory, log scanner."""
+
+from __future__ import annotations
+
+import json
+import logging
+from datetime import date, datetime, timedelta
+
+import pytest
+
+from tests.contract_shapes import kv
+
+from .fake_city import WARSAW, day_sets
+from .fake_city.data import StopKey
+
+
+def known_bug(
+    finding: str, why: str, *, raises: type[BaseException] | tuple[type[BaseException], ...] = AssertionError
+):
+    """xfail(strict) for a CONFIRMED bug: the test states the correct behaviour.
+
+    ``raises`` keeps the xfail honest: a harness error (KeyError, TimeoutError ...) is a failure, only the
+    expected kind of failure counts as "the known bug is still there". When the bug is fixed the test
+    XPASSes and strict mode turns that into a red build, which is the cue to drop the mark.
+    """
+    return pytest.mark.xfail(strict=True, raises=raises, reason=f"{finding}: {why}")
+
+
+def rows_for(day: str, line: str, stop: StopKey = ("7009", "01")) -> list[str]:
+    """``czas`` values (as served) of a line on the 'friday' or 'saturday' set."""
+    return [kv(r)["czas"] for r in day_sets()[day].timetables[(stop, line)]]
+
+
+def instants(czas_values: list[str], service_date: date) -> list[datetime]:
+    """Wall-clock Warsaw instants of ``HH:MM:SS`` values, 24:xx and 28:xx rolling into the next date."""
+    out = []
+    for czas in czas_values:
+        hours, minutes, _ = (int(x) for x in czas.split(":"))
+        day = service_date + timedelta(days=hours // 24)
+        out.append(datetime(day.year, day.month, day.day, hours % 24, minutes, tzinfo=WARSAW))
+    return sorted(out)
+
+
+def reference_next(czas_values: list[str], service_date: date, now: datetime) -> datetime | None:
+    """The oracle: first listed departure strictly after ``now`` within ONE service day's schedule."""
+    later = [t for t in instants(czas_values, service_date) if t > now]
+    return later[0] if later else None
+
+
+def local(dt: datetime | None) -> str | None:
+    return dt.astimezone(WARSAW).strftime("%Y-%m-%d %H:%M") if dt else None
+
+
+def log_blob(caplog) -> str:
+    """Everything that was logged, as one string: messages, formatted args and rendered tracebacks."""
+    formatter = logging.Formatter()
+    parts = []
+    for record in caplog.records:
+        parts.append(record.getMessage())
+        if record.exc_info:
+            parts.append(formatter.formatException(record.exc_info))
+        if record.exc_text:
+            parts.append(record.exc_text)
+        if record.stack_info:
+            parts.append(record.stack_info)
+    return "\n".join(parts)
+
+
+def dumps(obj) -> str:
+    return json.dumps(obj, default=str, ensure_ascii=False)

@@ -19,3 +19,14 @@ testpaths = ["tests"]
 # Needed as soon as a test uses an async fixture such as `hass` from
 # pytest-homeassistant-custom-component: pytest 9 rejects async fixtures in strict mode.
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+addopts = "-ra -m 'not live'"
+xfail_strict = true
+timeout = 90  # a real asyncio.sleep under the frozen clock would hang forever: fail fast instead
+markers = [
+    "e2e: end-to-end scenario against the in-process fake city (real Home Assistant, real aiohttp traffic)",
+    "start(when): start the frozen clock at this Warsaw wall-clock instant before Home Assistant is created",
+    "city(**options): FakeCity constructor options for this test",
+    "live: validates the REAL City of Warsaw API; needs ZTM_LIVE_API_KEY; never run in PR CI",
+]
