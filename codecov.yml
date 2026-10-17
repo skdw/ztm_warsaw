@@ -1,0 +1,16 @@
+# Coverage signals, not gates: every status is informational, so none of them can
+# turn a pull request red. Making one required is a separate decision, to be taken
+# after real numbers have been seen for a while (playbook docs/ci-cookbook.md #9).
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
