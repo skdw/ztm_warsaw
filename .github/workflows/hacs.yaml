@@ -9,12 +9,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   hacs:
     name: HACS Action
     runs-on: "ubuntu-latest"
     steps:
       - name: HACS Action
-        uses: "hacs/action@main"
+        # Pinned to a commit of the default branch (the last release is from 2022).
+        # The date is the commit date. The trailing comment is deliberately not a bare
+        # branch name: zizmor's ref-version-mismatch audit fails as soon as that branch
+        # moves past the pin. The wrapper starts the ghcr.io/hacs/action:main image,
+        # which this pin does not freeze.
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # main 2026-06-08
         with:
           category: "integration"
