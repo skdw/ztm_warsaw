@@ -23,8 +23,9 @@ pytestmark = pytest.mark.e2e
     "new-host-token-not-supported", "a JWT from dane.um.warszawa.pl cannot be used: 1.1.4 only speaks the legacy GET ?apikey= contract"
 )
 async def test_e2e_28_setup_with_a_jwt_talks_the_new_contract_end_to_end(env):
-    entry = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
-    assert entry.state is ConfigEntryState.LOADED
+    result = await env.submit_flow(api_key=DEFAULT_TOKEN)
+    assert result["type"] == "create_entry", result.get("errors")
+    assert result["result"].state is ConfigEntryState.LOADED
     assert env.state().state not in ("unknown", "unavailable")
 
     new_calls = env.city.matching(contract="new")
@@ -64,9 +65,13 @@ async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):
 async def test_e2e_28_new_host_500_is_a_failed_setup_not_a_silent_no_service(env):
     env.city.always(None, Http(500), contract="new")
     entry = await env.add_entry(api_key=DEFAULT_TOKEN)
-    assert entry.state in (ConfigEntryState.SETUP_RETRY, ConfigEntryState.LOADED)
+    # Today this fails at the next line for the JWT reason (1.1.4 never talks to the new host); it can only
+    # XPASS once a JWT is supported AND the 500 is treated as a failure.
     assert env.city.count(contract="new") > 0, "it must at least have tried the new host"
-    assert env.state().state == "unavailable"
+    if entry.state is ConfigEntryState.LOADED:
+        assert env.state().state == "unavailable"
+    else:
+        assert entry.state is ConfigEntryState.SETUP_RETRY
 
 
 # ===================================================================== E2E-29 reauth

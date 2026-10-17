@@ -30,7 +30,7 @@ from .data import (
     day_sets,
     stop_name_for,
 )
-from .routing import NetworkBlocked, route_to_fake_city
+from .routing import HarnessError, NetworkBlocked, route_to_fake_city
 from .server import DEFAULT_KEY, DEFAULT_TOKEN, WARSAW, Call, FakeCity
 
 __all__ = [
@@ -52,6 +52,7 @@ __all__ = [
     "Http",
     "InvalidJson",
     "Mutate",
+    "HarnessError",
     "NetworkBlocked",
     "NullResult",
     "Oversize",

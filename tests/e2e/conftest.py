@@ -33,7 +33,7 @@ from custom_components.ztm_warsaw import client as client_module
 from custom_components.ztm_warsaw import config_flow as config_flow_module
 from custom_components.ztm_warsaw.const import DOMAIN
 
-from .fake_city import DEFAULT_KEY, SMALL_CATALOGUE, WARSAW, FakeCity, route_to_fake_city
+from .fake_city import DEFAULT_KEY, SMALL_CATALOGUE, WARSAW, FakeCity, HarnessError, route_to_fake_city
 
 _FIRE_MARGIN = 0.6  # seconds: HA spreads coordinator refreshes over 0.05-0.50 s after the interval
 DEFAULT_START = "2026-10-16 12:00:00+02:00"  # a Friday noon, the day the fixtures were captured
@@ -190,7 +190,8 @@ class Env:
             async_fire_time_changed(self.hass)
             await self.settle()
             steps += 1
-            assert steps <= max_steps, "time simulation did not converge (timer storm?)"
+            if steps > max_steps:
+                raise HarnessError("time simulation did not converge (timer storm?)")
         return steps
 
     async def advance(self, **delta: float) -> int:
@@ -218,7 +219,8 @@ class Env:
             self.clock.tick(timedelta(seconds=tick))
             for _ in range(200):  # let cancellation, retry and the next request propagate
                 await asyncio.sleep(0)
-        assert task.done(), f"still waiting after {max_requests} stuck requests"
+        if not task.done():
+            raise HarnessError(f"still waiting after {max_requests} stuck requests")
         return await task
 
     async def hourly_tick(self, *, hanging: bool = False) -> None:
@@ -246,7 +248,8 @@ class Env:
         """Run the user step of the real config flow once and return the raw flow result."""
         flow = self.hass.config_entries.flow
         result = await flow.async_init(DOMAIN, context={"source": "user"})
-        assert result["type"] == "form", result
+        if result["type"] != "form":
+            raise HarnessError(f"the config flow did not open a form: {result}")
         result = await flow.async_configure(
             result["flow_id"],
             {
@@ -262,7 +265,8 @@ class Env:
 
     async def add_entry_via_flow(self, **kwargs: Any) -> ConfigEntry:
         result = await self.submit_flow(**kwargs)
-        assert result["type"] == "create_entry", result
+        if result["type"] != "create_entry":
+            raise HarnessError(f"the config flow did not create an entry: {result.get('errors') or result}")
         return result["result"]
 
     async def add_entry(
@@ -305,7 +309,8 @@ class Env:
 
     def state(self, line: str = "151", stop_id: int | str = 7009, stop_nr: str = "01", *, diag: bool = False) -> State:
         st = self.hass.states.get(self.entity_id(line, stop_id, stop_nr, diag=diag))
-        assert st is not None, f"no state for {self.entity_id(line, stop_id, stop_nr, diag=diag)}"
+        if st is None:
+            raise HarnessError(f"no state for {self.entity_id(line, stop_id, stop_nr, diag=diag)}")
         return st
 
     def departure_local(self, line: str = "151", stop_id: int | str = 7009, stop_nr: str = "01") -> str | None:

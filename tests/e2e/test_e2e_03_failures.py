@@ -86,8 +86,10 @@ async def test_e2e_14_a_rejected_key_is_visible_in_the_log(env, caplog):
 )
 async def test_e2e_14_a_key_the_city_never_accepted_is_unavailable_from_the_start(env):
     entry = await env.add_entry(api_key="never-valid")
-    assert entry.state is ConfigEntryState.LOADED
-    assert env.state().state == "unavailable"
+    if entry.state is ConfigEntryState.LOADED:
+        assert env.state().state == "unavailable"
+    else:  # a fix may also refuse the entry (retry or auth failure); it must not load as an empty success
+        assert entry.state in (ConfigEntryState.SETUP_RETRY, ConfigEntryState.SETUP_ERROR)
 
 
 @known_bug(
@@ -97,7 +99,8 @@ async def test_e2e_14_a_key_the_city_never_accepted_is_unavailable_from_the_star
 async def test_e2e_14_a_coordinator_failure_with_cached_data_is_visible_in_the_state_machine(env):
     """White-box fault injection: 1.1.4 never raises with a warm cache, but a fail-closed fix will, and
     without a matching entity change the entity would keep its old state while ``coordinator.last_update_success`` is False."""
-    await env.add_entry()
+    entry = await env.add_entry()
+    assert entry.state is ConfigEntryState.LOADED and departing(env), "precondition: a loaded entry with a warm cache"
     coord = coordinator_of(env)
     with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=UpdateFailed("forced by the test"))):
         await coord.async_refresh()
@@ -153,6 +156,9 @@ COLD_START = [
 async def test_e2e_15_first_refresh_classifies_what_the_city_answered(env, make, expected):
     env.city.always("timetable", make())
     entry = await env.add_entry()
+    if entry.state is ConfigEntryState.SETUP_RETRY:  # a fail-closed fix may refuse the first refresh
+        assert expected == "unavailable", "a line without service must still load"
+        return
     assert entry.state is ConfigEntryState.LOADED
     st = env.state()
     if expected == "no_service":
@@ -360,6 +366,15 @@ LOG_MODES = [
 ]
 
 
+def _guard_is_live(env, caplog) -> None:
+    """Positive control: the scenario really ran (a request reached the fake city) and the integration's own
+    records reach caplog; otherwise 'nothing leaked' would be true of an empty log."""
+    assert env.city.calls, "no request reached the fake city: the scenario did not run"
+    assert any(r.name.startswith("custom_components") for r in caplog.records), (
+        "the integration logged nothing that caplog can see: the leak scan would pass vacuously"
+    )
+
+
 def _scan(caplog) -> str:
     blob = log_blob(caplog)
     leaked = [frag for frag in (KEY, KEY[:8], KEY[-12:]) if frag in blob]
@@ -380,6 +395,7 @@ async def test_e2e_20_runtime_logs_never_contain_the_api_key(env, caplog, arrang
     entry = env.hass.config_entries.async_entries("ztm_warsaw")[0]
     await env.hass.config_entries.async_reload(entry.entry_id)  # cold start against the failing city: stops + timetable
     await env.settle()
+    _guard_is_live(env, caplog)
     assert not _scan(caplog), _scan(caplog)
 
 
@@ -389,6 +405,7 @@ async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, ar
     env.city.valid_keys.add(KEY)
     arrange(env.city)
     await env.submit_flow(api_key=KEY)
+    _guard_is_live(env, caplog)
     assert not _scan(caplog), _scan(caplog)
 
 
@@ -399,15 +416,19 @@ async def test_e2e_20_server_down_does_not_leak_either(env, caplog):
     await env.city.take_offline()
     await env.hourly_tick()
     await env.submit_flow(api_key=KEY)
+    _guard_is_live(env, caplog)
     assert not _scan(caplog), _scan(caplog)
 
 
 def test_e2e_20_the_scanner_would_notice_a_leak(caplog):
-    """Guard for the guard: a log line containing the key (or its first 8 chars) is detected."""
-    logging.getLogger("t").error("GET https://x/?apikey=%s failed", KEY)
+    """Guard for the guard: a log line containing the key (or its first 8 chars) is detected, on a logger
+    under the integration's own name (the records the real scans depend on)."""
+    log = logging.getLogger("custom_components.ztm_warsaw.client")
+    log.error("GET https://x/?apikey=%s failed", KEY)
     assert KEY in _scan(caplog)
+    assert any(r.name.startswith("custom_components") for r in caplog.records)
     caplog.clear()
-    logging.getLogger("t").error("key starts with %s...", KEY[:8])
+    log.error("key starts with %s...", KEY[:8])
     assert KEY[:8] in _scan(caplog)
 
 

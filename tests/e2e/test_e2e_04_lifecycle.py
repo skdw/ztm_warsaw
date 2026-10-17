@@ -75,12 +75,14 @@ async def test_e2e_22_removing_the_last_entry_cleans_registries(env):
     assert DOMAIN not in env.hass.data
 
 
-async def test_e2e_22_home_assistant_shutdown_with_loaded_entries_leaves_nothing_behind(env):
-    """The ``hass`` fixture stops Home Assistant after the test; the plugin then fails the test on any lingering
-    task or timer. Having two entries loaded makes that check meaningful for this integration."""
-    await env.add_entry(line="151")
-    await env.add_entry(line="N25")
+async def test_e2e_22_two_loaded_entries_hold_two_timers_each_and_unloading_releases_them(env):
+    first = await env.add_entry(line="151")
+    second = await env.add_entry(line="N25")
     assert len(integration_timers(env)) == 4
+    await env.hass.config_entries.async_unload(first.entry_id)
+    await env.hass.config_entries.async_unload(second.entry_id)
+    await env.settle()
+    assert integration_timers(env) == []
 
 
 # ===================================================================== E2E-23
@@ -99,7 +101,7 @@ async def test_e2e_23_five_entries_on_one_stop_all_load(env):
     entries = await _five_entries(env)
     assert [e.state for e in entries] == [ConfigEntryState.LOADED] * 5
     for line in FIVE_LINES:
-        assert env.state(line).state not in ("unavailable",), line
+        assert env.departure_local(line) is not None, line
         assert env.state(line).attributes["Stop, Name"] == stop_name_for("7009")
     assert env.city.count("timetable") == 5, "one timetable request per entry at startup"
     assert len(env.hass.states.async_all("sensor")) == 5  # the five diagnostic sensors are disabled by default
@@ -118,7 +120,9 @@ async def test_e2e_23_hourly_load_is_one_request_per_entry_and_never_the_catalog
 @pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
 @known_bug("stops-catalogue-redownloaded", "the 1.6 MB stops catalogue is downloaded once PER ENTRY (and again on every reload)")
 async def test_e2e_23_the_stop_catalogue_is_downloaded_once_for_five_entries_on_one_stop(env):
-    await _five_entries(env)
+    entries = await _five_entries(env)
+    assert [e.state for e in entries] == [ConfigEntryState.LOADED] * 5, "precondition: all five entries loaded"
+    assert env.city.count("timetable") == 5
     assert env.city.count("stops") <= 1, (
         f"{env.city.count('stops')} downloads, {env.city.bytes_sent('stops') / 1e6:.1f} MB for one stop"
     )
@@ -138,7 +142,7 @@ async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_
     assert device is not None, "the shared device must survive"
     assert device.config_entries == {b.entry_id}
     assert env.hass.states.get("sensor.line_151_from_7009_01") is None
-    assert env.state("151", 7009, "02").state not in ("unavailable",)
+    assert env.departure_local("151", 7009, "02") is not None
     calls_b = len(env.city.matching("timetable", busstopNr="02"))
     calls_a = len(env.city.matching("timetable", busstopNr="01"))
     await env.advance(hours=2)
@@ -204,8 +208,11 @@ async def test_e2e_26_diagnostic_sensor_counts_the_departures_of_the_current_ser
 
 async def test_e2e_26_diagnostic_sensor_is_unavailable_when_the_first_fetch_failed(env):
     env.city.always(None, Http(500))
-    await _entry_with_diagnostic_enabled(env)
-    assert env.state(diag=True).state == "unavailable"
+    entry = await _entry_with_diagnostic_enabled(env)
+    if entry.state is ConfigEntryState.LOADED:  # a fail-closed fix may refuse the entry instead (no entity at all)
+        assert env.state(diag=True).state == "unavailable"
+    else:
+        assert entry.state is ConfigEntryState.SETUP_RETRY
 
 
 # ===================================================================== E2E-27

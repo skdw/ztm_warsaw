@@ -39,6 +39,7 @@ from .fake_city import (
     Html,
     Http,
     InvalidJson,
+    HarnessError,
     NetworkBlocked,
     NullResult,
     Oversize,
@@ -50,6 +51,8 @@ from .fake_city import (
     day_sets,
 )
 from .helpers import rows_for
+
+pytestmark = pytest.mark.e2e
 
 LEGACY = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
 NEW = "https://dane.um.warszawa.pl/api/action/"
@@ -142,8 +145,8 @@ def test_h02_service_day_is_defined_on_dst_days(clock, instant, service_date):
 @pytest.mark.parametrize(
     ("behavior", "expect"),
     [
-        (Reset(), (aiohttp.ClientOSError, aiohttp.ServerDisconnectedError)),
-        (Truncated(), (aiohttp.ClientPayloadError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError)),
+        (Reset(), aiohttp.ClientError),
+        (Truncated(), aiohttp.ClientError),
     ],
     ids=["reset", "truncated"],
 )
@@ -152,7 +155,6 @@ async def test_h03_connection_level_failures_surface_as_client_errors(fake_city,
     async with aiohttp.ClientSession() as s:
         with pytest.raises(expect) as caught:
             await legacy_get(s, LEGACY_TIMETABLE_ID, busstopId="7009", busstopNr="01", line="151")
-    print(type(caught.value).__name__, "|", caught.value, "|", repr(caught.value.__cause__))
     assert isinstance(caught.value, aiohttp.ClientError)  # what the integration's `except ClientError` catches
 
 
@@ -163,7 +165,7 @@ async def test_h03_connection_level_failures_surface_as_client_errors(fake_city,
         (ParamError(), 200, lambda b: classify_legacy(json.loads(b)) == "param_error"),
         (NullResult(), 200, lambda b: classify_legacy(json.loads(b)) == "null"),
         (Http(500), 500, lambda b: json.loads(b) == {"message": "Service unavailable"}),
-        (Http(403, {"message": "Forbidden"}), 403, lambda b: True),
+        (Http(403, {"message": "Forbidden"}), 403, lambda b: json.loads(b) == {"message": "Forbidden"}),
         (InvalidJson(), 200, lambda b: not _is_json(b)),
         (Html(), 200, lambda b: b.startswith(b"<html>")),
         (Oversize(), 200, lambda b: len(b) > 2_000_000),
@@ -365,3 +367,19 @@ async def test_h10_advance_counts_real_time_across_the_repeated_dst_hour(env):
     assert (env.now.hour, env.now.minute, env.now.utcoffset()) == (2, 59, timedelta(hours=1))
     await env.advance(minutes=1)
     assert (env.now.hour, env.now.utcoffset()) == (3, timedelta(hours=1))
+
+
+async def test_h04_a_loopback_port_that_is_not_the_fake_city_is_blocked(fake_city):
+    async with aiohttp.ClientSession() as s:
+        with pytest.raises(NetworkBlocked):
+            await s.get("http://127.0.0.1:1/")
+    assert fake_city.blocked == ["127.0.0.1:1"] or len(fake_city.blocked) == 1
+    fake_city.blocked.clear()  # intentional
+
+
+# ---------------------------------------------------------------------- H-11 harness failures stay red
+async def test_h11_a_harness_failure_is_not_an_assertion_error(env):
+    """``known_bug`` is xfail(raises=AssertionError): a missing entity must not pass as 'the bug is still there'."""
+    assert not issubclass(HarnessError, AssertionError)
+    with pytest.raises(HarnessError):
+        env.state("151")  # no entry has been added

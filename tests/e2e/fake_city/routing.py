@@ -26,6 +26,12 @@ NEW_HOST = "dane.um.warszawa.pl"
 LOOPBACK = "127.0.0.1"
 
 
+class HarnessError(Exception):
+    """The test harness itself failed (setup, timing, a missing entity). Deliberately NOT an AssertionError:
+    ``known_bug`` is ``xfail(raises=AssertionError)``, so a harness failure must stay red instead of passing as
+    'the known bug is still there'."""
+
+
 class NetworkBlocked(Exception):  # deliberately NOT an AssertionError: xfail(raises=AssertionError) must not hide it
     """Raised when code under test tries to reach anything but the fake city."""
 
@@ -33,6 +39,7 @@ class NetworkBlocked(Exception):  # deliberately NOT an AssertionError: xfail(ra
 @contextmanager
 def route_to_fake_city(fake) -> Iterator[None]:
     origin_ports = {LEGACY_HOST: fake.legacy_port, NEW_HOST: fake.new_port}
+    fake_ports = set(origin_ports.values())
     original = aiohttp.ClientSession._request
     original_resolve = aiohttp.TCPConnector._resolve_host
 
@@ -46,12 +53,12 @@ def route_to_fake_city(fake) -> Iterator[None]:
         url = URL(str_or_url)
         if url.host in origin_ports:
             url = url.with_scheme("http").with_host(LOOPBACK).with_port(origin_ports[url.host])
-        elif url.host != LOOPBACK:
+        elif url.host != LOOPBACK or url.port not in fake_ports:
             raise block(str(url.with_query(None)))
         return await original(self, method, url, **kwargs)
 
     async def _resolve_host(self, host, port, traces=None):
-        if host != LOOPBACK:
+        if host != LOOPBACK or port not in fake_ports:
             raise block(f"{host}:{port}")
         return await original_resolve(self, host, port, traces)
 

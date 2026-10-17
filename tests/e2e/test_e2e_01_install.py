@@ -308,43 +308,44 @@ async def test_e2e_04_config_flow_slow_server_times_out_with_a_connection_error(
 @pytest.mark.parametrize(
     "case",
     [
-        pytest.param("bad_key", id="invalid_api_key"),
         pytest.param(
-            "unknown_stop",
-            id="line_check_failed",
-            marks=known_bug("line-check-error-has-no-string", "the flow raises 'line_check_failed' but en.json has no such error string"),
-        ),
-        pytest.param("line_not_at_stop", id="line_not_found"),
-        pytest.param("stop_number_not_two_digits", id="invalid_stop_number"),
-        pytest.param("http_500", id="transport"),
-        pytest.param("timetable_null", id="no_departures"),
+            c[0],
+            marks=known_bug("line-check-error-has-no-string", "the flow raises 'line_check_failed' but en.json has no such error string")
+            if c[0] == "unknown_stop"
+            else (),
+            id=c[0],
+        )
+        for c in FLOW_CASES
     ],
 )
 async def test_e2e_04_every_error_the_user_can_see_has_a_translation(env, case):
     _, overrides, arrange, _ = next(c for c in FLOW_CASES if c[0] == case)
     arrange(env)
     result = await env.submit_flow(**overrides)
+    assert result["type"] == "form" and result["errors"], f"case {case!r} is meant to show an error"
     key = result["errors"]["base"]
     assert key in FLOW_ERROR_STRINGS, f"flow error '{key}' has no string in translations/en.json"
 
 
 @pytest.mark.parametrize(
-    ("user_input", "finding"),
+    "user_input",
     [
-        pytest.param({"line": " 151 "}, "user-input-not-stripped", id="line_with_spaces"),
-        pytest.param({"api_key": f"  {DEFAULT_KEY}\n"}, "user-input-not-stripped", id="key_with_newline"),
+        pytest.param({"line": " 151 "}, id="line_with_spaces"),
+        pytest.param({"api_key": f"  {DEFAULT_KEY}\n"}, id="key_with_newline"),
     ],
 )
 @known_bug("user-input-not-stripped", "user input is not stripped: a pasted trailing space or newline breaks setup")
-async def test_e2e_04_pasted_whitespace_is_forgiven(env, user_input, finding):
-    entry = await env.add_entry_via_flow(**user_input)
-    assert entry.state is ConfigEntryState.LOADED
+async def test_e2e_04_pasted_whitespace_is_forgiven(env, user_input):
+    result = await env.submit_flow(**user_input)
+    assert result["type"] == "create_entry", result.get("errors")
+    assert result["result"].state is ConfigEntryState.LOADED
 
 
 @known_bug("url-built-with-fstrings", "validate_input builds the URL with f-strings: a crafted key adds query parameters")
 async def test_e2e_04_user_input_cannot_inject_query_parameters(env):
-    await env.submit_flow(api_key=f"{DEFAULT_KEY}&busstopId=9999&id={LEGACY_STOPS_ID}")
-    assert env.city.calls, "the flow must at least have tried"
+    result = await env.submit_flow(api_key=f"{DEFAULT_KEY}&busstopId=9999&id={LEGACY_STOPS_ID}")
+    if not env.city.calls:  # rejecting a key that is not a key before any request is a fine fix as well
+        assert result["type"] == "form" and result["errors"], "nothing was sent, so the flow must have refused the key"
     for call in env.city.calls:
         counts = {k: len(v) for k, v in parse_qs(call.query_string).items()}
         assert all(n == 1 for n in counts.values()), f"duplicated parameters reached the city: {counts}"
@@ -390,7 +391,9 @@ async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env)
 @known_bug("update-listener-reloads-on-any-change", "the update listener reloads the entry on ANY change, e.g. a plain title rename")
 async def test_e2e_05_renaming_an_entry_does_not_reload_it(env):
     entry = await env.add_entry()
+    assert entry.state is ConfigEntryState.LOADED
     before = env.city.count()
+    assert before > 0, "precondition: setup talked to the city"
     env.hass.config_entries.async_update_entry(entry, title="My bus")
     await env.settle()
     assert env.city.count() == before, "a rename must not hit the city"

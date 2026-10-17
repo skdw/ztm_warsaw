@@ -27,7 +27,7 @@ Facts the fake server reproduces (all measured on 2026-10-16/17):
 * a bad key answers `200 {"result":"false","error":"Błędny apikey lub jego brak"}`.
 
 Rows for stop/line pairs that were only captured as a summary (everything except the
-five full captures above) are **synthesized** from `{n, first, last}`: `n` times spread evenly
+six timetable captures above) are **synthesized** from `{n, first, last}`: `n` times spread evenly
 from `first` to `last`, deterministic order, so a day line like 520 still ends at `24:38`.
 Only Friday 2026-10-16 and Saturday 2026-10-17 were captured: Monday-Friday are served from the
 Friday set and Saturday/Sunday from the Saturday set (an approximation, not a measurement).

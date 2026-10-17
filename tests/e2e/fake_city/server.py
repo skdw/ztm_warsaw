@@ -11,7 +11,7 @@ Two aiohttp servers on 127.0.0.1 (random ports), sharing one state object:
   ``UNVERIFIED`` below is a placeholder, not knowledge.
 
 The "service day" is a pure function of the clock the test controls (``freezer``): before
-``flip_at`` (default 03:00 Warsaw, the measured flip) the previous date's schedule is served.
+``flip_at`` (default 03:00 Warsaw; measured between 02:55:51 and 03:00:51) the previous date's schedule is served.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ from homeassistant.util import dt as dt_util
 
 from . import data
 from .behaviors import BadKey, Behavior, NullResult, ParamError, Respond
+from .routing import HarnessError
 from .data import (
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
@@ -195,7 +196,7 @@ class FakeCity:
             if self.hung_total() >= n:
                 return
             await asyncio.sleep(0)
-        raise AssertionError(f"only {self.hung_total()} of {n} requests reached the hanging fake")
+        raise HarnessError(f"only {self.hung_total()} of {n} requests reached the hanging fake")
 
     # ------------------------------------------------------------------ counting
     def count(self, endpoint: str | None = None, contract: str | None = None, **match: str) -> int:
