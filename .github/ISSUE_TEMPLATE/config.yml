@@ -1,0 +1,18 @@
+# blank_issues_enabled: false forces every issue through the form, which makes
+# the "I removed my API key" checkbox in bug.yml load-bearing.
+#
+# The first link sends security reports to the private advisory flow instead of
+# a public issue (see SECURITY.md). The second points questions at Discussions,
+# which are enabled on this repository.
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/solarssk/ztm_warsaw/security/advisories/new
+    about: >
+      Please report security vulnerabilities privately. Do not open a public
+      issue. See SECURITY.md for details.
+  - name: Question or help with setup
+    url: https://github.com/solarssk/ztm_warsaw/discussions
+    about: >
+      How do I find my stop ID or pole number? Why does my sensor show "No
+      service"? Ask here before opening an issue.
