@@ -87,7 +87,6 @@ async def test_e2e_22_home_assistant_shutdown_with_loaded_entries_leaves_nothing
 FIVE_LINES = ["151", "143", "182", "525", "520"]  # five real lines at stop 7009/01
 
 
-@pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
 async def _five_entries(env):
     entries = [await env.add_entry(line=line, setup=False) for line in FIVE_LINES]
     await env.hass.config_entries.async_setup(entries[0].entry_id)

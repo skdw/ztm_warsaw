@@ -6,7 +6,10 @@ seam that needs zero production change is therefore the transport: wrap
 ``aiohttp.ClientSession._request`` and rewrite only the origin (scheme/host/port) of the two known
 city hosts to the fake servers' loopback ports. Everything else (path, query, headers, body,
 redirect handling, response parsing) is the real aiohttp client talking real HTTP over a real
-socket. Any other destination makes the test fail loudly instead of reaching a network.
+socket. Any other destination makes the test fail loudly instead of reaching a network: the initial URL
+is checked in ``_request``, and every connection (so also the target of a redirect, which aiohttp follows
+inside the original ``_request``) is checked in ``TCPConnector._resolve_host``, before any DNS lookup.
+pytest-socket still guards the socket layer underneath.
 """
 
 from __future__ import annotations
@@ -31,17 +34,29 @@ class NetworkBlocked(Exception):  # deliberately NOT an AssertionError: xfail(ra
 def route_to_fake_city(fake) -> Iterator[None]:
     origin_ports = {LEGACY_HOST: fake.legacy_port, NEW_HOST: fake.new_port}
     original = aiohttp.ClientSession._request
+    original_resolve = aiohttp.TCPConnector._resolve_host
+
+    def block(destination: str) -> NetworkBlocked:
+        # The integration wraps requests in broad ``except Exception``, so also record the attempt:
+        # the ``fake_city`` fixture fails the test at teardown if this list is not empty.
+        fake.blocked.append(destination)
+        return NetworkBlocked(f"test tried to reach {destination!r}; only the fake city is allowed")
 
     async def _request(self, method, str_or_url, **kwargs):
         url = URL(str_or_url)
         if url.host in origin_ports:
             url = url.with_scheme("http").with_host(LOOPBACK).with_port(origin_ports[url.host])
         elif url.host != LOOPBACK:
-            # The integration wraps requests in broad ``except Exception``, so also record the attempt:
-            # the ``fake_city`` fixture fails the test at teardown if this list is not empty.
-            fake.blocked.append(str(url.with_query(None)))
-            raise NetworkBlocked(f"test tried to reach {url.host!r}; only the fake city is allowed")
+            raise block(str(url.with_query(None)))
         return await original(self, method, url, **kwargs)
 
-    with patch.object(aiohttp.ClientSession, "_request", _request):
+    async def _resolve_host(self, host, port, traces=None):
+        if host != LOOPBACK:
+            raise block(f"{host}:{port}")
+        return await original_resolve(self, host, port, traces)
+
+    with (
+        patch.object(aiohttp.ClientSession, "_request", _request),
+        patch.object(aiohttp.TCPConnector, "_resolve_host", _resolve_host),
+    ):
         yield

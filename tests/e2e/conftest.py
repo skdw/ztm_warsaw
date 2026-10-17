@@ -15,7 +15,7 @@ import os
 import time as time_module
 from collections.abc import AsyncIterator, Callable, Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import freezegun
@@ -170,11 +170,13 @@ class Env:
         real phase. Nothing is evaluated "in between" unless a timer asks for it. Returns the number
         of steps taken.
         """
-        target = at(to)
+        # UTC on purpose: aware datetimes that share one tzinfo (WARSAW) subtract and add as WALL-CLOCK time,
+        # which skips or doubles the repeated hour on a DST day.
+        target = at(to).astimezone(timezone.utc)
         loop = self.hass.loop
         steps = 0
         while True:
-            remaining = (target - datetime.now(WARSAW)).total_seconds()
+            remaining = (target - datetime.now(timezone.utc)).total_seconds()
             if remaining <= 0:
                 break
             due = [
@@ -193,7 +195,7 @@ class Env:
 
     async def advance(self, **delta: float) -> int:
         """Like :meth:`run_to` but relative: ``await env.advance(hours=1)``."""
-        return await self.run_to(datetime.now(WARSAW) + timedelta(**delta))
+        return await self.run_to(datetime.now(timezone.utc) + timedelta(**delta))
 
     @property
     def now(self) -> datetime:

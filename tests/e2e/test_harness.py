@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import socket
-from datetime import time
+from datetime import time, timedelta
 
 import aiohttp
 import pytest
@@ -43,6 +43,7 @@ from .fake_city import (
     NullResult,
     Oversize,
     ParamError,
+    Redirect,
     Reset,
     Truncated,
     czas_of,
@@ -225,6 +226,17 @@ async def test_h04_only_the_fake_city_is_reachable(fake_city):
     fake_city.blocked.clear()  # these were intentional
 
 
+@pytest.mark.parametrize("target", ["https://example.com/", "http://93.184.216.34/"], ids=["hostname", "ip_literal"])
+async def test_h04_a_redirect_to_another_host_is_blocked_before_any_lookup(fake_city, target):
+    """aiohttp follows redirects inside the original ``_request``, so the connector is the checkpoint."""
+    fake_city.always("timetable", Redirect(target))
+    async with aiohttp.ClientSession() as s:
+        with pytest.raises(NetworkBlocked):
+            await legacy_get(s, LEGACY_TIMETABLE_ID, busstopId="7009", busstopNr="01", line="151")
+    assert len(fake_city.blocked) == 1
+    fake_city.blocked.clear()  # intentional
+
+
 def test_h04_pytest_socket_still_guards_every_non_loopback_address(socket_enabled):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -339,3 +351,17 @@ async def test_h09_backoff_patch_is_scoped_to_the_integration_modules(sleeps):
     await config_flow.asyncio.sleep(0.8)
     assert sleeps.requested == [1.5, 0.8]
     assert client.asyncio.TimeoutError is asyncio.TimeoutError, "everything else is delegated to the real module"
+
+
+# ---------------------------------------------------------------------- H-10 clock arithmetic
+async def test_h10_advance_counts_real_time_across_the_repeated_dst_hour(env):
+    """Aware datetimes sharing one tzinfo add as wall-clock time: from 02:59 CEST a naive ``+1 min`` lands on
+    03:00 CET and jumps over the whole repeated hour. The helpers must go through UTC."""
+    env.move_to("2026-10-25 02:59")  # first pass of the repeated hour, still CEST
+    assert env.now.utcoffset() == timedelta(hours=2)
+    await env.advance(minutes=1)
+    assert (env.now.hour, env.now.utcoffset()) == (2, timedelta(hours=1)), "02:00 CET: the second pass is sampled"
+    await env.advance(minutes=59)
+    assert (env.now.hour, env.now.minute, env.now.utcoffset()) == (2, 59, timedelta(hours=1))
+    await env.advance(minutes=1)
+    assert (env.now.hour, env.now.utcoffset()) == (3, timedelta(hours=1))
