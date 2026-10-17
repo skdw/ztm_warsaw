@@ -1,0 +1,37 @@
+name: Verify standard
+
+# Runs the file- and pattern-based half of the playbook's Tier 2 checklist
+# (https://github.com/solarssk/playbook, docs/tiers.md) by calling its reusable
+# verify-tier workflow. The tier is read from the "Tier: 2" line in AGENTS.md.
+#
+# Report-only: not a required check. It fails only on a hard check (a missing
+# LICENSE, CONTRIBUTING.md, ...); the warnings it prints are the accepted ones
+# listed in AGENTS.md (sast, readme-opens-well) plus the playbook-version notice
+# when a newer playbook release exists.
+#
+# The call is pinned to the commit of a playbook release, like every other
+# `uses:` here, so a change to what "passing" means arrives as a pull request
+# (Dependabot's github-actions ecosystem proposes the bump, with the release notes
+# and their "Adopter action" list) instead of silently. Read those notes before
+# merging a bump.
+#
+# No admin token is passed on purpose. The settings-level checks (delete branch on
+# merge, Dependabot security updates, branch protection and whether every required
+# check matches a job name) are skipped here and reported as skipped. The
+# maintainer runs them with their own token; the command is in CONTRIBUTING.md.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify standard (Tier 2)
+    uses: solarssk/playbook/.github/workflows/verify-tier.yml@0f0760fd3cf1eecee43deb2debbaa5a295fc3a8a  # v0.2.0

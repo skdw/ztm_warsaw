@@ -146,7 +146,21 @@ CodeRabbit on request) may comment on your pull request; their findings are inpu
   what happened to the old HACS and hassfest workflows. `ci.yml` has no `schedule:` for that reason,
   so today only `scorecard.yml` (and CodeQL's weekly run) can be hit.
 - At every minor release, look at the triggers in [AGENTS.md](AGENTS.md) that would call for a
-  review of the repository's tier.
+  review of the repository's tier, and run the playbook's checks including the repository
+  settings, which the `Verify standard` workflow cannot read without an admin token (it runs on
+  every pull request and reports only):
+
+  ```bash
+  [ -d ../playbook ] || git clone https://github.com/solarssk/playbook.git ../playbook
+  git -C ../playbook fetch --tags origin
+  git -C ../playbook checkout "$(gh release view --repo solarssk/playbook --json tagName --jq .tagName)"
+  GITHUB_REPOSITORY=solarssk/ztm_warsaw GH_TOKEN="$(gh auth token)" ADMIN_TOKEN="$(gh auth token)" \
+    node ../playbook/scripts/verify-tier.mjs
+  ```
+
+  The two middle lines move the checkout to the playbook's latest release on every run, so a check
+  that a newer release added is not missed by a clone that was made a year ago. Expected: no
+  failures, and the two warnings listed in AGENTS.md (`sast`, `readme-opens-well`).
 
 ## Questions
 
