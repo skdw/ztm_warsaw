@@ -116,7 +116,7 @@ jobs:
       # deliberately not a bare branch name: zizmor's ref-version-mismatch audit
       # fails as soon as that branch moves past the pin. The wrapper starts the
       # ghcr.io/home-assistant/hassfest image, which this pin does not freeze.
-      - uses: home-assistant/actions/hassfest@06749dd8c0b54f350bc69c8752456cee498808a3  # master 2026-09-27
+      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6  # master 2026-09-27
 
   hacs:
     name: HACS validation
