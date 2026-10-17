@@ -25,6 +25,7 @@ import os
 import aiohttp
 import pytest
 
+from tests.live.capped import read_capped
 from tests.contract_shapes import (
     RESPONSE_CAP_BYTES,
     assert_lines_rows,
@@ -61,8 +62,7 @@ async def _call(key: str, what: str, **params: str) -> tuple[int, bytes]:
             else:
                 request = session.post(NEW + ACTIONS[what], json=params or None, headers={"Authorization": key})
             async with request as resp:
-                body = await resp.content.read(RESPONSE_CAP_BYTES + 1)
-                return resp.status, body
+                return resp.status, await read_capped(resp)
     except (TimeoutError, aiohttp.ClientError) as err:
         raise AssertionError(f"live API unreachable ({type(err).__name__})") from None
     finally:

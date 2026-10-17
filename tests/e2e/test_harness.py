@@ -16,6 +16,7 @@ import pytest_socket
 from yarl import URL
 
 from tests.contract_shapes import (
+    RESPONSE_CAP_BYTES,
     assert_lines_rows,
     assert_stops_rows,
     assert_timetable_rows,
@@ -23,6 +24,7 @@ from tests.contract_shapes import (
     czas_to_minutes,
     is_legacy_key,
 )
+from tests.live.capped import read_capped
 
 from .conftest import at
 from .fake_city import (
@@ -383,3 +385,21 @@ async def test_h11_a_harness_failure_is_not_an_assertion_error(env):
     assert not issubclass(HarnessError, AssertionError)
     with pytest.raises(HarnessError):
         env.state("151")  # no entry has been added
+
+
+# ---------------------------------------------------------------------- H-12 reading a large body
+@pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
+async def test_h12_read_capped_returns_the_whole_catalogue_not_the_first_chunk(fake_city):
+    async with aiohttp.ClientSession() as s:
+        async with s.get(LEGACY, params={"id": LEGACY_STOPS_ID, "apikey": DEFAULT_KEY}) as resp:
+            body = await read_capped(resp)
+    assert len(body) == fake_city.bytes_sent("stops"), "the whole body, however many chunks it arrived in"
+    assert len(json.loads(body)["result"]) > 1000
+
+
+@pytest.mark.city(catalogue_bytes=OVER_CAP_CATALOGUE)
+async def test_h12_read_capped_stops_just_past_the_cap_for_an_oversized_body(fake_city):
+    async with aiohttp.ClientSession() as s:
+        async with s.get(LEGACY, params={"id": LEGACY_STOPS_ID, "apikey": DEFAULT_KEY}) as resp:
+            body = await read_capped(resp)
+    assert RESPONSE_CAP_BYTES < len(body) <= RESPONSE_CAP_BYTES + 64 * 1024
