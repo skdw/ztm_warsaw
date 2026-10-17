@@ -140,6 +140,11 @@ def test_main_writes_notes_and_never_echoes_the_tag(
         "<!--\nmulti-line\ncomment\n-->\n\n### Added\n",
         "\n\n   \n",
         "[1.2.0]: https://example.invalid/releases/tag/v1.2.0\n",
+        "[1.2.0]:https://example.invalid/releases/tag/v1.2.0\n",
+        "   [1.2.0]: https://example.invalid/releases/tag/v1.2.0\n",
+        '[1.2.0]: <https://example.invalid/releases/tag/v1.2.0> "Release"\n',
+        "<!-- TODO: write the notes\n",
+        "### Added\n\n<!-- TODO: write the notes\n- looks like a note but is hidden\n",
     ],
 )
 def test_a_skeleton_section_is_not_release_notes(release_check: ModuleType, tmp_path: Path, section: str) -> None:
@@ -202,3 +207,49 @@ def test_an_unwritable_notes_file_fails_with_a_constant_message(
     missing_directory = tmp_path / "nope" / "notes.md"
     assert release_check.main({"NOTES_OUT": str(missing_directory)}, repo) == 1
     assert "could not be written" in capsys.readouterr().err
+
+
+def test_a_line_that_only_looks_like_a_link_reference_is_still_a_note(release_check: ModuleType, tmp_path: Path) -> None:
+    changelog = "# Changelog\n\n## [1.2.0] - 2026-10-30\n\n[Fix]: handle a timeout\n"
+    repo = make_repo(tmp_path, "1.2.0", changelog)
+    assert release_check.check(repo, None) == "[Fix]: handle a timeout"
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "## [1.2.0]",
+        "## [1.2.0] - 2026-10-30",
+        "## \\[1.2.0\\] - 2026-10-30",
+        "## [1.2.0](https://example.invalid/releases/tag/v1.2.0) - 2026-10-30",
+        "   ## [1.2.0]",
+        "##\t[1.2.0]",
+    ],
+)
+def test_the_section_heading_forms_that_markdown_renders_as_the_version(
+    release_check: ModuleType, tmp_path: Path, heading: str
+) -> None:
+    repo = make_repo(tmp_path, "1.2.0", f"# Changelog\n\n{heading}\n\n- Real note.\n")
+    assert release_check.check(repo, None) == "- Real note."
+
+
+def test_a_beta_finds_an_unreleased_heading_with_escaped_brackets(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0b1", "# Changelog\n\n## \\[Unreleased\\]\n\n- Pending fix.\n")
+    assert release_check.check(repo, None) == "- Pending fix."
+
+
+def test_a_heading_with_text_glued_to_the_label_is_another_section(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0", "# Changelog\n\n## [1.2.0]suffix\n\n- Not this release.\n")
+    with pytest.raises(release_check.ReleaseCheckError, match="real content"):
+        release_check.check(repo, None)
+
+
+def test_a_level_one_heading_also_ends_the_section(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0", "# Changelog\n\n## [1.2.0]\n\n- Real note.\n\n# Appendix\n\nNot a note.\n")
+    assert release_check.check(repo, None) == "- Real note."
+
+
+def test_the_dots_of_the_version_are_literal_in_the_heading_match(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0", "# Changelog\n\n## [1x2y0]\n\n- Not this release.\n")
+    with pytest.raises(release_check.ReleaseCheckError, match="real content"):
+        release_check.check(repo, None)

@@ -32,8 +32,11 @@ CHANGELOG = Path("CHANGELOG.md")
 
 STABLE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 BETA_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+b[0-9]+")
-LINK_REFERENCE = re.compile(r"^\[[^\]]+\]:\s")
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+# A link reference definition: up to three spaces, [label]:, a destination, an optional title.
+LINK_REFERENCE = re.compile(r"""^ {0,3}\[[^\]]+\]:[ \t]*<?\S+>?(?:[ \t]+(?:"[^"]*"|'[^']*'|\([^)]*\)))?[ \t]*$""")
+# A comment that is never closed hides the rest of the section, as Markdown renders it.
+HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
+SECTION_END = re.compile(r"^ {0,3}#{1,2}(?:[ \t]|$)")
 
 
 class ReleaseCheckError(Exception):
@@ -52,17 +55,20 @@ def has_content(section: str) -> bool:
 def extract_section(changelog: str, name: str) -> str:
     """Return the trimmed body of the ``## [name]`` section, or an empty string.
 
-    The section ends at the next level-2 heading. Link reference definitions
+    The heading is ``## [name]`` (brackets may be backslash-escaped), followed by nothing,
+    whitespace or a link; ``## [1.2.0]suffix`` is another heading. The section ends at
+    the next level-1 or level-2 heading. Link reference definitions
     (``[1.2.0]: https://...``) are not notes and are dropped. A section with no
     real content (see ``has_content``) counts as empty.
     """
     lines = changelog.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    start = next((i for i, line in enumerate(lines) if line.startswith(f"## [{name}]")), None)
+    heading = re.compile(rf"^ {{0,3}}##[ \t]+\\?\[{re.escape(name)}\\?\](?:[ \t(\[].*)?$")
+    start = next((i for i, line in enumerate(lines) if heading.match(line)), None)
     if start is None:
         return ""
     end = len(lines)
     for i in range(start + 1, len(lines)):
-        if lines[i].startswith("## "):
+        if SECTION_END.match(lines[i]):
             end = i
             break
     body = "\n".join(line for line in lines[start + 1 : end] if not LINK_REFERENCE.match(line)).strip()
