@@ -10,6 +10,10 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ## [Unreleased]
 
+### Fixed
+
+- `manifest.json` no longer lists `aiohttp` under `requirements`. Home Assistant provides it and hassfest rejects the entry. Behavior does not change.
+
 ## [1.1.4] - 2026-05-19
 
 Upgrading from 1.1.3: update through HACS and restart Home Assistant. No reconfiguration is needed.
