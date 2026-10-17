@@ -7,7 +7,6 @@ import json
 import re
 
 import aiohttp
-import async_timeout
 
 from .models import ZTMDepartureData, ZTMDepartureDataReading
 
@@ -110,7 +109,7 @@ class ZTMStopClient:
         attempt = 0
         while True:
             try:
-                async with async_timeout.timeout(self._timeout):
+                async with asyncio.timeout(self._timeout):
                     async with self._session.get(url, params=params, allow_redirects=True) as resp:
                         chunks: list[bytes] = []
                         total = 0
