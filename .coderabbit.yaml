@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+reviews:
+  auto_review:
+    # Automatic reviews are off. Request one on a pull request by commenting
+    # `@coderabbitai review`.
+    enabled: false
+  # With automatic reviews off CodeRabbit still posts a "Review skipped" status
+  # message on every pull request; this stops that comment (reviews.review_status).
+  review_status: false
