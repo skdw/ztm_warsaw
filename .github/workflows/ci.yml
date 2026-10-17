@@ -71,33 +71,35 @@ jobs:
       # Assistant import is `Any` and mypy checks nothing.
       - name: Install requirements_test.txt
         run: python -m pip install -r requirements_test.txt
-      # A ratchet, not a free pass. The old workflow ran without Home Assistant
+      # An exact baseline, not a count. The old workflow ran without Home Assistant
       # installed, so every Home Assistant type was `Any` and it reported nothing;
-      # with Home Assistant installed mypy reports six errors (client.py,
-      # coordinator.py, config_flow.py). The job fails when there are MORE than the
-      # baseline, so a new error cannot hide behind the known ones, and it also
-      # fails if mypy itself cannot run. Fix errors, lower the baseline, and at 0
-      # replace this step with a plain `mypy custom_components/ztm_warsaw`.
+      # with Home Assistant installed mypy reports the known errors listed in
+      # .github/mypy-baseline.txt. The job fails when mypy reports a diagnostic that
+      # is not in the list (so fixing one error cannot hide a new one), when the list
+      # still holds an error mypy no longer reports (so the list shrinks as errors are
+      # fixed), and when mypy cannot run at all. Line numbers are dropped so unrelated
+      # edits do not change the list. To regenerate the entries after fixing or
+      # deliberately accepting errors:
+      #   mypy custom_components/ztm_warsaw | grep ': error:' | sed -E 's/^([^:]+):[0-9]+(:[0-9]+)?: /\1: /' | LC_ALL=C sort
+      # When the list is empty, replace this step with a plain `mypy custom_components/ztm_warsaw`.
       - name: mypy
-        env:
-          MYPY_BASELINE: "6"
         run: |
           set +e
           output="$(mypy custom_components/ztm_warsaw 2>&1)"
           status=$?
           set -e
           printf '%s\n' "$output"
-          if [ "$status" -eq 0 ]; then
-            exit 0
-          fi
-          if [ "$status" -ne 1 ]; then
+          if [ "$status" -gt 1 ]; then
             echo "::error::mypy failed to run (exit status ${status})"
             exit 1
           fi
-          errors="$(printf '%s\n' "$output" | grep -c ': error:' || true)"
-          echo "mypy errors: ${errors} (baseline ${MYPY_BASELINE})"
-          if [ "$errors" -eq 0 ] || [ "$errors" -gt "$MYPY_BASELINE" ]; then
-            echo "::error::mypy reports ${errors} errors, expected at most ${MYPY_BASELINE} and at least one"
+          tmp="${RUNNER_TEMP:-/tmp}"
+          printf '%s\n' "$output" | { grep ': error:' || true; } | sed -E 's/^([^:]+):[0-9]+(:[0-9]+)?: /\1: /' | LC_ALL=C sort > "$tmp/mypy-current.txt"
+          { grep -v -e '^#' -e '^$' .github/mypy-baseline.txt || true; } | LC_ALL=C sort > "$tmp/mypy-expected.txt"
+          if diff -u "$tmp/mypy-expected.txt" "$tmp/mypy-current.txt"; then
+            echo "mypy diagnostics match .github/mypy-baseline.txt"
+          else
+            echo "::error::mypy diagnostics differ from .github/mypy-baseline.txt ('-' lines are listed but gone, '+' lines are new)"
             exit 1
           fi
 
