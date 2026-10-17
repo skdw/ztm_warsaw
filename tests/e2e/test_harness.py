@@ -277,7 +277,8 @@ async def test_h05_new_contract_post_with_raw_authorization_returns_a_bare_list(
             NEW + "get_ztm_odjazdy_linii_z_przystanku", json=body, headers={"Authorization": DEFAULT_TOKEN}
         ) as r:
             payload = await r.json()
-        assert isinstance(payload, list) and len(assert_timetable_rows(payload)) == 81
+        assert isinstance(payload, list)
+        assert len(assert_timetable_rows(payload)) == 81
         assert payload[0][0].keys() == {"value", "key"}
 
         async with s.post(
@@ -316,7 +317,8 @@ def test_h06_catalogue_sizes_match_what_they_claim():
     assert 0.99 * FULL_CATALOGUE <= len(full) <= 1.01 * FULL_CATALOGUE
     assert len(full) < 2_000_000  # under the integration's cap, as in production
     assert len(data.stops_catalogue_bytes(OVER_CAP_CATALOGUE)) > 2_000_000
-    assert is_legacy_key(DEFAULT_KEY) and not is_legacy_key(DEFAULT_TOKEN)
+    assert is_legacy_key(DEFAULT_KEY)
+    assert not is_legacy_key(DEFAULT_TOKEN)
 
 
 def test_h06_fixtures_carry_the_measured_facts():
@@ -393,7 +395,7 @@ async def test_h04_a_loopback_port_that_is_not_the_fake_city_is_blocked(fake_cit
     async with aiohttp.ClientSession() as s:
         with pytest.raises(NetworkBlocked):
             await s.get("http://127.0.0.1:1/")
-    assert fake_city.blocked == ["127.0.0.1:1"] or len(fake_city.blocked) == 1
+    assert fake_city.blocked == ["http://127.0.0.1:1/"]
     fake_city.blocked.clear()  # intentional
 
 
