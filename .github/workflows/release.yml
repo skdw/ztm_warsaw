@@ -1,0 +1,94 @@
+name: Release
+
+# Pushing a version tag prepares a DRAFT GitHub Release; publishing it is a
+# decision the maintainer takes by hand. HACS offers an update only for a
+# published Release, so nothing reaches users until then.
+#
+# To release:
+#   1. In one pull request, set "version" in custom_components/ztm_warsaw/manifest.json
+#      and move the notes under a "## [X.Y.Z]" heading in CHANGELOG.md (a beta,
+#      X.Y.ZbN, takes its notes from "## [Unreleased]"). Merge it.
+#   2. Wait for CI on main to finish, then tag that merge commit vX.Y.Z (or vX.Y.ZbN)
+#      and push the tag.
+#   3. This workflow checks, and creates the draft only if all pass:
+#        - the tag is "v" + the manifest.json version and CHANGELOG.md has real notes
+#          for it (scripts/release_check.py, which also writes the notes);
+#        - the tagged commit is in the first-parent history of main (the merge
+#          commit, not a commit of the merged branch) and the CI checks listed in
+#          scripts/release_preflight.py succeeded on it in the push run of ci.yml on
+#          main (checks of its pull request do not count), among them HACS
+#          validation, which is not required to merge.
+#   4. Read the draft, then publish it (a beta is published as a pre-release).
+#
+# If a check was still running when the tag was pushed, re-run this workflow
+# afterwards. A failed check is fixed with a new commit and a new tag; do not move
+# a tag that was already pushed.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+
+# Never cancel a release mid-flight (playbook docs/ci-cookbook.md #2b). One group per
+# tag, not one for the workflow: a group keeps a single pending run and cancels any
+# older pending one, so releases of several tags pushed close together would lose
+# drafts. Runs of different tags are independent, each creates its own draft.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  draft-release:
+    name: Draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create the draft Release
+      checks: read # read the check runs of the tagged commit
+      actions: read # and the ci.yml runs they belong to
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the history of main, to see that the tagged commit is on its first-parent line
+
+      - name: Check the tag against manifest.json and CHANGELOG.md, and write the notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          NOTES_OUT: ${{ runner.temp }}/release-notes.md
+        run: python3 scripts/release_check.py
+
+      - name: Read the check runs of the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/${REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" \
+            --jq '.check_runs[] | {id, name, status, conclusion, app: .app.slug, check_suite: .check_suite.id}' \
+            > "${RUNNER_TEMP}/check-runs.jsonl"
+          # Which of those check suites were the push run of ci.yml on main for this commit.
+          gh api --paginate "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push&branch=main&per_page=100" \
+            --jq '.workflow_runs[] | {id, check_suite_id, event, head_branch, head_sha}' \
+            > "${RUNNER_TEMP}/workflow-runs.jsonl"
+
+      - name: List the first-parent history of main
+        run: git rev-list --first-parent origin/main > "${RUNNER_TEMP}/mainline.txt"
+
+      - name: Require a mainline commit whose CI checks succeeded
+        run: python3 scripts/release_preflight.py "${RUNNER_TEMP}/check-runs.jsonl" "${RUNNER_TEMP}/workflow-runs.jsonl" "${RUNNER_TEMP}/mainline.txt" "$GITHUB_SHA"
+
+      - name: Create the draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md
+        run: |
+          set -euo pipefail
+          if [[ "$TAG" == *b[0-9]* ]]; then
+            gh release create "$TAG" --draft --prerelease --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+          fi
