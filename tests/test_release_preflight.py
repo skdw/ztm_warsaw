@@ -27,8 +27,15 @@ def preflight() -> ModuleType:
     return module
 
 
-def run(name: str, run_id: int, conclusion: str | None = "success", status: str = "completed", app: str = "github-actions") -> dict:
-    return {"id": run_id, "name": name, "status": status, "conclusion": conclusion, "app": app}
+SUITE = 500  # the check suite of the ci.yml push run on main
+SUITES = {SUITE}
+PR_SUITE = 600  # the check suite of the same commit's pull request run
+
+
+def run(
+    name: str, run_id: int, conclusion: str | None = "success", status: str = "completed", app: str = "github-actions", suite: int = SUITE
+) -> dict:
+    return {"id": run_id, "name": name, "status": status, "conclusion": conclusion, "app": app, "check_suite": suite}
 
 
 def all_green(preflight: ModuleType) -> list[dict]:
@@ -36,58 +43,58 @@ def all_green(preflight: ModuleType) -> list[dict]:
 
 
 def test_every_required_check_green_means_the_commit_may_be_released(preflight: ModuleType) -> None:
-    assert preflight.problems(all_green(preflight)) == []
+    assert preflight.problems(all_green(preflight), SUITES) == []
 
 
 def test_other_checks_do_not_matter(preflight: ModuleType) -> None:
     runs = [*all_green(preflight), run("Coverage signals (Codecov, SonarCloud)", 1, "failure"), run("CodeQL", 2, "failure", app="github-advanced-security")]
-    assert preflight.problems(runs) == []
+    assert preflight.problems(runs, SUITES) == []
 
 
 def test_a_required_check_that_never_ran_is_reported_by_name(preflight: ModuleType) -> None:
     runs = [r for r in all_green(preflight) if r["name"] != "Hassfest"]
-    assert preflight.problems(runs) == [preflight.MSG_MISSING.format(name="Hassfest")]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_MISSING.format(name="Hassfest")]
 
 
 @pytest.mark.parametrize("conclusion", ["failure", "cancelled", "skipped", "timed_out", "neutral", "action_required", None])
 def test_a_required_check_that_did_not_succeed_blocks_the_release(preflight: ModuleType, conclusion: str | None) -> None:
     runs = all_green(preflight)
     runs[0] = run(preflight.REQUIRED[0], 100, conclusion)
-    assert preflight.problems(runs) == [preflight.MSG_FAILED.format(name=preflight.REQUIRED[0])]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_FAILED.format(name=preflight.REQUIRED[0])]
 
 
 @pytest.mark.parametrize("status", ["queued", "in_progress", "waiting", "pending"])
 def test_a_required_check_still_running_blocks_the_release_with_its_own_message(preflight: ModuleType, status: str) -> None:
     runs = all_green(preflight)
     runs[1] = run(preflight.REQUIRED[1], 101, None, status)
-    assert preflight.problems(runs) == [preflight.MSG_RUNNING.format(name=preflight.REQUIRED[1])]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_RUNNING.format(name=preflight.REQUIRED[1])]
 
 
 def test_a_rerun_counts_instead_of_the_old_failure(preflight: ModuleType) -> None:
     runs = [r for r in all_green(preflight) if r["name"] != "HACS validation"]
     runs += [run("HACS validation", 4, "failure"), run("HACS validation", 5000, "success")]  # a network error, then a re-run
-    assert preflight.problems(runs) == []
+    assert preflight.problems(runs, SUITES) == []
 
 
 def test_a_newer_failure_beats_an_older_success(preflight: ModuleType) -> None:
     runs = [*all_green(preflight), run("Tests (pytest)", 9999, "failure")]
-    assert preflight.problems(runs) == [preflight.MSG_FAILED.format(name="Tests (pytest)")]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_FAILED.format(name="Tests (pytest)")]
 
 
 def test_a_check_with_the_right_name_from_another_app_does_not_count(preflight: ModuleType) -> None:
     runs = [r for r in all_green(preflight) if r["name"] != "Lint (ruff)"] + [run("Lint (ruff)", 1, "success", app="some-other-app")]
-    assert preflight.problems(runs) == [preflight.MSG_MISSING.format(name="Lint (ruff)")]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_MISSING.format(name="Lint (ruff)")]
 
 
 def test_several_problems_are_all_listed(preflight: ModuleType) -> None:
     runs = [r for r in all_green(preflight) if r["name"] not in {"Hassfest", "Release bookkeeping"}]
-    assert len(preflight.problems(runs)) == 2
+    assert len(preflight.problems(runs, SUITES)) == 2
 
 
 def test_malformed_runs_are_ignored_not_crashing(preflight: ModuleType) -> None:
     junk = [{}, {"name": 5, "id": 1, "app": "github-actions"}, {"name": "Hassfest", "app": "github-actions"}, {"name": "Hassfest", "id": "7", "app": "github-actions"}]
     runs = [r for r in all_green(preflight) if r["name"] != "Hassfest"] + junk
-    assert preflight.problems(runs) == [preflight.MSG_MISSING.format(name="Hassfest")]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_MISSING.format(name="Hassfest")]
 
 
 def test_required_names_are_the_job_names_of_ci_yml(preflight: ModuleType) -> None:
@@ -118,10 +125,22 @@ def write_mainline(path: Path, commits: list[str]) -> Path:
     return path
 
 
-def run_main(preflight: ModuleType, tmp_path: Path, runs: list[dict], mainline: list[str] | None = None, commit: str = COMMIT) -> int:
+def push_run(commit: str = COMMIT, suite: int = SUITE, event: str = "push", branch: str = "main") -> dict:
+    return {"id": 77, "check_suite_id": suite, "event": event, "head_branch": branch, "head_sha": commit}
+
+
+def run_main(
+    preflight: ModuleType,
+    tmp_path: Path,
+    runs: list[dict],
+    mainline: list[str] | None = None,
+    commit: str = COMMIT,
+    workflow_runs: list[dict] | None = None,
+) -> int:
     runs_file = write_lines(tmp_path / "runs.jsonl", runs)
+    workflow_file = write_lines(tmp_path / "workflow-runs.jsonl", [push_run()] if workflow_runs is None else workflow_runs)
     mainline_file = write_mainline(tmp_path / "mainline.txt", [OTHER, COMMIT] if mainline is None else mainline)
-    return preflight.main([str(runs_file), str(mainline_file), commit])
+    return preflight.main([str(runs_file), str(workflow_file), str(mainline_file), commit])
 
 
 def test_main_succeeds_on_a_mainline_commit_with_green_checks(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -158,22 +177,26 @@ def test_main_reports_both_a_side_commit_and_a_failing_check(preflight: ModuleTy
 def test_main_fails_cleanly_on_a_file_that_is_not_json_lines(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str], content: str) -> None:
     runs_file = tmp_path / "runs.jsonl"
     runs_file.write_text(content, encoding="utf-8")
+    workflow_file = write_lines(tmp_path / "workflow-runs.jsonl", [push_run()])
     mainline_file = write_mainline(tmp_path / "mainline.txt", [COMMIT])
-    assert preflight.main([str(runs_file), str(mainline_file), COMMIT]) == 1
+    assert preflight.main([str(runs_file), str(workflow_file), str(mainline_file), COMMIT]) == 1
     assert content.strip() not in capsys.readouterr().err
 
 
 def test_main_fails_cleanly_on_missing_files(preflight: ModuleType, tmp_path: Path) -> None:
     runs_file = write_lines(tmp_path / "runs.jsonl", all_green(preflight))
-    assert preflight.main([str(tmp_path / "nope.jsonl"), str(tmp_path / "nope.txt"), COMMIT]) == 1
-    assert preflight.main([str(runs_file), str(tmp_path / "nope.txt"), COMMIT]) == 1
+    workflow_file = write_lines(tmp_path / "workflow-runs.jsonl", [push_run()])
+    nope = str(tmp_path / "nope")
+    assert preflight.main([nope, nope, nope, COMMIT]) == 1
+    assert preflight.main([str(runs_file), nope, nope, COMMIT]) == 1
+    assert preflight.main([str(runs_file), str(workflow_file), nope, COMMIT]) == 1
 
 
-def test_main_wants_exactly_three_arguments(preflight: ModuleType) -> None:
+def test_main_wants_exactly_four_arguments(preflight: ModuleType) -> None:
     assert preflight.main([]) == 2
     assert preflight.main(["a"]) == 2
-    assert preflight.main(["a", "b"]) == 2
-    assert preflight.main(["a", "b", "c", "d"]) == 2
+    assert preflight.main(["a", "b", "c"]) == 2
+    assert preflight.main(["a", "b", "c", "d", "e"]) == 2
 
 
 def test_conclusion_text_from_the_api_is_never_echoed(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -257,3 +280,49 @@ def test_release_runs_never_cancel_each_other_and_do_not_share_one_pending_slot(
     assert block is not None
     assert "group: ${{ github.workflow }}-${{ github.ref }}" in block.group(1)
     assert "cancel-in-progress: false" in block.group(1)
+
+
+# --- provenance: the checks must come from the push run of ci.yml on main -------------------
+
+
+def test_checks_of_the_pull_request_run_do_not_count_for_a_fast_forwarded_commit(preflight: ModuleType) -> None:
+    """A fast-forwarded release commit is also the head of its pull request, so it already carries successful,
+    same-named runs of that pull request; before the push run on main has registered its jobs they would pass."""
+    pull_request_checks = [run(name, i, suite=PR_SUITE) for i, name in enumerate(preflight.REQUIRED, start=300)]
+    assert preflight.problems(pull_request_checks, SUITES) == [preflight.MSG_MISSING.format(name=n) for n in preflight.REQUIRED]
+
+
+def test_a_pull_request_success_does_not_hide_a_failing_push_run_check(preflight: ModuleType) -> None:
+    runs = [*all_green(preflight), run("Tests (pytest)", 9000, suite=PR_SUITE)]  # newer id, wrong suite
+    runs = [r if r["name"] != "Tests (pytest)" or r["check_suite"] == PR_SUITE else run("Tests (pytest)", 150, "failure") for r in runs]
+    assert preflight.problems(runs, SUITES) == [preflight.MSG_FAILED.format(name="Tests (pytest)")]
+
+
+def test_without_a_push_run_there_is_one_clear_problem(preflight: ModuleType) -> None:
+    assert preflight.problems(all_green(preflight), set()) == [preflight.MSG_NO_PUSH_RUN]
+
+
+def test_push_suites_keeps_only_push_runs_on_main_for_this_commit(preflight: ModuleType) -> None:
+    runs = [
+        push_run(),
+        push_run(suite=1, event="pull_request"),
+        push_run(suite=2, branch="some-branch"),
+        push_run(suite=3, commit=OTHER),
+        push_run(suite=4, commit=COMMIT.upper()),
+        {"check_suite_id": "5", "event": "push", "head_branch": "main", "head_sha": COMMIT},
+        {"event": "push", "head_branch": "main", "head_sha": COMMIT},
+        {},
+    ]
+    assert preflight.push_suites(runs, COMMIT) == {SUITE, 4}
+
+
+def test_main_refuses_a_commit_whose_only_green_checks_belong_to_its_pull_request(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    pull_request_checks = [run(name, i, suite=PR_SUITE) for i, name in enumerate(preflight.REQUIRED, start=300)]
+    code = run_main(preflight, tmp_path, pull_request_checks, workflow_runs=[push_run(suite=PR_SUITE, event="pull_request")])
+    assert code == 1
+    assert preflight.MSG_NO_PUSH_RUN in capsys.readouterr().err
+
+
+def test_main_accepts_checks_of_the_push_run_even_when_a_pull_request_run_exists(preflight: ModuleType, tmp_path: Path) -> None:
+    runs = [*all_green(preflight), *[run(name, i, "failure", suite=PR_SUITE) for i, name in enumerate(preflight.REQUIRED, start=900)]]
+    assert run_main(preflight, tmp_path, runs, workflow_runs=[push_run(), push_run(suite=PR_SUITE, event="pull_request")]) == 0

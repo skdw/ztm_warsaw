@@ -4,7 +4,10 @@ Used by .github/workflows/release.yml after a version tag is pushed. The workflo
 saves the first-parent history of main (``git rev-list --first-parent origin/main``,
 one SHA per line) and the check runs of the tagged commit (``gh api
 .../commits/<sha>/check-runs``, one JSON object per line: id, name, status, conclusion,
-app), and passes both files and the tagged SHA here.
+app, check suite), the ci.yml workflow runs for that commit (``gh api
+.../actions/workflows/ci.yml/runs?head_sha=<sha>&event=push&branch=main``, one JSON
+object per line: id, check_suite_id, event, head_branch, head_sha), and passes the
+files and the tagged SHA here.
 
 The tagged commit must be in the first-parent history of main: the merge commit of a
 release pull request, or a fast-forwarded one. A commit of the merged branch is an
@@ -12,7 +15,10 @@ ancestor of main too, but it lacks the merge result and the other mainline chang
 and its pull-request CI runs would satisfy the name-based check below.
 
 Every check in REQUIRED must have completed with ``success``, as reported by the
-GitHub Actions app; for a check that ran more than once (a re-run) the newest run
+GitHub Actions app, inside a check suite of a ci.yml run that was a push to main for
+this very commit. The checks API lists every check run of a commit, whatever started
+it, and a fast-forwarded release commit already carries successful, same-named runs
+of its pull request, so the suite is what proves that CI ran on main; for a check that ran more than once (a re-run) the newest run
 counts. A check from any other app, with the same name, does not count.
 
 REQUIRED is the set of jobs of ci.yml that run on a push to main. It is the branch
@@ -47,6 +53,7 @@ REQUIRED = (
 APP = "github-actions"
 
 MSG_NOT_MAINLINE = "The tagged commit is not on the first-parent line of main (it is a commit of a merged branch, or not on main at all). Tag the merge commit on main."
+MSG_NO_PUSH_RUN = "CI has not run on main for the tagged commit (checks from its pull request do not count). Wait for the push run of ci.yml on main, or re-run it."
 MSG_MISSING = "The tagged commit has no '{name}' check from GitHub Actions. Wait for CI on main to finish, or push the tag on a commit that went through main."
 MSG_RUNNING = "The '{name}' check on the tagged commit has not finished. Re-run this workflow when it has."
 MSG_FAILED = "The '{name}' check on the tagged commit did not succeed. Fix it (or re-run it if it was a network error) before releasing."
@@ -60,12 +67,30 @@ def on_mainline(commit: str, mainline: Iterable[str]) -> bool:
     return any(line.strip().lower() == wanted for line in mainline)
 
 
-def newest_runs(runs: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
-    """The newest GitHub Actions run of each check name (the highest id)."""
+def push_suites(workflow_runs: Iterable[Mapping[str, Any]], commit: str) -> set[int]:
+    """The check suites of the ci.yml runs that were a push to main for ``commit``."""
+    wanted = commit.strip().lower()
+    suites: set[int] = set()
+    for run in workflow_runs:
+        suite = run.get("check_suite_id")
+        head_sha = run.get("head_sha")
+        if (
+            run.get("event") == "push"
+            and run.get("head_branch") == "main"
+            and isinstance(head_sha, str)
+            and head_sha.lower() == wanted
+            and isinstance(suite, int)
+        ):
+            suites.add(suite)
+    return suites
+
+
+def newest_runs(runs: Iterable[Mapping[str, Any]], suites: set[int]) -> dict[str, Mapping[str, Any]]:
+    """The newest GitHub Actions run of each check name (the highest id) inside one of ``suites``."""
     newest: dict[str, Mapping[str, Any]] = {}
     for run in runs:
         name = run.get("name")
-        if run.get("app") != APP or not isinstance(name, str):
+        if run.get("app") != APP or run.get("check_suite") not in suites or not isinstance(name, str):
             continue
         run_id = run.get("id")
         if not isinstance(run_id, int):
@@ -76,9 +101,11 @@ def newest_runs(runs: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any
     return newest
 
 
-def problems(runs: Iterable[Mapping[str, Any]]) -> list[str]:
+def problems(runs: Iterable[Mapping[str, Any]], suites: set[int]) -> list[str]:
     """Return what keeps the commit from being released; an empty list means it may be."""
-    newest = newest_runs(runs)
+    if not suites:
+        return [MSG_NO_PUSH_RUN]
+    newest = newest_runs(runs, suites)
     found: list[str] = []
     for name in REQUIRED:
         run = newest.get(name)
@@ -106,17 +133,22 @@ def read_runs(path: Path) -> list[dict[str, Any]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if len(args) != 3:
-        print("usage: release_preflight.py <check-runs.jsonl> <mainline.txt> <commit-sha>", file=sys.stderr)
+    if len(args) != 4:
+        print(
+            "usage: release_preflight.py <check-runs.jsonl> <workflow-runs.jsonl> <mainline.txt> <commit-sha>",
+            file=sys.stderr,
+        )
         return 2
     try:
         runs = read_runs(Path(args[0]))
-        mainline = Path(args[1]).read_text(encoding="utf-8").splitlines()
+        workflow_runs = read_runs(Path(args[1]))
+        mainline = Path(args[2]).read_text(encoding="utf-8").splitlines()
     except (OSError, ValueError):
         print("release-preflight: an input file is missing or not valid.", file=sys.stderr)
         return 1
-    found = problems(runs)
-    if not on_mainline(args[2], mainline):
+    commit = args[3]
+    found = problems(runs, push_suites(workflow_runs, commit))
+    if not on_mainline(commit, mainline):
         found.insert(0, MSG_NOT_MAINLINE)
     if found:
         for problem in found:

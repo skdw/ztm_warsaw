@@ -15,8 +15,9 @@ name: Release
 #          for it (scripts/release_check.py, which also writes the notes);
 #        - the tagged commit is in the first-parent history of main (the merge
 #          commit, not a commit of the merged branch) and the CI checks listed in
-#          scripts/release_preflight.py succeeded on it, among them HACS validation,
-#          which is not required to merge.
+#          scripts/release_preflight.py succeeded on it in the push run of ci.yml on
+#          main (checks of its pull request do not count), among them HACS
+#          validation, which is not required to merge.
 #   4. Read the draft, then publish it (a beta is published as a pre-release).
 #
 # If a check was still running when the tag was pushed, re-run this workflow
@@ -47,6 +48,7 @@ jobs:
     permissions:
       contents: write # create the draft Release
       checks: read # read the check runs of the tagged commit
+      actions: read # and the ci.yml runs they belong to
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -65,14 +67,18 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           gh api --paginate "repos/${REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" \
-            --jq '.check_runs[] | {id, name, status, conclusion, app: .app.slug}' \
+            --jq '.check_runs[] | {id, name, status, conclusion, app: .app.slug, check_suite: .check_suite.id}' \
             > "${RUNNER_TEMP}/check-runs.jsonl"
+          # Which of those check suites were the push run of ci.yml on main for this commit.
+          gh api --paginate "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push&branch=main&per_page=100" \
+            --jq '.workflow_runs[] | {id, check_suite_id, event, head_branch, head_sha}' \
+            > "${RUNNER_TEMP}/workflow-runs.jsonl"
 
       - name: List the first-parent history of main
         run: git rev-list --first-parent origin/main > "${RUNNER_TEMP}/mainline.txt"
 
       - name: Require a mainline commit whose CI checks succeeded
-        run: python3 scripts/release_preflight.py "${RUNNER_TEMP}/check-runs.jsonl" "${RUNNER_TEMP}/mainline.txt" "$GITHUB_SHA"
+        run: python3 scripts/release_preflight.py "${RUNNER_TEMP}/check-runs.jsonl" "${RUNNER_TEMP}/workflow-runs.jsonl" "${RUNNER_TEMP}/mainline.txt" "$GITHUB_SHA"
 
       - name: Create the draft Release
         env:
