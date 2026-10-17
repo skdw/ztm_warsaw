@@ -13,6 +13,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 ### Fixed
 
 - `manifest.json` no longer lists `aiohttp` under `requirements`. Home Assistant provides it and hassfest rejects the entry. Behavior does not change.
+- The integration no longer imports `async_timeout`. Home Assistant 2026.10 does not install that package any more, so on an installation where nothing else provides it the integration failed to load with `ModuleNotFoundError: No module named 'async_timeout'`. The request timeout now uses `asyncio.timeout` from the standard library, which every supported Home Assistant version has (Python 3.11 or later). Behavior does not change.
 
 ## [1.1.4] - 2026-05-19
 

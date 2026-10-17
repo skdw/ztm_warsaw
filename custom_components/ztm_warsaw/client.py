@@ -7,7 +7,6 @@ import json
 import re
 
 import aiohttp
-import async_timeout
 
 from .models import ZTMDepartureData, ZTMDepartureDataReading
 
@@ -110,42 +109,44 @@ class ZTMStopClient:
         attempt = 0
         while True:
             try:
-                async with async_timeout.timeout(self._timeout):
-                    async with self._session.get(url, params=params, allow_redirects=True) as resp:
-                        chunks: list[bytes] = []
-                        total = 0
-                        async for chunk in resp.content.iter_chunked(65536):
-                            total += len(chunk)
-                            if total > 2_000_000:
-                                _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
-                                return None
-                            chunks.append(chunk)
-                        text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
-                        # Retry on 5xx
-                        if 500 <= resp.status <= 599 and attempt < self._max_retries:
-                            _LOGGER.warning(
-                                "HTTP %s from %s; retrying (%s/%s)",
-                                resp.status, url, attempt + 1, self._max_retries
-                            )
-                            attempt += 1
-                            await asyncio.sleep(self._retry_backoff * attempt)
-                            continue
-                        if resp.status != 200:
+                async with (
+                    asyncio.timeout(self._timeout),
+                    self._session.get(url, params=params, allow_redirects=True) as resp,
+                ):
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in resp.content.iter_chunked(65536):
+                        total += len(chunk)
+                        if total > 2_000_000:
+                            _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
+                            return None
+                        chunks.append(chunk)
+                    text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
+                    # Retry on 5xx
+                    if 500 <= resp.status <= 599 and attempt < self._max_retries:
+                        _LOGGER.warning(
+                            "HTTP %s from %s; retrying (%s/%s)",
+                            resp.status, url, attempt + 1, self._max_retries
+                        )
+                        attempt += 1
+                        await asyncio.sleep(self._retry_backoff * attempt)
+                        continue
+                    if resp.status != 200:
+                        _LOGGER.error(
+                            "HTTP %s from %s",
+                            resp.status, url
+                        )
+                        return None
+                    if expect_json:
+                        try:
+                            return json.loads(text)
+                        except Exception:
                             _LOGGER.error(
-                                "HTTP %s from %s",
-                                resp.status, url
+                                "Invalid JSON from %s",
+                                url
                             )
                             return None
-                        if expect_json:
-                            try:
-                                return json.loads(text)
-                            except Exception:
-                                _LOGGER.error(
-                                    "Invalid JSON from %s",
-                                    url
-                                )
-                                return None
-                        return text
+                    return text
             except asyncio.TimeoutError:
                 if attempt < self._max_retries:
                     _LOGGER.warning(
