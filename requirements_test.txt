@@ -1,0 +1,10 @@
+# Test and lint tooling, exact versions; installed by .github/workflows/ci.yml.
+#
+# pytest-homeassistant-custom-component pins Home Assistant, pytest, pytest-asyncio,
+# freezegun and pytest-socket itself, so none of those are listed here. Moving the
+# plugin moves the whole test stack, including the minimum Python: review a bump of
+# it like a Home Assistant upgrade.
+pytest-homeassistant-custom-component==0.13.316
+ruff==0.17.1
+mypy==2.4.0
+pip-audit==2.10.1
