@@ -1,0 +1,122 @@
+# One combined form for bug reports and small feature requests (Tier 2 default,
+# see the playbook's templates/ISSUE_TEMPLATE/bug.yml). No `labels:` key on
+# purpose: a label that does not exist in the repository is silently dropped.
+name: Bug report / feature request
+description: Something is not working, or you would like to propose a change
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Thanks for taking the time to file this. If you are reporting a
+        **security vulnerability**, stop here and use the "Security
+        vulnerability" link on the previous page instead of this form
+        (see SECURITY.md). Never paste your API key or token anywhere in
+        this form.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Bug
+        - Feature request
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened / what would you like to see
+      description: >
+        For a bug: what did you expect, and what happened instead (a sensor
+        state, an attribute, an error in the config flow)? For a feature
+        request: what problem would this solve, and for whom?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: Shown in HACS, or as "version" in custom_components/ztm_warsaw/manifest.json.
+      placeholder: "1.1.4"
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.10.2"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: ha_install
+    attributes:
+      label: Home Assistant installation type
+      description: Matters for time zone and network problems.
+      options:
+        - Home Assistant OS
+        - Container
+        - Core
+        - Supervised
+        - Other / not sure
+    validations:
+      required: false
+
+  - type: dropdown
+    id: key_type
+    attributes:
+      label: Kind of API key you use
+      description: >
+        Only the kind, never the key itself. A UUID comes from the older
+        api.um.warszawa.pl portal; a long token starting with "eyJ" comes from
+        dane.um.warszawa.pl.
+      options:
+        - UUID (api.um.warszawa.pl)
+        - JWT token (dane.um.warszawa.pl)
+        - Not sure
+    validations:
+      required: false
+
+  - type: input
+    id: stop_line
+    attributes:
+      label: Stop ID, pole number and line affected
+      description: These are public timetable identifiers and safe to share.
+      placeholder: "7009 / 01 / line 151"
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce (bugs) / proposed approach (features)
+      description: >
+        Concrete, numbered steps if this is a bug. For a feature request, a
+        rough sketch of the approach is welcome but not required.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: >
+        Relevant lines from Settings > System > Logs. **Remove the API key or
+        token first**: a request URL may contain "apikey=...", and an error
+        text may contain an Authorization header.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Please confirm
+      options:
+        - label: >
+            I removed all API keys, tokens and personal data from the fields
+            above.
+          required: true
