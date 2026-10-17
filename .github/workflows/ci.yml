@@ -135,24 +135,26 @@ jobs:
         with:
           persist-credentials: false
       # Pinned to a commit of the default branch (the repository has no recent
-      # release). The date is the commit date. The trailing comment is
-      # deliberately not a bare branch name: zizmor's ref-version-mismatch audit
-      # fails as soon as that branch moves past the pin. The wrapper starts the
-      # ghcr.io/home-assistant/hassfest image, which this pin does not freeze.
-      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6  # master 2026-09-27
+      # release). The trailing comment is deliberately not a branch name and not a
+      # date: zizmor's ref-version-mismatch audit fails as soon as a named branch
+      # moves past the pin, and Dependabot bumps the SHA without touching the
+      # comment, so a date would go stale. Prefer a commit at least 7 days old when
+      # bumping by hand. The wrapper starts the ghcr.io/home-assistant/hassfest
+      # image, which this pin does not freeze.
+      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6  # default branch
 
   hacs:
     name: HACS validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # Pinned to a commit of the default branch (the last release is from 2022).
-      # The date is the commit date; see the hassfest job for why the comment is
-      # not a bare branch name. The wrapper starts the ghcr.io/hacs/action:main
-      # image, which this pin does not freeze. The validator fetches brand assets
+      # Pinned to a commit of the default branch (the last release is from 2022);
+      # see the hassfest job for why the comment is not a branch name or a date.
+      # The wrapper starts the ghcr.io/hacs/action:main image, which this pin does
+      # not freeze. The validator fetches brand assets
       # from brands.home-assistant.io, so a run can fail on a network error alone:
       # re-run the job before suspecting the change, and do not require this check.
-      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # main 2026-06-08
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # default branch
         with:
           category: integration
 
