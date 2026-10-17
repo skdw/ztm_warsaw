@@ -42,6 +42,10 @@ def body(docs_updated: bool = False, no_update: str | None = None, newline: str 
     return newline.join(lines) + newline
 
 
+def in_section(text: str) -> str:
+    return f"## Documentation impact\n\n{text}"
+
+
 def write_event(path: Path, pr_body: str | None, login: str = "solarssk") -> str:
     event = {
         "pull_request": {
@@ -69,17 +73,17 @@ def test_both_boxes_fail(docs_impact: ModuleType) -> None:
 
 
 def test_placeholder_reason_does_not_count(docs_impact: ModuleType) -> None:
-    ticked = "- [x] Docs updated\n- [x] No doc update needed: <state the reason>\n"
+    ticked = in_section("- [x] Docs updated\n- [x] No doc update needed: <state the reason>\n")
     assert docs_impact.read_declaration(ticked) == (True, False)
-    only_placeholder = "- [x] No doc update needed: <state the reason>\n"
+    only_placeholder = in_section("- [x] No doc update needed: <state the reason>\n")
     assert docs_impact.read_declaration(only_placeholder) == (False, False)
     assert docs_impact.evaluate(only_placeholder, []) == [docs_impact.MSG_NEEDS_REASON]
 
 
 @pytest.mark.parametrize("mark", ["x", "X"])
 def test_the_tick_may_be_lower_or_upper_case(docs_impact: ModuleType, mark: str) -> None:
-    docs = f"- [{mark}] Docs updated\n- [ ] No doc update needed: <state the reason>\n"
-    no_docs = f"- [ ] Docs updated\n- [{mark}] No doc update needed: tests only\n"
+    docs = in_section(f"- [{mark}] Docs updated\n- [ ] No doc update needed: <state the reason>\n")
+    no_docs = in_section(f"- [ ] Docs updated\n- [{mark}] No doc update needed: tests only\n")
     assert docs_impact.read_declaration(docs) == (True, False)
     assert docs_impact.read_declaration(no_docs) == (False, True)
 
@@ -169,7 +173,7 @@ def test_main_skips_dependabot_by_author_not_by_branch(docs_impact: ModuleType, 
 def test_main_handles_a_null_body(docs_impact: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     no_diff = lambda _base, _head: pytest.fail("must not diff")  # noqa: E731
     assert docs_impact.main(write_event(tmp_path / "null.json", None), no_diff) == 1
-    assert docs_impact.MSG_NONE in capsys.readouterr().out
+    assert docs_impact.MSG_NO_SECTION in capsys.readouterr().out
 
 
 def test_main_diffs_base_and_head_from_the_event(docs_impact: ModuleType, tmp_path: Path) -> None:
@@ -189,7 +193,7 @@ def test_main_diffs_base_and_head_from_the_event(docs_impact: ModuleType, tmp_pa
 def test_main_messages_are_constants_and_say_how_to_fix(
     docs_impact: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    hostile = "- [x] Docs updated\n- [x] No doc update needed: ::error::pwned %0A\n"
+    hostile = in_section("- [x] Docs updated\n- [x] No doc update needed: ::error::pwned %0A\n")
     assert docs_impact.main(write_event(tmp_path / "h.json", hostile), lambda _b, _h: ["a.py"]) == 1
     out = capsys.readouterr().out
     assert "pwned" not in out
@@ -276,3 +280,66 @@ def test_a_failing_git_diff_fails_the_check_with_a_constant_message(
     event = write_event(tmp_path / "event.json", body(docs_updated=True))  # base and head are not real commits
     assert docs_impact.main(event) == 1
     assert docs_impact.MSG_GIT_FAILED in capsys.readouterr().out
+
+
+# --- only the Documentation impact section counts -----------------------------------
+
+UNTOUCHED = "- [ ] Docs updated\n- [ ] No doc update needed: <state the reason>\n"
+
+
+def test_a_ticked_item_quoted_in_another_section_is_not_a_declaration(docs_impact: ModuleType) -> None:
+    description = (
+        "## Description\n\nThe template says:\n\n- [x] Docs updated\n\n"
+        f"## Documentation impact\n\n{UNTOUCHED}\n## Checklist\n\n- [x] No doc update needed: not this one\n"
+    )
+    assert docs_impact.read_declaration(description) == (False, False)
+    assert docs_impact.evaluate(description, ["README.md"]) == [docs_impact.MSG_NONE]
+
+
+def test_a_ticked_item_after_the_section_does_not_count(docs_impact: ModuleType) -> None:
+    description = f"## Documentation impact\n\n{UNTOUCHED}\n---\n\n## Checklist\n\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+@pytest.mark.parametrize("fence", ["```", "~~~"])
+def test_a_ticked_item_in_a_code_block_does_not_count(docs_impact: ModuleType, fence: str) -> None:
+    description = in_section(f"{UNTOUCHED}\n{fence}\n- [x] Docs updated\n{fence}\n")
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_an_unterminated_code_block_hides_everything_after_it(docs_impact: ModuleType) -> None:
+    description = in_section(f"{UNTOUCHED}\n```\n- [x] Docs updated\n")
+    assert docs_impact.read_declaration(description) == (False, False)
+    real_first = in_section("- [x] Docs updated\n- [ ] No doc update needed: <state the reason>\n\n```\nnever closed\n")
+    assert docs_impact.read_declaration(real_first) == (True, False)
+
+
+def test_a_ticked_item_in_an_html_comment_does_not_count(docs_impact: ModuleType) -> None:
+    description = in_section(f"<!--\n- [x] Docs updated\n-->\n{UNTOUCHED}")
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_a_quoted_or_indented_item_is_not_a_declaration(docs_impact: ModuleType) -> None:
+    description = in_section("> - [x] Docs updated\n    - [x] No doc update needed: indented\n" + UNTOUCHED)
+    assert docs_impact.read_declaration(description) == (False, False)
+
+
+def test_a_description_without_the_section_is_rejected_with_its_own_message(docs_impact: ModuleType) -> None:
+    description = "## Description\n\n- [x] Docs updated\n"
+    assert docs_impact.evaluate(description, ["README.md"]) == [docs_impact.MSG_NO_SECTION]
+    assert docs_impact.evaluate("", []) == [docs_impact.MSG_NO_SECTION]
+
+
+def test_the_heading_may_differ_in_case_and_trailing_spaces(docs_impact: ModuleType) -> None:
+    description = "## documentation IMPACT  \n\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_a_lower_level_heading_does_not_end_the_section(docs_impact: ModuleType) -> None:
+    description = "## Documentation impact\n\n### Why\n\n- [x] Docs updated\n"
+    assert docs_impact.read_declaration(description) == (True, False)
+
+
+def test_a_windows_description_is_read_like_a_unix_one(docs_impact: ModuleType) -> None:
+    description = "## Description\r\n\r\ntext\r\n\r\n## Documentation impact\r\n\r\n- [x] Docs updated\r\n\r\n## Checklist\r\n"
+    assert docs_impact.read_declaration(description) == (True, False)

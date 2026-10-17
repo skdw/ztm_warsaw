@@ -6,6 +6,10 @@ a real reason (the template placeholder does not count), "Docs updated" needs a
 changed doc path, and "No doc update needed" must not coexist with one. Runs only
 on pull_request events; on anything else it exits cleanly.
 
+One deliberate difference from the original, which searches the whole description:
+only the ``## Documentation impact`` section counts. A ticked item quoted in another
+section, or sitting in a code block or an HTML comment, is not a declaration.
+
 Every message printed here is a constant: the pull request body, branch names and
 file names never reach the log or a workflow command.
 """
@@ -21,10 +25,18 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
+# Quoted or hidden text never counts: fenced code blocks (an unterminated fence runs to
+# the end, as GitHub renders it) and HTML comments are removed before looking for the section.
+FENCE = re.compile(r"^(```|~~~)[^\n]*\n.*?(?:^\1[^\n]*$|\Z)", re.MULTILINE | re.DOTALL)
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+SECTION_HEADING = re.compile(r"^## Documentation impact[ \t]*$", re.MULTILINE | re.IGNORECASE)
+NEXT_HEADING = re.compile(r"^#{1,2} ", re.MULTILINE)
+
 DOCS_UPDATED = re.compile(r"^- \[[xX]\] Docs updated\s*$", re.MULTILINE)
 NO_DOC_UPDATE_TICKED = re.compile(r"^- \[[xX]\] No doc update needed:", re.MULTILINE)
 NO_DOC_UPDATE = re.compile(r"^- \[[xX]\] No doc update needed: (?!<state the reason>\s*$)\S.+$", re.MULTILINE)
 
+MSG_NO_SECTION = "The pull request description has no '## Documentation impact' section; keep the section from the pull request template."
 MSG_NONE = "Select one Documentation impact option: tick 'Docs updated', or tick 'No doc update needed:' and give the reason."
 MSG_BOTH = "Both Documentation impact options are ticked; select exactly one."
 MSG_NEEDS_REASON = "'No doc update needed' is ticked without a real reason after the colon (the template placeholder does not count)."
@@ -47,18 +59,39 @@ def is_doc_path(path: str) -> bool:
     return path.startswith("docs/") or ("/" not in path and path.endswith(".md"))
 
 
+def declaration_section(body: str) -> str | None:
+    """Return the text of the ``## Documentation impact`` section, or None if there is none.
+
+    The section runs to the next level-1 or level-2 heading (or the end). Code blocks and
+    HTML comments are removed first, and Windows line endings are normalised.
+    """
+    text = HTML_COMMENT.sub("", FENCE.sub("", body.replace("\r\n", "\n")))
+    heading = SECTION_HEADING.search(text)
+    if heading is None:
+        return None
+    rest = text[heading.end() :]
+    following = NEXT_HEADING.search(rest)
+    return rest[: following.start()] if following else rest
+
+
 def read_declaration(body: str) -> tuple[bool, bool]:
-    """Return (docs_updated, no_doc_update) as declared in the pull request body."""
-    return bool(DOCS_UPDATED.search(body)), bool(NO_DOC_UPDATE.search(body))
+    """Return (docs_updated, no_doc_update) as declared in the Documentation impact section."""
+    section = declaration_section(body)
+    if section is None:
+        return False, False
+    return bool(DOCS_UPDATED.search(section)), bool(NO_DOC_UPDATE.search(section))
 
 
 def evaluate(body: str, changed_files: Sequence[str]) -> list[str]:
     """Return the problems found; an empty list means the declaration is consistent."""
+    section = declaration_section(body)
+    if section is None:
+        return [MSG_NO_SECTION]
     docs_updated, no_doc_update = read_declaration(body)
     if docs_updated and no_doc_update:
         return [MSG_BOTH]
     if not docs_updated and not no_doc_update:
-        return [MSG_NEEDS_REASON if NO_DOC_UPDATE_TICKED.search(body) else MSG_NONE]
+        return [MSG_NEEDS_REASON if NO_DOC_UPDATE_TICKED.search(section) else MSG_NONE]
     docs_changed = any(is_doc_path(path) for path in changed_files)
     if docs_updated and not docs_changed:
         return [MSG_DOCS_NOT_CHANGED]
