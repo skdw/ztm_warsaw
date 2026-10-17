@@ -1,7 +1,8 @@
 # Known mypy diagnostics: path, message and code, with line numbers dropped so that
-# unrelated edits do not change the list. Compared exactly by the "mypy" step in
-# workflows/ci.yml: a diagnostic missing from this list fails the job, and so does an
-# entry that mypy no longer reports. Remove an entry in the pull request that fixes it.
+# unrelated edits do not change the list. Compared exactly by scripts/check_mypy_baseline.py
+# (the "mypy" step of workflows/ci.yml): a diagnostic missing from this list fails the job,
+# and so does an entry that mypy no longer reports. Remove an entry in the pull request that
+# fixes it; `python scripts/check_mypy_baseline.py --update` rewrites the entries.
 custom_components/ztm_warsaw/client.py: error: Argument 1 to "fromtimestamp" of "datetime" has incompatible type "float | None"; expected "float"  [arg-type]
 custom_components/ztm_warsaw/client.py: error: Unsupported operand types for < ("float" and "None")  [operator]
 custom_components/ztm_warsaw/config_flow.py: error: Unused "type: ignore" comment  [unused-ignore]

@@ -41,17 +41,20 @@ CI runs these on every pull request; run them before you open one.
 
 ```bash
 ruff check .
-mypy custom_components/ztm_warsaw
+python scripts/check_mypy_baseline.py
 pytest
 ```
 
 - `pytest` takes about ten seconds. It runs the integration inside a real Home Assistant against a
   fake City of Warsaw server on your own machine, so it needs no network and no API key. Add
   `--cov` for a coverage report.
-- `mypy` reports a few known errors. CI compares them exactly with `.github/mypy-baseline.txt`: a
-  new error fails the job, and so does a baseline entry that no longer occurs. The command that
-  regenerates the entries after you fix or deliberately accept one is in the comment above the
-  `mypy` step of `.github/workflows/ci.yml`.
+- `scripts/check_mypy_baseline.py` runs `mypy custom_components/ztm_warsaw` and compares its
+  diagnostics exactly with `.github/mypy-baseline.txt`, the same way CI does. A plain
+  `mypy custom_components/ztm_warsaw` prints the known errors and exits with status 1 on a clean
+  checkout, so it cannot tell you whether you added one. A new error fails the check, and so does a
+  baseline entry that mypy no longer reports: remove it in the pull request that fixes it.
+  `python scripts/check_mypy_baseline.py --update` rewrites the entries after you fix or
+  deliberately accept one.
 - A test against the real API exists (`tests/live/`) but is opt-in. It makes a handful of requests,
   never prints the key, and never runs in CI:
 

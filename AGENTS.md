@@ -151,7 +151,7 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `custom_components/ztm_warsaw/` | The integration |
 | `tests/e2e/` | The real integration in a real in-process Home Assistant against a fake City of Warsaw ([tests/README.md](tests/README.md)) |
 | `tests/live/` | An opt-in check of the real API (not run in CI); `test_key_redaction.py` there needs no key and runs in every pytest run |
-| `scripts/` | `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
+| `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
 | `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `release.yml`, `scorecard.yml`. A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
 | `CHANGELOG.md` | The source of the GitHub Release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to run the checks and open a pull request |
