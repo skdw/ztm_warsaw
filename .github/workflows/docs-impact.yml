@@ -9,8 +9,14 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
+# The group names the head commit as well as the pull request, so a run can only
+# supersede another run for the same commit (two quick description edits: the later
+# one carries the newer description). It must never cancel the run for a different
+# commit: an `edited` event fired right after a push can still carry the previous
+# head commit, and with one group per pull request that stale run cancelled the run
+# for the new head, leaving the check cancelled on the commit that gets merged.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 permissions:
