@@ -1,9 +1,8 @@
 name: CI
 
-# Verification layers that look at the repository and its workflows rather than
-# at the integration code: a secret scan and a workflow linter. Lint, type
-# checks, tests and the Home Assistant validators arrive in follow-up pull
-# requests and are added to this file.
+# Lint, type check, the Home Assistant and HACS validators, a dependency audit, a
+# secret scan and a workflow lint. Replaces ruff.yaml, mypy.yaml, hassfest.yaml and
+# hacs.yaml. Tests are added to this file by a follow-up pull request.
 #
 # The `name:` of every job below is the status-check name that branch protection
 # will require (docs/governance.md in the playbook). Rename one only together
@@ -11,7 +10,7 @@ name: CI
 #
 # There is deliberately no `schedule:` here. GitHub disables a scheduled
 # workflow after 60 days without repository activity, and a disabled workflow
-# stops running on pull requests too: that is what happened to the hacs and
+# stops running on pull requests too: that is what happened to the old hacs and
 # hassfest workflows.
 on:
   pull_request: {}
@@ -25,7 +24,139 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Matches pytest-homeassistant-custom-component in requirements_test.txt (it
+  # pins the Home Assistant release, and with it the minimum Python). The
+  # integration itself must stay valid for Home Assistant 2024.4 (Python 3.12).
+  PYTHON_VERSION: "3.13"
+
 jobs:
+  ruff:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install ruff (the version pinned in requirements_test.txt)
+        run: |
+          set -euo pipefail
+          grep -E '^ruff==' requirements_test.txt > "$RUNNER_TEMP/ruff-requirement.txt"
+          python -m pip install -r "$RUNNER_TEMP/ruff-requirement.txt"
+      # The rules are listed in pyproject.toml, so a ruff upgrade cannot add rules.
+      - name: ruff check
+        run: ruff check .
+
+  mypy:
+    name: Type check (mypy)
+    # Pinned, not ubuntu-latest: this job installs the whole Home Assistant tree,
+    # and ubuntu-latest moves to Ubuntu 26 from 2026-10-19, where some of those
+    # packages build from source. Move it with the Python and Home Assistant bump.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      # Home Assistant comes with the pytest plugin; without it every Home
+      # Assistant import is `Any` and mypy checks nothing.
+      - name: Install requirements_test.txt
+        run: python -m pip install -r requirements_test.txt
+      # A ratchet, not a free pass. The old workflow ran without Home Assistant
+      # installed, so every Home Assistant type was `Any` and it reported nothing;
+      # with Home Assistant installed mypy reports six errors (client.py,
+      # coordinator.py, config_flow.py). The job fails when there are MORE than the
+      # baseline, so a new error cannot hide behind the known ones, and it also
+      # fails if mypy itself cannot run. Fix errors, lower the baseline, and at 0
+      # replace this step with a plain `mypy custom_components/ztm_warsaw`.
+      - name: mypy
+        env:
+          MYPY_BASELINE: "6"
+        run: |
+          set +e
+          output="$(mypy custom_components/ztm_warsaw 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+          if [ "$status" -ne 1 ]; then
+            echo "::error::mypy failed to run (exit status ${status})"
+            exit 1
+          fi
+          errors="$(printf '%s\n' "$output" | grep -c ': error:' || true)"
+          echo "mypy errors: ${errors} (baseline ${MYPY_BASELINE})"
+          if [ "$errors" -eq 0 ] || [ "$errors" -gt "$MYPY_BASELINE" ]; then
+            echo "::error::mypy reports ${errors} errors, expected at most ${MYPY_BASELINE} and at least one"
+            exit 1
+          fi
+
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      # Pinned to a commit of the default branch (the repository has no recent
+      # release). The date is the commit date. The trailing comment is
+      # deliberately not a bare branch name: zizmor's ref-version-mismatch audit
+      # fails as soon as that branch moves past the pin. The wrapper starts the
+      # ghcr.io/home-assistant/hassfest image, which this pin does not freeze.
+      - uses: home-assistant/actions/hassfest@06749dd8c0b54f350bc69c8752456cee498808a3  # master 2026-09-27
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Pinned to a commit of the default branch (the last release is from 2022).
+      # The date is the commit date; see the hassfest job for why the comment is
+      # not a bare branch name. The wrapper starts the ghcr.io/hacs/action:main
+      # image, which this pin does not freeze. The validator fetches brand assets
+      # from brands.home-assistant.io, so a run can fail on a network error alone:
+      # re-run the job before suspecting the change, and do not require this check.
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa  # main 2026-06-08
+        with:
+          category: integration
+
+  audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install pip-audit (the version pinned in requirements_test.txt)
+        run: |
+          set -euo pipefail
+          grep -E '^pip-audit==' requirements_test.txt > "$RUNNER_TEMP/pip-audit-requirement.txt"
+          python -m pip install -r "$RUNNER_TEMP/pip-audit-requirement.txt"
+      # Audits the exact pins of the test tooling. Home Assistant's own transitive
+      # dependencies are deliberately not gated: they are pinned by the plugin, a
+      # vulnerable one cannot be fixed from this repository, and gating on them
+      # makes every unrelated pull request red. The integration itself ships no
+      # dependencies of its own. A green result therefore says nothing about the
+      # Home Assistant release the tooling runs against: that one is bumped by hand
+      # (Dependabot ignores the plugin), together with the Python version.
+      - name: pip-audit
+        run: pip-audit -r requirements_test.txt --no-deps --disable-pip --strict
+
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest

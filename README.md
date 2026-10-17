@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-%F0%9F%A7%A1-blue)](https://www.home-assistant.io)
 [![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
-[![Validate with hassfest](https://github.com/solarssk/ztm_warsaw/actions/workflows/hassfest.yaml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions)
+[![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
 [![custom_component](https://img.shields.io/badge/type-custom_component-red.svg)](https://github.com/solarssk/ztm_warsaw)
 
 ZTM Warsaw Integration brings real-time public transport departure data from the City of Warsaw API directly into Home Assistant. Whether you're tracking buses, trams, or metro lines, this integration allows you to view live departures at a glance.

@@ -9,3 +9,20 @@ updates:
     # updates ignore the cooldown.
     cooldown:
       default-days: 7
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      lint-and-audit-tools:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pip-audit"
+    ignore:
+      # Moving the plugin moves Home Assistant and the minimum Python together, so
+      # it is bumped by hand in the pull request that raises the CI Python version.
+      - dependency-name: "pytest-homeassistant-custom-component"
