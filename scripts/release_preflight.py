@@ -1,8 +1,16 @@
-"""Checks that the commit being released passed the CI checks that matter.
+"""Checks that the commit being released is a mainline commit that passed the CI checks that matter.
 
 Used by .github/workflows/release.yml after a version tag is pushed. The workflow
-saves the check runs of the tagged commit (``gh api .../commits/<sha>/check-runs``,
-one JSON object per line: id, name, status, conclusion, app) and passes the file here.
+saves the first-parent history of main (``git rev-list --first-parent origin/main``,
+one SHA per line) and the check runs of the tagged commit (``gh api
+.../commits/<sha>/check-runs``, one JSON object per line: id, name, status, conclusion,
+app), and passes both files and the tagged SHA here.
+
+The tagged commit must be in the first-parent history of main: the merge commit of a
+release pull request, or a fast-forwarded one. A commit of the merged branch is an
+ancestor of main too, but it lacks the merge result and the other mainline changes,
+and its pull-request CI runs would satisfy the name-based check below.
+
 Every check in REQUIRED must have completed with ``success``, as reported by the
 GitHub Actions app; for a check that ran more than once (a re-run) the newest run
 counts. A check from any other app, with the same name, does not count.
@@ -38,9 +46,18 @@ REQUIRED = (
 )
 APP = "github-actions"
 
+MSG_NOT_MAINLINE = "The tagged commit is not on the first-parent line of main (it is a commit of a merged branch, or not on main at all). Tag the merge commit on main."
 MSG_MISSING = "The tagged commit has no '{name}' check from GitHub Actions. Wait for CI on main to finish, or push the tag on a commit that went through main."
 MSG_RUNNING = "The '{name}' check on the tagged commit has not finished. Re-run this workflow when it has."
 MSG_FAILED = "The '{name}' check on the tagged commit did not succeed. Fix it (or re-run it if it was a network error) before releasing."
+
+
+def on_mainline(commit: str, mainline: Iterable[str]) -> bool:
+    """True if ``commit`` (a full 40-character SHA) is one of the SHAs in ``mainline``."""
+    wanted = commit.strip().lower()
+    if len(wanted) != 40 or any(c not in "0123456789abcdef" for c in wanted):
+        return False
+    return any(line.strip().lower() == wanted for line in mainline)
 
 
 def newest_runs(runs: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
@@ -89,20 +106,23 @@ def read_runs(path: Path) -> list[dict[str, Any]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if len(args) != 1:
-        print("usage: release_preflight.py <check-runs.jsonl>", file=sys.stderr)
+    if len(args) != 3:
+        print("usage: release_preflight.py <check-runs.jsonl> <mainline.txt> <commit-sha>", file=sys.stderr)
         return 2
     try:
         runs = read_runs(Path(args[0]))
+        mainline = Path(args[1]).read_text(encoding="utf-8").splitlines()
     except (OSError, ValueError):
-        print("release-preflight: the check-runs file is missing or not valid JSON lines.", file=sys.stderr)
+        print("release-preflight: an input file is missing or not valid.", file=sys.stderr)
         return 1
     found = problems(runs)
+    if not on_mainline(args[2], mainline):
+        found.insert(0, MSG_NOT_MAINLINE)
     if found:
         for problem in found:
             print(f"release-preflight: {problem}", file=sys.stderr)
         return 1
-    print("release-preflight: every required CI check on the tagged commit succeeded.")
+    print("release-preflight: the tagged commit is on main and every required CI check on it succeeded.")
     return 0
 
 

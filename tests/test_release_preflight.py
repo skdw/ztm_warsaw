@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import subprocess
 from pathlib import Path
 from types import ModuleType
 
@@ -102,46 +103,146 @@ def test_the_documentation_impact_check_is_not_required_because_it_never_runs_on
     assert "Documentation impact declaration" not in preflight.REQUIRED
 
 
+COMMIT = "0123456789abcdef0123456789abcdef01234567"
+OTHER = "fedcba9876543210fedcba9876543210fedcba98"
+
+
 def write_lines(path: Path, runs: list[dict]) -> Path:
     path.write_text("\n".join(json.dumps(r) for r in runs) + "\n", encoding="utf-8")
     return path
 
 
-def test_main_succeeds_on_a_green_file(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert preflight.main([str(write_lines(tmp_path / "runs.jsonl", all_green(preflight)))]) == 0
-    assert "succeeded" in capsys.readouterr().out
+def write_mainline(path: Path, commits: list[str]) -> Path:
+    path.write_text("\n".join(commits) + "\n", encoding="utf-8")
+    return path
+
+
+def run_main(preflight: ModuleType, tmp_path: Path, runs: list[dict], mainline: list[str] | None = None, commit: str = COMMIT) -> int:
+    runs_file = write_lines(tmp_path / "runs.jsonl", runs)
+    mainline_file = write_mainline(tmp_path / "mainline.txt", [OTHER, COMMIT] if mainline is None else mainline)
+    return preflight.main([str(runs_file), str(mainline_file), commit])
+
+
+def test_main_succeeds_on_a_mainline_commit_with_green_checks(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_main(preflight, tmp_path, all_green(preflight)) == 0
+    assert "on main" in capsys.readouterr().out
 
 
 def test_main_fails_and_names_the_check_on_stderr(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     runs = all_green(preflight)
     runs[2] = run(preflight.REQUIRED[2], 102, "failure")
-    assert preflight.main([str(write_lines(tmp_path / "runs.jsonl", runs))]) == 1
+    assert run_main(preflight, tmp_path, runs) == 1
     assert preflight.REQUIRED[2] in capsys.readouterr().err
 
 
-def test_main_fails_on_an_empty_file(preflight: ModuleType, tmp_path: Path) -> None:
-    assert preflight.main([str(write_lines(tmp_path / "runs.jsonl", []))]) == 1
+def test_main_fails_on_an_empty_checks_file(preflight: ModuleType, tmp_path: Path) -> None:
+    assert run_main(preflight, tmp_path, []) == 1
+
+
+def test_main_fails_when_the_commit_is_not_in_the_mainline_even_with_green_checks(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_main(preflight, tmp_path, all_green(preflight), mainline=[OTHER]) == 1
+    assert preflight.MSG_NOT_MAINLINE in capsys.readouterr().err
+
+
+def test_main_reports_both_a_side_commit_and_a_failing_check(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    runs = all_green(preflight)
+    runs[0] = run(preflight.REQUIRED[0], 100, "failure")
+    assert run_main(preflight, tmp_path, runs, mainline=[]) == 1
+    err = capsys.readouterr().err
+    assert preflight.MSG_NOT_MAINLINE in err
+    assert preflight.REQUIRED[0] in err
 
 
 @pytest.mark.parametrize("content", ["not json\n", "[1, 2]\n", "42\n"])
 def test_main_fails_cleanly_on_a_file_that_is_not_json_lines(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str], content: str) -> None:
-    path = tmp_path / "runs.jsonl"
-    path.write_text(content, encoding="utf-8")
-    assert preflight.main([str(path)]) == 1
+    runs_file = tmp_path / "runs.jsonl"
+    runs_file.write_text(content, encoding="utf-8")
+    mainline_file = write_mainline(tmp_path / "mainline.txt", [COMMIT])
+    assert preflight.main([str(runs_file), str(mainline_file), COMMIT]) == 1
     assert content.strip() not in capsys.readouterr().err
 
 
-def test_main_fails_cleanly_on_a_missing_file(preflight: ModuleType, tmp_path: Path) -> None:
-    assert preflight.main([str(tmp_path / "nope.jsonl")]) == 1
+def test_main_fails_cleanly_on_missing_files(preflight: ModuleType, tmp_path: Path) -> None:
+    runs_file = write_lines(tmp_path / "runs.jsonl", all_green(preflight))
+    assert preflight.main([str(tmp_path / "nope.jsonl"), str(tmp_path / "nope.txt"), COMMIT]) == 1
+    assert preflight.main([str(runs_file), str(tmp_path / "nope.txt"), COMMIT]) == 1
 
 
-def test_main_wants_exactly_one_argument(preflight: ModuleType) -> None:
+def test_main_wants_exactly_three_arguments(preflight: ModuleType) -> None:
     assert preflight.main([]) == 2
+    assert preflight.main(["a"]) == 2
     assert preflight.main(["a", "b"]) == 2
+    assert preflight.main(["a", "b", "c", "d"]) == 2
 
 
 def test_conclusion_text_from_the_api_is_never_echoed(preflight: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     runs = all_green(preflight)
     runs[0] = run(preflight.REQUIRED[0], 100, "::error::injected")
-    assert preflight.main([str(write_lines(tmp_path / "runs.jsonl", runs))]) == 1
+    assert run_main(preflight, tmp_path, runs) == 1
     assert "injected" not in capsys.readouterr().err
+
+
+# --- the mainline: first-parent history of main, not general ancestry -------------------
+
+
+def test_on_mainline_finds_a_full_sha_in_the_list(preflight: ModuleType) -> None:
+    assert preflight.on_mainline(COMMIT, [OTHER, COMMIT])
+    assert preflight.on_mainline(f"  {COMMIT.upper()}\n", [f"{COMMIT}\n"])
+
+
+@pytest.mark.parametrize("commit", ["", " ", "0123456", COMMIT[:39], COMMIT + "0", "g" * 40, "refs/heads/main", "HEAD"])
+def test_on_mainline_rejects_anything_that_is_not_a_full_sha(preflight: ModuleType, commit: str) -> None:
+    assert not preflight.on_mainline(commit, [commit, COMMIT])
+
+
+def test_on_mainline_does_not_match_a_prefix_or_a_substring(preflight: ModuleType) -> None:
+    assert not preflight.on_mainline(COMMIT, [COMMIT[:20], COMMIT + "0", "x" + COMMIT])
+    assert not preflight.on_mainline(COMMIT, [])
+
+
+def git(repo: Path, *args: str) -> str:
+    env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid", "PATH": "/usr/bin:/bin"}
+    out = subprocess.run(["/usr/bin/git", "-C", str(repo), *args], check=True, capture_output=True, text=True, env=env).stdout
+    return out.strip()
+
+
+def test_a_commit_of_a_merged_branch_is_not_on_the_mainline_but_the_merge_commit_is(preflight: ModuleType, tmp_path: Path) -> None:
+    """The case from the review: with merge commits, the release-bump commit of a pull request branch is an
+    ancestor of main, so `git merge-base --is-ancestor` accepts it; the first-parent history does not."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "a.txt").write_text("1")
+    git(repo, "add", "a.txt")
+    git(repo, "commit", "-q", "-m", "base")
+    git(repo, "checkout", "-q", "-b", "release-pr")
+    (repo / "a.txt").write_text("version bump")
+    git(repo, "commit", "-q", "-am", "bump the version")
+    bump = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-q", "main")
+    (repo / "b.txt").write_text("another change on main")
+    git(repo, "add", "b.txt")
+    git(repo, "commit", "-q", "-m", "another change on main")
+    git(repo, "merge", "-q", "--no-ff", "-m", "Merge pull request", "release-pr")
+    merge = git(repo, "rev-parse", "HEAD")
+    side_is_ancestor = subprocess.run(["/usr/bin/git", "-C", str(repo), "merge-base", "--is-ancestor", bump, "main"]).returncode == 0
+    assert side_is_ancestor, "precondition: the old check would have accepted the side commit"
+    mainline = git(repo, "rev-list", "--first-parent", "main").splitlines()
+    assert preflight.on_mainline(merge, mainline)
+    assert not preflight.on_mainline(bump, mainline)
+
+
+def test_a_fast_forwarded_release_commit_is_on_the_mainline(preflight: ModuleType, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "a.txt").write_text("1")
+    git(repo, "add", "a.txt")
+    git(repo, "commit", "-q", "-m", "base")
+    git(repo, "checkout", "-q", "-b", "release-pr")
+    (repo / "a.txt").write_text("2")
+    git(repo, "commit", "-q", "-am", "bump")
+    bump = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-q", "main")
+    git(repo, "merge", "-q", "--ff-only", "release-pr")
+    assert preflight.on_mainline(bump, git(repo, "rev-list", "--first-parent", "main").splitlines())
