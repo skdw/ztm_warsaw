@@ -84,6 +84,21 @@ async def test_e2e_14_the_rejected_key_never_reaches_the_log(env, caplog):
     assert DEFAULT_KEY not in log_blob(caplog)
 
 
+async def test_e2e_14_a_network_error_after_an_api_error_does_not_bring_the_stale_timetable_back(env):
+    await env.add_entry()
+    assert departing(env)
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    assert env.state().state == "unavailable"
+    env.city.always("timetable", Http(500))  # now the city is also failing, with the old timetable still cached
+    await env.hourly_tick()
+    assert env.state().state == "unavailable"
+    env.city.heal()
+    env.city.valid_keys.add(DEFAULT_KEY)
+    await env.hourly_tick()
+    assert departing(env)
+
+
 async def test_e2e_14_a_stop_the_api_stops_knowing_is_unavailable_and_recovers(env):
     await env.add_entry()
     assert departing(env)
@@ -143,6 +158,13 @@ COLD_START = [
         lambda: Respond(200, {"unexpected": "shape"}, name="unknown_shape"),
         "unavailable",
         id="unknown_shape",
+    ),
+    pytest.param(lambda: Respond(200, [], name="bare_list"), "unavailable", id="bare_list_is_not_the_legacy_shape"),
+    pytest.param(lambda: Respond(200, {"result": 5}, name="odd_result"), "unavailable", id="result_of_an_odd_type"),
+    pytest.param(
+        lambda: Respond(200, {"result": "false", "error": "something else"}, name="false_other"),
+        "unavailable",
+        id="result_false_without_apikey",
     ),
     pytest.param(lambda: Http(500), "unavailable", id="http_500"),
     pytest.param(lambda: Http(403, {"message": "Forbidden"}), "unavailable", id="http_403"),

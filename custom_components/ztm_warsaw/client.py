@@ -24,6 +24,25 @@ class ZTMAuthError(ZTMApiError):
     """The API refused the API key."""
 
 
+def _timetable_result(json_response) -> list:
+    """The readings of a timetable answer, or a ZTMApiError for an answer that is not a timetable.
+
+    ``result`` null means the line exists but does not run today: a real, empty timetable ("No service").
+    """
+    if not isinstance(json_response, dict) or "result" not in json_response:
+        raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
+    result = json_response["result"]
+    if result is None:
+        return []
+    if result == "false" and "apikey" in str(json_response.get("error", "")).lower():
+        raise ZTMAuthError("The City of Warsaw API rejected the API key")
+    if result == _PARAM_ERROR_TEXT:
+        raise ZTMApiError("The City of Warsaw API does not know this stop, pole and line; check them")
+    if not isinstance(result, list):
+        raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
+    return result
+
+
 def _sanitize_params(params: dict) -> dict:
     """Return a shallow copy with API key masked for safe logging."""
     if not isinstance(params, dict):
@@ -446,19 +465,7 @@ class ZTMStopClient:
                     _ctxp(self._params),
                 )
                 return None
-            if not isinstance(json_response, dict) or "result" not in json_response:
-                raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
-
-            result = json_response["result"]
-            if result is None:
-                # The line exists but does not run today: a real, empty timetable ("No service").
-                return ZTMDepartureData(departures=[], stop_info=self._stop_name)
-            if result == "false" and "apikey" in str(json_response.get("error", "")).lower():
-                raise ZTMAuthError("The City of Warsaw API rejected the API key")
-            if result == _PARAM_ERROR_TEXT:
-                raise ZTMApiError("The City of Warsaw API does not know this stop, pole and line; check them")
-            if not isinstance(result, list):
-                raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
+            result = _timetable_result(json_response)
 
             # Parse each departure from the API response
             _departures = []

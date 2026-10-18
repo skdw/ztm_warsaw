@@ -23,6 +23,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.data: ZTMDepartureData | None = None
         self.last_update_success_time: datetime | None = None
         self._initial_refresh_done = False
+        # True after the API answered with something that is not a timetable, until a timetable arrives. While it
+        # is set a network error must not bring the cached timetable back: that would make the sensor look healthy.
+        self._api_error = False
 
         # Hourly timetable refresh handled by DataUpdateCoordinator
         self.update_interval = timedelta(hours=1)
@@ -52,13 +55,13 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         try:
             new_data = await self.client.get()
             if new_data is None:
-                if self.data is not None:
+                if self.data is not None and not self._api_error:
                     _LOGGER.warning(
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
                         self.name,
                     )
                     return self.data
-                raise UpdateFailed("Timetable fetch failed and no cached data available")
+                raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
             
             data_changed = False
             if self.data is None:
@@ -78,6 +81,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                     _LOGGER.info("ZTM Coordinator [%s] — departure times changed", self.name)
             
             self.data = new_data
+            self._api_error = False
             self.last_update_success_time = dt_util.utcnow()
             # Track last success date in local time (Europe/Warsaw)
             self._last_success_local_date = dt_util.now().date()
@@ -100,9 +104,10 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             # unknown format). Unlike a network error this is not "try again later with the cached timetable":
             # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
             # when the state changes, and again when it recovers.
+            self._api_error = True
             raise UpdateFailed(str(err)) from err
         except Exception as err:
-            if self.data is not None:
+            if self.data is not None and not self._api_error:
                 # Keep entity available with last known data; try again on next hourly tick
                 _LOGGER.warning(
                     "ZTM Coordinator [%s] — fetch failed (%s); keeping last known timetable and retrying next hour",
