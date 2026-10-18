@@ -12,6 +12,13 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
 
+_NEW_API = "https://dane.um.warszawa.pl/api/action/"
+_NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
+_NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
+# A key shaped like this belongs to the legacy host (GET, key in the query); any other key is a token for the new
+# host (POST, raw Authorization header). A key is only ever sent to the host that can accept it.
+_LEGACY_KEY = re.compile(r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$", re.IGNORECASE)
+
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
 _PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"
 
@@ -105,6 +112,8 @@ class ZTMStopClient:
         timeout: int | None = None,
         stop_info_ttl: int | None = None,
     ):
+        api_key = api_key.strip()
+        self._legacy = bool(_LEGACY_KEY.match(api_key))
         # Endpoint to fetch the timetable for a given stop, line, and post number
         self._endpoint = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
         # Endpoint to fetch metadata for stops (name, location, etc.)
@@ -133,8 +142,28 @@ class ZTMStopClient:
         self._stop_name: dict | None = None
         self._stop_info_cache: dict[tuple[str, str], dict] = {}
 
-    async def _get_with_retry(self, url: str, params: dict, *, expect_json: bool = True):
-        """Perform GET with timeout and a small retry on timeout/5xx.
+    async def _call(self, kind: str):
+        """One request for the ``timetable`` or the ``stops`` of this client, on the host that matches its key.
+
+        The answer has the legacy shape ``{"result": ...}`` whichever host sent it, so the parsing is shared.
+        """
+        if self._legacy:
+            params = self._params if kind == "timetable" else {"id": self._stop_info_data_id, "apikey": self._params["apikey"]}
+            return await self._get_with_retry(self._endpoint, params)
+        body = None
+        if kind == "timetable":
+            body = {key: str(self._params[key]) for key in ("busstopId", "busstopNr", "line")}
+        action = _NEW_TIMETABLE if kind == "timetable" else _NEW_STOPS
+        return await self._get_with_retry(
+            _NEW_API + action, None, method="POST", json_body=body,
+            headers={"Authorization": self._params["apikey"]}, wrap=True,
+        )
+
+    async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
+                              method: str = "GET", json_body: dict | None = None,
+                              headers: dict | None = None, wrap: bool = False):
+        """Send the request with a timeout and a small retry on timeout/5xx. Redirects are never followed: the
+        request carries the key, and a 3xx is an error. ``wrap`` puts a bare JSON answer into ``{"result": ...}``.
         # English-only comments for OSS clarity
         """
         attempt = 0
@@ -142,7 +171,9 @@ class ZTMStopClient:
             try:
                 async with (
                     asyncio.timeout(self._timeout),
-                    self._session.get(url, params=params, allow_redirects=True) as resp,
+                    self._session.request(
+                        method, url, params=params, json=json_body, headers=headers, allow_redirects=False
+                    ) as resp,
                 ):
                     chunks: list[bytes] = []
                     total = 0
@@ -170,7 +201,8 @@ class ZTMStopClient:
                         return None
                     if expect_json:
                         try:
-                            return json.loads(text)
+                            value = json.loads(text)
+                            return {"result": value} if wrap else value
                         except Exception:
                             _LOGGER.error(
                                 "Invalid JSON from %s",
@@ -196,14 +228,14 @@ class ZTMStopClient:
                 if attempt < self._max_retries:
                     _LOGGER.warning(
                         "Network error for %s: %s; retrying (%s/%s)",
-                        url, e, attempt + 1, self._max_retries
+                        url, type(e).__name__, attempt + 1, self._max_retries
                     )
                     attempt += 1
                     await asyncio.sleep(self._retry_backoff * attempt)
                     continue
                 _LOGGER.error(
                     "Network error for %s: %s",
-                    url, e
+                    url, type(e).__name__
                 )
                 return None
 
@@ -245,12 +277,7 @@ class ZTMStopClient:
             self._stop_info_last_fetch = now
             return self._stop_name
 
-        params = {
-            "id": self._stop_info_data_id,
-            "apikey": self._params["apikey"],
-        }
-
-        json_response = await self._get_with_retry(self._stop_info_endpoint, params)
+        json_response = await self._call("stops")
         if not isinstance(json_response, dict):
             from homeassistant.util import dt as dt_util
             # Increment failed attempts and schedule next retry (capped at 3 attempts)
@@ -313,7 +340,7 @@ class ZTMStopClient:
             # ZTM sometimes returns a localized string message instead of a list (transient backend state).
             # Treat ANY string result as transient; retry once after a short backoff.
             await asyncio.sleep(0.8)
-            retry_resp = await self._get_with_retry(self._stop_info_endpoint, params)
+            retry_resp = await self._call("stops")
             if isinstance(retry_resp, dict):
                 result = retry_resp.get("result")
                 if isinstance(result, list):
@@ -458,7 +485,7 @@ class ZTMStopClient:
             # This will not spam the API: get_stop_name() respects backoff and permanent-missing.
             if self._stop_name is None:
                 await self.get_stop_name()
-            json_response = await self._get_with_retry(self._endpoint, self._params)
+            json_response = await self._call("timetable")
             if json_response is None:
                 _LOGGER.warning(
                     "Timetable fetch failed (no response) for %s",

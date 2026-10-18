@@ -357,9 +357,6 @@ async def test_e2e_19_a_row_with_an_unparseable_time_is_skipped_not_fatal(env):
     assert departing(env), "the other 80 rows still work"
 
 
-@known_bug(
-    "credentialed-requests-follow-redirects", "credentialed requests follow redirects (allow_redirects=True): a 3xx should be an error, not a detour"
-)
 async def test_e2e_19_a_redirect_on_a_credentialed_request_is_not_followed(env):
     env.city.script("timetable", RedirectOnce())
     await env.add_entry()
@@ -382,10 +379,6 @@ LOG_MODES = [
     pytest.param(lambda c: c.always(None, ParamError()), id="param_error"),
     pytest.param(
         lambda c: c.always(None, RedirectSelf()),
-        marks=known_bug(
-            "redirect-loop-text-leaks-key",
-            "aiohttp's TooManyRedirects text carries the full request URL, ?apikey= included, into the log",
-        ),
         id="redirect_loop",
     ),
 ]
@@ -425,7 +418,15 @@ async def test_e2e_20_runtime_logs_never_contain_the_api_key(env, caplog, arrang
 
 
 @pytest.mark.parametrize("arrange", LOG_MODES)
-async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange):
+async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange, request):
+    if request.node.callspec.id == "redirect_loop":  # the runtime client is fixed; the config flow has its own
+        request.applymarker(
+            known_bug(
+                "redirect-loop-text-leaks-key",
+                "the config flow still follows redirects: aiohttp's TooManyRedirects text carries the full "
+                "request URL, ?apikey= included, into the log",
+            )
+        )
     caplog.set_level(logging.DEBUG)
     env.city.valid_keys.add(KEY)
     arrange(env.city)
