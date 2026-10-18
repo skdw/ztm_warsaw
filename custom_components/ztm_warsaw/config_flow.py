@@ -76,36 +76,41 @@ async def validate_input(hass, api_key, stop_id, stop_nr, line):
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     VERSION = 1
 
+    async def _error_for(self, user_input):
+        """The error key for this input, or None when it is valid. Logs what went wrong, never the key."""
+        if not re.fullmatch(r"\d{2}", user_input[CONF_BUSSTOP_NR], re.ASCII):
+            return "invalid_stop_number"
+        unexpected = None
+        try:
+            await validate_input(
+                self.hass,
+                user_input[CONF_API_KEY],
+                user_input[CONF_BUSSTOP_ID],
+                user_input[CONF_BUSSTOP_NR],
+                user_input[CONF_LINE],
+            )
+            return None
+        except ValueError as err:
+            key = str(err)
+        except Exception as err:
+            # Only the class: the text or the traceback of an unexpected error can carry the URL, and the key.
+            unexpected, key = type(err).__name__, "unknown"
+        if unexpected:
+            _LOGGER.error("Unexpected error during validation: %s", unexpected)
+        else:
+            _LOGGER.warning("Validation error: %s", key)
+        return key
+
     async def async_step_user(self, user_input=None):
         errors = {}
 
         if user_input is not None:
             user_input = {k: v.strip() if isinstance(v, str) else v for k, v in user_input.items()}
-            if not re.fullmatch(r"\d{2}", user_input[CONF_BUSSTOP_NR], re.ASCII):
-                errors["base"] = "invalid_stop_number"
-            else:
-                unexpected = None
-                try:
-                    await validate_input(
-                        self.hass,
-                        user_input[CONF_API_KEY],
-                        user_input[CONF_BUSSTOP_ID],
-                        user_input[CONF_BUSSTOP_NR],
-                        user_input[CONF_LINE],
-                    )
-                except ValueError as err:
-                    errors["base"] = str(err)
-                except Exception as err:
-                    unexpected = type(err).__name__
-                    errors["base"] = "unknown"
-                if unexpected:
-                    # Only the class: the text or the traceback of an unexpected error can carry the URL, and the key.
-                    _LOGGER.error("Unexpected error during validation: %s", unexpected)
-                elif errors:
-                    _LOGGER.warning("Validation error: %s", errors["base"])
-                else:
-                    title = f"Line {user_input[CONF_LINE]} from {user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}"
-                    return self.async_create_entry(title=title, data=user_input)
+            error = await self._error_for(user_input)
+            if error is None:
+                title = f"Line {user_input[CONF_LINE]} from {user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}"
+                return self.async_create_entry(title=title, data=user_input)
+            errors["base"] = error
 
         return self.async_show_form(
             step_id="user",
