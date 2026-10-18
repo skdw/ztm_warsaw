@@ -7,9 +7,10 @@ import importlib
 import json
 from pathlib import Path
 
+from unittest.mock import patch
+
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.data_entry_flow import UnknownStep
 
 from custom_components.ztm_warsaw.const import DOMAIN
 
@@ -96,9 +97,6 @@ async def test_e2e_28_new_host_500_is_a_failed_setup_not_a_silent_no_service(env
 
 
 # ===================================================================== E2E-29 reauth
-@known_bug(
-    "no-reauth-step", "no reauth step: starting one raises UnknownStep", raises=(AssertionError, UnknownStep)
-)
 async def test_e2e_29_reauth_flow_offers_a_form_to_enter_a_new_key(env):
     entry = await env.add_entry()
     result = await env.hass.config_entries.flow.async_init(
@@ -107,7 +105,6 @@ async def test_e2e_29_reauth_flow_offers_a_form_to_enter_a_new_key(env):
     assert result["type"] == "form"
 
 
-@known_bug("rejected-key-starts-no-reauth", "a key the city rejects never starts a reauth flow; the entry just shows 'No service'")
 async def test_e2e_29_a_rejected_key_starts_reauth_after_repeated_failures(env):
     entry = await env.add_entry()
     env.city.valid_keys.clear()
@@ -115,6 +112,124 @@ async def test_e2e_29_a_rejected_key_starts_reauth_after_repeated_failures(env):
         await env.hourly_tick()
     flows = env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
     assert [f["context"]["entry_id"] for f in flows] == [entry.entry_id]
+
+
+NEW_KEY = "22222222-3333-4444-8555-666666666666"  # gitleaks:allow  (synthetic)
+
+
+def _reauth_flows(env):
+    return env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
+
+
+async def _entry_with_a_rejected_key(env, **kwargs):
+    """Set up with a key the City rejects; Home Assistant retries the setup (5 s, 10 s, ...) and the third answer asks the user."""
+    env.city.valid_keys.clear()
+    entry = await env.add_entry(**kwargs)
+    assert entry.state is ConfigEntryState.SETUP_RETRY, "one rejection is not enough"
+    assert not _reauth_flows(env)
+    await env.advance(minutes=2)
+    return entry
+
+
+async def test_e2e_29_a_key_rejected_three_times_at_setup_starts_reauth(env):
+    entry = await _entry_with_a_rejected_key(env)
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    assert [f["context"]["entry_id"] for f in _reauth_flows(env)] == [entry.entry_id]
+
+
+async def test_e2e_29_one_rejection_at_runtime_does_not_ask_the_user(env):
+    await env.add_entry()
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    assert not _reauth_flows(env), "a single answer is not enough to bother the user"
+
+
+async def test_e2e_29_an_outage_never_starts_reauth(env):
+    await env.add_entry()
+    env.city.always(None, Http(500))
+    for _ in range(4):
+        await env.hourly_tick()
+    assert not _reauth_flows(env)
+
+
+async def test_e2e_29_reauth_with_a_good_key_updates_the_entry_and_reloads_it(env):
+    entry = await _entry_with_a_rejected_key(env)
+    env.city.valid_keys.add(NEW_KEY)
+    flow = _reauth_flows(env)[0]
+    assert flow["step_id"] == "reauth_confirm"
+    result = await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": f"  {NEW_KEY}\n"})
+    await env.settle()
+    assert (result["type"], result["reason"]) == ("abort", "reauth_successful")
+    assert entry.data["api_key"] == NEW_KEY
+    assert (entry.data["busstop_id"], entry.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.departure_local() is not None
+
+
+@pytest.mark.parametrize(("typed", "error"), [("not a key", "invalid_api_key"), ("33333333-4444-4555-8666-777777777777", "invalid_api_key")])
+async def test_e2e_29_reauth_with_a_bad_key_shows_the_error_and_keeps_the_entry(env, typed, error):
+    entry = await _entry_with_a_rejected_key(env)
+    flow = _reauth_flows(env)[0]
+    result = await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": typed})
+    assert (result["type"], result["errors"]) == ("form", {"base": error})
+    assert entry.data["api_key"] == DEFAULT_KEY
+
+
+async def test_e2e_29_reauth_of_a_loaded_entry_reloads_it_once(env):
+    entry = await env.add_entry()
+    env.city.valid_keys.clear()
+    for _ in range(3):
+        await env.hourly_tick()
+    env.city.valid_keys.add(NEW_KEY)
+    flow = _reauth_flows(env)[0]
+    with patch.object(env.hass.config_entries, "async_reload", wraps=env.hass.config_entries.async_reload) as reload:
+        await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": NEW_KEY})
+        await env.settle()
+    assert reload.call_count == 1, "the update listener and the reauth must not both reload the entry"
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.departure_local() is not None
+
+
+async def test_e2e_29_the_same_key_again_after_the_city_recovered_restarts_the_entry(env):
+    """Three rejections stop the hourly refresh; the user types the key they have, which now works (a review finding)."""
+    entry = await env.add_entry()
+    env.city.valid_keys.clear()
+    for _ in range(3):
+        await env.hourly_tick()
+    assert env.state().state == "unavailable"
+    env.city.valid_keys.add(DEFAULT_KEY)
+    flow = _reauth_flows(env)[0]
+    result = await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": DEFAULT_KEY})
+    await env.settle()
+    assert (result["type"], result["reason"]) == ("abort", "reauth_successful")
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.departure_local() is not None, "the entry was reloaded although nothing in it changed"
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_29_a_good_key_is_accepted_although_the_line_does_not_run_today(env):
+    """411 runs on weekdays only; the key of a Saturday reauth is still judged by the key (a review finding)."""
+    entry = await env.add_entry(line="411")
+    env.city.valid_keys.clear()
+    for _ in range(3):
+        await env.hourly_tick()
+    env.city.valid_keys.add(NEW_KEY)
+    flow = _reauth_flows(env)[0]
+    result = await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": NEW_KEY})
+    assert (result["type"], result["reason"]) == ("abort", "reauth_successful")
+    assert entry.data["api_key"] == NEW_KEY
+
+
+async def test_e2e_29_rejections_must_be_consecutive(env):
+    await env.add_entry()
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    await env.hourly_tick()
+    env.city.always(None, Http(500))  # an outage in between breaks the run
+    await env.hourly_tick()
+    env.city.heal()
+    await env.hourly_tick()
+    assert not _reauth_flows(env)
 
 
 # ===================================================================== E2E-30 diagnostics

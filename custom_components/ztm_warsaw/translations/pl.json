@@ -11,6 +11,12 @@
           "line": "Numer linii (np. N31)",
           "departures": "Liczba najbliższych odjazdów do wyświetlenia"
         }
+      },
+      "reauth_confirm": {
+        "description": "API Miasta Stołecznego Warszawy nie przyjmuje już klucza ani tokenu tego wpisu. Wpisz nowy z portalu danych otwartych; przystanek i linia zostają bez zmian.",
+        "data": {
+          "api_key": "Klucz API (stare API) lub token (nowe API) z portalu danych otwartych Miasta Stołecznego Warszawy"
+        }
       }
     },
     "error": {
@@ -25,7 +31,9 @@
       "unknown": "Wystąpił nieznany błąd."
     },
     "abort": {
-      "single_instance_allowed": "Dozwolona jest tylko jedna instancja."
+      "single_instance_allowed": "Dozwolona jest tylko jedna instancja.",
+      "reauth_successful": "Klucz API został zaktualizowany, a wpis przeładowany.",
+      "unknown": "Wystąpił nieznany błąd."
     }
   },
   "options": {

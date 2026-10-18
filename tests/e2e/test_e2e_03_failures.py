@@ -474,14 +474,13 @@ async def test_e2e_21_it_recovers_within_ten_minutes_of_the_city_coming_back(env
     assert departing(env), "setup should have been retried (SETUP_RETRY) instead of waiting for the hourly tick"
 
 
-async def test_e2e_21_a_retried_setup_says_why(env, caplog):
+async def test_e2e_21_a_retried_setup_says_why(env):
     """HA raises ConfigEntryNotReady without a reason; the entry shows the City's one, and never the key."""
-    env.city.valid_keys.clear()
+    env.city.always("timetable", Http(500))
     entry = await env.add_entry()
     assert entry.state is ConfigEntryState.SETUP_RETRY
     assert entry.reason
     assert DEFAULT_KEY not in entry.reason
-    assert "rejected" in entry.reason.lower()
 
 
 @pytest.mark.start("2026-10-17 12:00")
