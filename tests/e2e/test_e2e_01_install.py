@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs
 
 import pytest
@@ -13,10 +14,12 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 import custom_components.ztm_warsaw as integration
+from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import (
     DEFAULT_KEY,
+    DEFAULT_TOKEN,
     FULL_CATALOGUE,
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
@@ -28,6 +31,7 @@ from .fake_city import (
     InvalidJson,
     NullResult,
     Reset,
+    Respond,
     stop_name_for,
 )
 from .helpers import known_bug
@@ -280,6 +284,11 @@ FLOW_CASES = [
     ("connection_reset", {}, lambda e: e.city.always("lines", Reset()), TRANSPORT_KEYS),
     ("invalid_json", {}, lambda e: e.city.always("lines", InvalidJson()), TRANSPORT_KEYS),
     ("html_maintenance_page", {}, lambda e: e.city.always("lines", Html()), TRANSPORT_KEYS),
+    ("not_a_key_at_all", {"api_key": "wrong-key"}, lambda e: None, {"invalid_api_key"}),
+    ("token_rejected", {"api_key": DEFAULT_TOKEN}, lambda e: e.city.valid_tokens.clear(), {"invalid_token_or_unavailable"}),
+    ("token_unknown_stop", {"api_key": DEFAULT_TOKEN, "stop_id": 7999}, lambda e: None, {"line_not_found"}),
+    ("token_lines_outage", {"api_key": DEFAULT_TOKEN}, lambda e: e.city.always("lines", Http(500), contract="new"), TRANSPORT_KEYS),
+    ("timetable_only_unreadable_rows", {}, lambda e: e.city.always("timetable", Respond(200, {"result": [[{"key": "czas", "value": "garbage"}]]}, name="junk")), {"no_valid_times"}),
     ("timetable_null", {}, lambda e: e.city.always("timetable", NullResult()), {"no_departures"}),
     ("timetable_empty", {}, lambda e: e.city.always("timetable", EmptyList()), {"no_valid_times", "no_departures"}),
 ]
@@ -297,6 +306,14 @@ async def test_e2e_04_config_flow_failures_are_reported_not_swallowed(env, case,
         assert result["errors"]["base"] != "invalid_api_key", "an outage must never look like a wrong key"
 
 
+async def test_e2e_04_an_unexpected_error_is_reported_as_unknown_and_only_its_class_is_logged(env, caplog):
+    with patch.object(ZTMStopClient, "get_lines", AsyncMock(side_effect=RuntimeError(f"boom {DEFAULT_KEY}"))):
+        result = await env.submit_flow()
+    assert result["errors"]["base"] == "unknown"
+    assert "RuntimeError" in caplog.text
+    assert DEFAULT_KEY not in caplog.text
+
+
 async def test_e2e_04_config_flow_slow_server_times_out_with_a_connection_error(env):
     env.city.always("lines", Hang())
     task = asyncio.ensure_future(env.submit_flow())
@@ -311,9 +328,6 @@ async def test_e2e_04_config_flow_slow_server_times_out_with_a_connection_error(
     [
         pytest.param(
             c[0],
-            marks=known_bug("line-check-error-has-no-string", "the flow raises 'line_check_failed' but en.json has no such error string")
-            if c[0] == "unknown_stop"
-            else (),
             id=c[0],
         )
         for c in FLOW_CASES
@@ -335,14 +349,12 @@ async def test_e2e_04_every_error_the_user_can_see_has_a_translation(env, case):
         pytest.param({"api_key": f"  {DEFAULT_KEY}\n"}, id="key_with_newline"),
     ],
 )
-@known_bug("user-input-not-stripped", "user input is not stripped: a pasted trailing space or newline breaks setup")
 async def test_e2e_04_pasted_whitespace_is_forgiven(env, user_input):
     result = await env.submit_flow(**user_input)
     assert result["type"] == "create_entry", result.get("errors")
     assert result["result"].state is ConfigEntryState.LOADED
 
 
-@known_bug("url-built-with-fstrings", "validate_input builds the URL with f-strings: a crafted key adds query parameters")
 async def test_e2e_04_user_input_cannot_inject_query_parameters(env):
     result = await env.submit_flow(api_key=f"{DEFAULT_KEY}&busstopId=9999&id={LEGACY_STOPS_ID}")
     if not env.city.calls:  # rejecting a key that is not a key before any request is a fine fix as well

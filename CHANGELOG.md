@@ -12,13 +12,15 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Added
 
-- The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. Adding a token through the setup screen follows in a later change.
+- The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. The setup screen accepts either kind of key.
+- A Polish translation of the setup screen.
 - Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
 
 ### Fixed
 
 - Requests that carry the API key no longer follow redirects (a redirect is an error now), and a network error is logged by its class only. The API key can no longer reach the log through a redirect loop or an error text.
-- The API key is stripped of surrounding spaces and newlines when the integration uses it.
+- The setup screen strips pasted spaces and newlines from every field, and refuses a key that is neither an API key (a UUID) nor a token before anything is sent. A crafted key can no longer add parameters to the request.
+- The setup screen uses the same client as the sensor, so it also stops following redirects and keeps the key out of its log. An unknown stop or line is reported as "line not found" (the old message had no text and showed a raw error name).
 - A rejected API key, a stop, pole and line that the City of Warsaw API does not know, and an answer the integration does not understand no longer show as "No service". The sensor becomes unavailable, one error is logged (it never contains the API key), and the sensor recovers by itself when the API answers properly again. A line that really does not run today still shows "No service". If a sensor of yours turns unavailable after this update, check the API key and the stop, pole and line in the integration's settings.
 - The sensor writes its state when it becomes unavailable or available again, also when the departure it shows has not changed.
 - `manifest.json` no longer lists `aiohttp` under `requirements`. Home Assistant provides it and hassfest rejects the entry. Behavior does not change.

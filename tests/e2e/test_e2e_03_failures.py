@@ -166,6 +166,7 @@ COLD_START = [
         "unavailable",
         id="result_false_without_apikey",
     ),
+    pytest.param(lambda: Respond(200, {"result": [[{"key": "czas", "value": "garbage"}]]}, name="junk"), "unavailable", id="rows_without_one_reading"),
     pytest.param(lambda: Http(500), "unavailable", id="http_500"),
     pytest.param(lambda: Http(403, {"message": "Forbidden"}), "unavailable", id="http_403"),
     pytest.param(lambda: Http(404, {"message": "Not found"}), "unavailable", id="http_404"),
@@ -418,15 +419,7 @@ async def test_e2e_20_runtime_logs_never_contain_the_api_key(env, caplog, arrang
 
 
 @pytest.mark.parametrize("arrange", LOG_MODES)
-async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange, request):
-    if request.node.callspec.id == "redirect_loop":  # the runtime client is fixed; the config flow has its own
-        request.applymarker(
-            known_bug(
-                "redirect-loop-text-leaks-key",
-                "the config flow still follows redirects: aiohttp's TooManyRedirects text carries the full "
-                "request URL, ?apikey= included, into the log",
-            )
-        )
+async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange):
     caplog.set_level(logging.DEBUG)
     env.city.valid_keys.add(KEY)
     arrange(env.city)

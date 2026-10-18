@@ -1,0 +1,48 @@
+{
+  "title": "Warszawski Transport Publiczny",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Podaj informacje o linii, którą chcesz śledzić. Więcej pomocy znajdziesz w dokumentacji na GitHubie.",
+        "data": {
+          "api_key": "Klucz API (stare API) lub token (nowe API) z portalu otwartych danych m.st. Warszawy",
+          "busstop_id": "Numer zespołu przystankowego (np. 3044)",
+          "busstop_nr": "Numer słupka (np. 02)",
+          "line": "Numer linii (np. N31)",
+          "departures": "Liczba najbliższych odjazdów do wyświetlenia"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Numer słupka jest nieprawidłowy. Musi mieć dwie cyfry (np. „01”).",
+      "invalid_api_key": "To nie jest prawidłowy klucz API ani token. Sprawdź, co skopiowano z portalu otwartych danych m.st. Warszawy.",
+      "invalid_token_or_unavailable": "API m.st. Warszawy nie przyjęło tokenu albo jest teraz niedostępne. Sprawdź token i spróbuj ponownie później.",
+      "api_http_error": "Nie można połączyć się z API m.st. Warszawy.",
+      "api_connection_error": "Błąd połączenia z API m.st. Warszawy.",
+      "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
+      "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
+      "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
+      "unknown": "Wystąpił nieznany błąd."
+    },
+    "abort": {
+      "single_instance_allowed": "Dozwolona jest tylko jedna instancja."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje ZTM Warszawa",
+        "data": {
+          "departures": "Liczba najbliższych odjazdów do wyświetlenia"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ztm_warsaw": {
+        "name": "Linia ZTM"
+      }
+    }
+  }
+}

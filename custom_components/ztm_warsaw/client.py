@@ -8,6 +8,9 @@ import re
 
 import aiohttp
 
+from homeassistant.loader import async_get_integration
+
+from .const import DOMAIN, REPOSITORY_URL
 from .models import ZTMDepartureData, ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,9 +19,26 @@ _RETRY = object()  # what _attempt returns for an answer worth another try
 _NEW_API = "https://dane.um.warszawa.pl/api/action/"
 _NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 _NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
+_NEW_LINES = "get_ztm_lista_linii_na_przystanku"
+_LEGACY_LINES_ID = "88cd555f-6f31-43ca-9de4-66c479ad5942"
+_TOKEN = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$")  # a JWT: three dot-separated segments
 # A key shaped like this belongs to the legacy host (GET, key in the query); any other key is a token for the new
 # host (POST, raw Authorization header). A key is only ever sent to the host that can accept it.
 _LEGACY_KEY = re.compile(r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$", re.IGNORECASE)
+
+def key_kind(key: str) -> str | None:
+    """``legacy`` for a key of the old API (a UUID), ``token`` for one of the new API (a JWT), else None."""
+    key = key.strip()
+    if _LEGACY_KEY.match(key):
+        return "legacy"
+    return "token" if _TOKEN.match(key) else None
+
+
+async def user_agent(hass) -> str:
+    """Says which software asks (name, version, repository), never who."""
+    version = (await async_get_integration(hass, DOMAIN)).version
+    return f"{DOMAIN}/{version} (Home Assistant custom integration; +{REPOSITORY_URL})"
+
 
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
 _PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"
@@ -32,7 +52,7 @@ class ZTMAuthError(ZTMApiError):
     """The API refused the API key."""
 
 
-def _timetable_result(json_response) -> list:
+def _checked_result(json_response) -> list:
     """The readings of a timetable answer, or a ZTMApiError for an answer that is not a timetable.
 
     ``result`` null means the line exists but does not run today: a real, empty timetable ("No service").
@@ -146,21 +166,55 @@ class ZTMStopClient:
         self._stop_info_cache: dict[tuple[str, str], dict] = {}
 
     async def _call(self, kind: str):
-        """One request for the ``timetable`` or the ``stops`` of this client, on the host that matches its key.
-
-        The answer has the legacy shape ``{"result": ...}`` whichever host sent it, so the parsing is shared.
+        """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
+        that matches its key. The answer has the legacy shape ``{"result": ...}`` whichever host sent it.
         """
+        params = self._params
         if self._legacy:
-            params = self._params if kind == "timetable" else {"id": self._stop_info_data_id, "apikey": self._params["apikey"]}
+            if kind == "stops":
+                params = {"id": self._stop_info_data_id, "apikey": params["apikey"]}
+            elif kind == "lines":
+                params = {**{k: params[k] for k in ("apikey", "busstopId", "busstopNr")}, "id": _LEGACY_LINES_ID}
             return await self._get_with_retry(self._endpoint, params)
-        body = None
-        if kind == "timetable":
-            body = {key: str(self._params[key]) for key in ("busstopId", "busstopNr", "line")}
-        action = _NEW_TIMETABLE if kind == "timetable" else _NEW_STOPS
+        keys = {"timetable": ("busstopId", "busstopNr", "line"), "lines": ("busstopId", "busstopNr"), "stops": ()}[kind]
+        action = {"timetable": _NEW_TIMETABLE, "lines": _NEW_LINES, "stops": _NEW_STOPS}[kind]
         return await self._get_with_retry(
-            _NEW_API + action, None, method="POST", json_body=body,
-            headers={"Authorization": self._params["apikey"]}, wrap=True,
+            _NEW_API + action, None, method="POST", json_body={k: str(params[k]) for k in keys} if keys else None,
+            headers={"Authorization": params["apikey"]}, wrap=True,
         )
+
+    @property
+    def uses_token(self) -> bool:
+        return not self._legacy
+
+    async def get_lines(self) -> list[str] | None:
+        """The lines that stop at this pole today; None when the request failed. Raises ZTMApiError like get()."""
+        answer = await self._call("lines")
+        if answer is None:
+            return None
+        rows = _checked_result(answer)
+        return [v["value"] for row in rows if isinstance(row, dict)
+                for v in row.get("values") or [] if isinstance(v, dict) and v.get("key") == "linia"]
+
+    async def stop_in_catalogue(self) -> bool | None:
+        """Whether this stop pole is in the stops catalogue; None when the catalogue could not be read.
+
+        The new API answers every rejected request with the same HTTP 500, so when a request fails this is how to
+        tell a stop that does not exist (False) from a service that is down or a token that is refused (None).
+        """
+        answer = await self._call("stops")
+        if answer is None:
+            return None
+        try:
+            rows = _checked_result(answer)
+        except ZTMApiError:
+            return None
+        wanted = (str(self._params["busstopId"]), str(self._params["busstopNr"]))
+        for row in rows:
+            fields = {v.get("key"): v.get("value") for v in (row.get("values") or []) if isinstance(v, dict)} if isinstance(row, dict) else {}
+            if (fields.get("zespol"), fields.get("slupek")) == wanted:
+                return True
+        return False
 
     async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
                               method: str = "GET", json_body: dict | None = None,
@@ -466,11 +520,11 @@ class ZTMStopClient:
             )
         return None
 
-    async def get(self) -> Optional[ZTMDepartureData]:
+    async def get(self, *, fetch_stop_name: bool = True) -> Optional[ZTMDepartureData]:
         try:
             # Ensure stop name is fetched once on first use.
             # This will not spam the API: get_stop_name() respects backoff and permanent-missing.
-            if self._stop_name is None:
+            if fetch_stop_name and self._stop_name is None:
                 await self.get_stop_name()
             json_response = await self._call("timetable")
             if json_response is None:
@@ -479,7 +533,7 @@ class ZTMStopClient:
                     _ctxp(self._params),
                 )
                 return None
-            result = _timetable_result(json_response)
+            result = _checked_result(json_response)
 
             # Parse each departure from the API response
             _departures = []
@@ -497,6 +551,9 @@ class ZTMStopClient:
                         _departures.append(parsed)
                 except Exception:
                     _LOGGER.debug("Invalid reading skipped: %s", _data)
+
+            if result and not _departures:
+                raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
 
             # Sort departures by their scheduled time
             _departures.sort(key=lambda x: x.time_to_depart)

@@ -7,11 +7,10 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.loader import async_get_integration
 from collections.abc import Mapping
 
-from .const import DOMAIN, PLATFORMS, REPOSITORY_URL
-from .client import ZTMStopClient
+from .const import DOMAIN, PLATFORMS
+from .client import ZTMStopClient, user_agent
 from .coordinator import ZTMStopCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,12 +64,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     assert api_key is not None and stop_id is not None and stop_nr is not None and line is not None
 
     session = async_get_clientsession(hass)
-    version = (await async_get_integration(hass, DOMAIN)).version
-    user_agent = f"{DOMAIN}/{version} (Home Assistant custom integration; +{REPOSITORY_URL})"
 
     client = ZTMStopClient(
         session=session,
-        user_agent=user_agent,
+        user_agent=await user_agent(hass),
         api_key=api_key,
         stop_id=stop_id,
         stop_number=stop_nr,

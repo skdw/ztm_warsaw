@@ -30,7 +30,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 from pytest_homeassistant_custom_component.patch_time import HAFakeDatetime
 
 from custom_components.ztm_warsaw import client as client_module
-from custom_components.ztm_warsaw import config_flow as config_flow_module
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import DEFAULT_KEY, SMALL_CATALOGUE, WARSAW, FakeCity, HarnessError, route_to_fake_city
@@ -125,8 +124,8 @@ class Sleeps:
 def sleeps(monkeypatch) -> Sleeps:
     """Make the integration's retry back-off instant WITHOUT touching asyncio.sleep globally.
 
-    ``client.py``/``config_flow.py`` do ``import asyncio``; replacing that module attribute inside
-    those two modules with a proxy changes nothing for Home Assistant, aiohttp or the fake server.
+    ``client.py`` does ``import asyncio`` (the config flow goes through it); replacing that module attribute
+    inside it with a proxy changes nothing for Home Assistant, aiohttp or the fake server.
     """
     rec = Sleeps()
 
@@ -140,7 +139,6 @@ def sleeps(monkeypatch) -> Sleeps:
 
     proxy = _AsyncioProxy()
     monkeypatch.setattr(client_module, "asyncio", proxy)
-    monkeypatch.setattr(config_flow_module, "asyncio", proxy)
     return rec
 
 

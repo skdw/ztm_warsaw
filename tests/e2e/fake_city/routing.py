@@ -1,7 +1,6 @@
 """Route the integration's real HTTPS URLs to the fake city, without touching production code.
 
-The shipped 1.1.4 code has NO module-level endpoint constant: the URL is an instance attribute set
-in ``ZTMStopClient.__init__`` and two f-strings in ``config_flow.validate_input``. The smallest
+The shipped code has NO single module-level endpoint constant: the URLs are set in ``client.py``. The smallest
 seam that needs zero production change is therefore the transport: wrap
 ``aiohttp.ClientSession._request`` and rewrite only the origin (scheme/host/port) of the two known
 city hosts to the fake servers' loopback ports. Everything else (path, query, headers, body,
