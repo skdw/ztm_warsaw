@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .client import ZTMStopClient
+from .client import ZTMApiError, ZTMStopClient
 from .models import ZTMDepartureData
 
 _LOGGER = logging.getLogger(__name__)
@@ -95,6 +95,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             
         except UpdateFailed:
             raise
+        except ZTMApiError as err:
+            # The city answered but not with a timetable (a rejected key, an unknown stop or line, an answer in an
+            # unknown format). Unlike a network error this is not "try again later with the cached timetable":
+            # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
+            # when the state changes, and again when it recovers.
+            raise UpdateFailed(str(err)) from err
         except Exception as err:
             if self.data is not None:
                 # Keep entity available with last known data; try again on next hourly tick

@@ -58,10 +58,6 @@ def coordinator_of(env):
 
 
 # ===================================================================== E2E-14
-@known_bug(
-    "rejected-key-looks-like-no-service",
-    "a rejected key (HTTP 200 result:'false') becomes an EMPTY SUCCESSFUL timetable: silent 'No service'",
-)
 async def test_e2e_14_a_key_revoked_while_running_is_not_reported_as_no_service(env):
     await env.add_entry()
     assert departing(env)
@@ -70,7 +66,6 @@ async def test_e2e_14_a_key_revoked_while_running_is_not_reported_as_no_service(
     assert env.state().state == "unavailable"
 
 
-@known_bug("rejected-key-not-logged", "nothing is logged at WARNING or above when the city rejects the key")
 async def test_e2e_14_a_rejected_key_is_visible_in_the_log(env, caplog):
     caplog.set_level(logging.DEBUG)
     await env.add_entry()
@@ -81,9 +76,25 @@ async def test_e2e_14_a_rejected_key_is_visible_in_the_log(env, caplog):
     assert loud, "a rejected API key must leave a WARNING or ERROR the user can find"
 
 
-@known_bug(
-    "rejected-key-looks-like-no-service", "an entry created with a key the city never accepted looks exactly like a line without service"
-)
+async def test_e2e_14_the_rejected_key_never_reaches_the_log(env, caplog):
+    caplog.set_level(logging.DEBUG)
+    await env.add_entry()
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    assert DEFAULT_KEY not in log_blob(caplog)
+
+
+async def test_e2e_14_a_stop_the_api_stops_knowing_is_unavailable_and_recovers(env):
+    await env.add_entry()
+    assert departing(env)
+    env.city.always("timetable", ParamError())
+    await env.hourly_tick()
+    assert env.state().state == "unavailable"
+    env.city.heal()
+    await env.hourly_tick()
+    assert departing(env)
+
+
 async def test_e2e_14_a_key_the_city_never_accepted_is_unavailable_from_the_start(env):
     entry = await env.add_entry(api_key="never-valid")
     if entry.state is ConfigEntryState.LOADED:
@@ -92,10 +103,6 @@ async def test_e2e_14_a_key_the_city_never_accepted_is_unavailable_from_the_star
         assert entry.state in (ConfigEntryState.SETUP_RETRY, ConfigEntryState.SETUP_ERROR)
 
 
-@known_bug(
-    "entity-keeps-state-after-failed-update",
-    "_write_if_changed() drops availability transitions: a coordinator that fails while data is cached is invisible",
-)
 async def test_e2e_14_a_coordinator_failure_with_cached_data_is_visible_in_the_state_machine(env):
     """White-box fault injection: 1.1.4 never raises with a warm cache, but a fail-closed fix will, and
     without a matching entity change the entity would keep its old state while ``coordinator.last_update_success`` is False."""
@@ -130,15 +137,11 @@ COLD_START = [
     pytest.param(
         ParamError,
         "unavailable",
-        marks=known_bug(
-            "error-text-read-as-empty-timetable", "text 'Błędna metoda...' (stop/pole/line unknown to the API) is read as an empty timetable"
-        ),
         id="result_text__bad_parameters",
     ),
     pytest.param(
         lambda: Respond(200, {"unexpected": "shape"}, name="unknown_shape"),
         "unavailable",
-        marks=known_bug("unexpected-200-read-as-empty-timetable", "any 200 body without a list under 'result' is read as an empty timetable"),
         id="unknown_shape",
     ),
     pytest.param(lambda: Http(500), "unavailable", id="http_500"),

@@ -12,6 +12,18 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
 
+# What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
+_PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"
+
+
+class ZTMApiError(Exception):
+    """The API answered, but not with a timetable. The message is fixed text: it never carries the key."""
+
+
+class ZTMAuthError(ZTMApiError):
+    """The API refused the API key."""
+
+
 def _sanitize_params(params: dict) -> dict:
     """Return a shallow copy with API key masked for safe logging."""
     if not isinstance(params, dict):
@@ -434,12 +446,19 @@ class ZTMStopClient:
                     _ctxp(self._params),
                 )
                 return None
-            if not isinstance(json_response, dict):
-                return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+            if not isinstance(json_response, dict) or "result" not in json_response:
+                raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
 
-            result = json_response.get("result")
-            if not isinstance(result, list):
+            result = json_response["result"]
+            if result is None:
+                # The line exists but does not run today: a real, empty timetable ("No service").
                 return ZTMDepartureData(departures=[], stop_info=self._stop_name)
+            if result == "false" and "apikey" in str(json_response.get("error", "")).lower():
+                raise ZTMAuthError("The City of Warsaw API rejected the API key")
+            if result == _PARAM_ERROR_TEXT:
+                raise ZTMApiError("The City of Warsaw API does not know this stop, pole and line; check them")
+            if not isinstance(result, list):
+                raise ZTMApiError("The City of Warsaw API sent an answer in an unknown format")
 
             # Parse each departure from the API response
             _departures = []
@@ -463,6 +482,8 @@ class ZTMStopClient:
             _LOGGER.debug("Loaded %d departures from API", len(_departures))
             return ZTMDepartureData(departures=_departures, stop_info=self._stop_name)
 
+        except ZTMApiError:
+            raise
         except Exception as e:
             _LOGGER.error("Unexpected error in timetable fetch: %s", e, exc_info=True)
         return None
