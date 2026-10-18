@@ -149,6 +149,10 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                     return self.data
                 raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
             
+            if self.data is not None and in_swap_window(dt_util.utcnow()):
+                # The request began before the update of the City did and ended inside it: it may be either day.
+                return self.data
+
             data_changed = self._data_changed(new_data)
             
             if self.data is not None and self.data.service_date != new_data.service_date:

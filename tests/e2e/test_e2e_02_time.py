@@ -420,3 +420,22 @@ async def test_e2e_15_a_first_start_inside_the_window_waits_for_its_end(env):
     assert env.city.count("timetable") == 0
     await env.run_to("2026-10-17 03:30")
     assert env.departure_local("151") == "2026-10-17 04:41"
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_an_answer_that_arrives_after_the_update_has_begun_is_not_trusted(env):
+    """A request sent at 02:09:50 and answered at 02:10:20 may carry either day (a review finding): it is dropped."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    before = coordinator.data
+    env.move_to("2026-10-17 02:09:50")
+    get = coordinator.client.get
+
+    async def slow_get():
+        answer = await get()
+        env.clock.tick(timedelta(seconds=30))
+        return answer
+
+    coordinator.client.get = slow_get
+    await coordinator.async_refresh()
+    assert coordinator.data is before
