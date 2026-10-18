@@ -195,7 +195,7 @@ async def test_e2e_26_diagnostic_sensor_reports_the_last_successful_refresh(env)
     assert dict(st.attributes) | {"friendly_name": None} == {
         "Last update successful": True,
         "Number of fetched departures": 81,
-        "attribution": "Data provided by Miasto Stołeczne Warszawa and ZTM Warszawa (CC BY)",
+        "attribution": "Data provided by Miasto Stołeczne Warszawa and Zarząd Transportu Miejskiego (CC BY)",
         "device_class": "timestamp",
         "friendly_name": None,
     }

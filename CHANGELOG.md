@@ -18,7 +18,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Changed
 
-- The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw and ZTM and the licence (CC BY) instead of a host name.
+- The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw (Miasto Stołeczne Warszawa), the Zarząd Transportu Miejskiego (ZTM) and the licence (CC BY) instead of a host name.
 
 ### Fixed
 
