@@ -418,15 +418,7 @@ async def test_e2e_20_runtime_logs_never_contain_the_api_key(env, caplog, arrang
 
 
 @pytest.mark.parametrize("arrange", LOG_MODES)
-async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange, request):
-    if request.node.callspec.id == "redirect_loop":  # the runtime client is fixed; the config flow has its own
-        request.applymarker(
-            known_bug(
-                "redirect-loop-text-leaks-key",
-                "the config flow still follows redirects: aiohttp's TooManyRedirects text carries the full "
-                "request URL, ?apikey= included, into the log",
-            )
-        )
+async def test_e2e_20_config_flow_logs_never_contain_the_api_key(env, caplog, arrange):
     caplog.set_level(logging.DEBUG)
     env.city.valid_keys.add(KEY)
     arrange(env.city)

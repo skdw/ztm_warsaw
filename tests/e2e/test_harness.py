@@ -464,12 +464,11 @@ def test_h08_frozen_clock_keeps_the_fixed_offset_astimezone_that_production_sees
 async def test_h09_backoff_patch_is_scoped_to_the_integration_modules(sleeps):
     import asyncio
 
-    from custom_components.ztm_warsaw import client, config_flow
+    from custom_components.ztm_warsaw import client
 
     assert asyncio.sleep.__module__ == "asyncio.tasks", "the global asyncio.sleep must stay the real one"
     await client.asyncio.sleep(1.5)
-    await config_flow.asyncio.sleep(0.8)
-    assert sleeps.requested == [1.5, 0.8]
+    assert sleeps.requested == [1.5]
     assert client.asyncio.TimeoutError is asyncio.TimeoutError, "everything else is delegated to the real module"
 
 

@@ -20,9 +20,6 @@ pytestmark = pytest.mark.e2e
 
 
 # ===================================================================== E2E-28 new contract (JWT)
-@known_bug(
-    "new-host-token-not-supported", "a JWT from dane.um.warszawa.pl cannot be used: 1.1.4 only speaks the legacy GET ?apikey= contract"
-)
 async def test_e2e_28_setup_with_a_jwt_talks_the_new_contract_end_to_end(env):
     result = await env.submit_flow(api_key=DEFAULT_TOKEN)
     assert result["type"] == "create_entry", result.get("errors")
