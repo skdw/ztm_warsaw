@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
@@ -38,6 +39,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         # The answer before this one, kept while its late departures (the 27:xx of a night bus) are still ahead.
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
+        self._refreshing = asyncio.Lock()
+        self._refreshes = 0  # how many refreshes have finished
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
         self._store: Store[dict] = Store(hass, 1, store_key(entry_id))
 
@@ -169,6 +172,18 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         return new_data
 
     async def _async_update_data(self) -> ZTMDepartureData:
+        """One refresh at a time: a refresh that waited for another one (the 03:06 refresh and the hourly one can fire
+        together) takes its answer instead of asking the City again, unless that answer was a failure."""
+        seen = self._refreshes
+        async with self._refreshing:
+            if self._refreshes != seen and self.data is not None and not self._api_error:
+                return self.data
+            try:
+                return await self._fetch()
+            finally:
+                self._refreshes += 1
+
+    async def _fetch(self) -> ZTMDepartureData:
         if in_swap_window(dt_util.utcnow()):
             return self._hold_during_swap()
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)

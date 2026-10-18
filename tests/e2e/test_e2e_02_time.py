@@ -9,6 +9,7 @@ exactly one hour after that, every hour.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
@@ -539,3 +540,16 @@ async def test_e2e_15_the_stored_failure_marker_is_cleared_by_the_recovery(env, 
     await env.hourly_tick()
     await env.advance(minutes=1)
     assert hass_storage[f"ztm_warsaw.{entry.entry_id}"]["data"]["api_error"] is False
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_15_two_refreshes_at_the_same_moment_ask_the_city_once(env):
+    """The refresh at 03:06 and the hourly one can fire together once the hourly phase is :06 (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    calls = env.city.count("timetable")
+    # the interval timer calls _async_refresh without the lock that async_refresh takes, as the 03:06 callback does
+    await asyncio.gather(coordinator.async_refresh(), coordinator._async_refresh(scheduled=True))
+    assert env.city.count("timetable") - calls == 1
+    await coordinator.async_refresh()
+    assert env.city.count("timetable") - calls == 2, "a refresh that did not wait for another one still asks"
