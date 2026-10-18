@@ -77,6 +77,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._next_departure = None
         self._scheduled_unsub = None
         self._last_coordinator_update = None
+        self._written_available: bool | None = None
 
     def _get_stop_info(self):
         """Safely get stop info from coordinator data."""
@@ -181,7 +182,9 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
 
         def _write_if_changed():
             """Write HA state only when something actually changed."""
-            if self._next_departure != old_next_departure or coordinator_has_new_data:
+            availability_changed = self.available != self._written_available
+            if self._next_departure != old_next_departure or coordinator_has_new_data or availability_changed:
+                self._written_available = self.available
                 self.async_write_ha_state()
 
         if not self.coordinator or not self.coordinator.data:

@@ -12,6 +12,8 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Fixed
 
+- A rejected API key, a stop, pole and line that the City of Warsaw API does not know, and an answer the integration does not understand no longer show as "No service". The sensor becomes unavailable, one error is logged (it never contains the API key), and the sensor recovers by itself when the API answers properly again. A line that really does not run today still shows "No service". If a sensor of yours turns unavailable after this update, check the API key and the stop, pole and line in the integration's settings.
+- The sensor writes its state when it becomes unavailable or available again, also when the departure it shows has not changed.
 - `manifest.json` no longer lists `aiohttp` under `requirements`. Home Assistant provides it and hassfest rejects the entry. Behavior does not change.
 - The integration no longer imports `async_timeout`. Home Assistant 2026.10 does not install that package any more, so on an installation where nothing else provides it the integration failed to load with `ModuleNotFoundError: No module named 'async_timeout'`. The request timeout now uses `asyncio.timeout` from the standard library, which every supported Home Assistant version has (Python 3.11 or later). Behavior does not change.
 
