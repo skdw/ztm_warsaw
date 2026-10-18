@@ -3,6 +3,7 @@ import logging
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from homeassistant.core import callback
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -12,6 +13,8 @@ from .client import ZTMApiError, ZTMStopClient
 from .models import ZTMDepartureData, ZTMDepartureDataReading, in_swap_window, next_flip_refresh, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
+
+SETUP_DEADLINE = 30  # seconds the first refresh of an entry may take before setup is retried
 
 def store_key(entry_id: str) -> str:
     """One store per config entry: the saved failure marker belongs to the key of that entry."""
@@ -32,7 +35,6 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.client = client
         self.data: ZTMDepartureData | None = None
         self.last_update_success_time: datetime | None = None
-        self._initial_refresh_done = False
         # True after the API answered with something that is not a timetable, until a timetable arrives. While it
         # is set a network error must not bring the cached timetable back: that would make the sensor look healthy.
         self._api_error = False
@@ -49,25 +51,23 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.update_interval = timedelta(hours=1)
 
     async def async_config_entry_first_refresh(self):
-        """Perform first refresh and set up schedules."""
-        if not self._initial_refresh_done:
-            await self._restore()
-            _LOGGER.debug("ZTM Coordinator [%s] — performing initial refresh", self.name)
-            await self.async_refresh()
-            self._initial_refresh_done = True
-
-            # Ensure stop info is present once at startup (no repeated fetches later)
-            try:
-                if getattr(self.client, "_stop_name", None) is None:
-                    await self.client.get_stop_name()
-            except Exception:
-                _LOGGER.debug("ZTM Coordinator [%s] — initial stop-info fetch skipped (non-fatal)", self.name)
-
+        """First refresh of the entry: a failure or a missing answer within the deadline makes Home Assistant retry the
+        setup (ConfigEntryNotReady) instead of leaving an entity that waits for the next hourly refresh."""
+        await self._restore()
+        try:
+            async with asyncio.timeout(SETUP_DEADLINE):
+                await super().async_config_entry_first_refresh()
+                await self._load_stop_name()
+        except TimeoutError as err:
+            raise ConfigEntryNotReady("The City of Warsaw did not answer in time") from err
         self._schedule_flip_refresh()
-        _LOGGER.debug(
-            "ZTM Coordinator [%s] — hourly timetable refresh enabled",
-            self.name,
-        )
+
+    async def _load_stop_name(self):
+        """The stop's name, once at startup (the client keeps it); a failure only means the sensors have no name for it."""
+        try:
+            await self.client.get_stop_name()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("ZTM Coordinator [%s] — stop-info fetch skipped (non-fatal)", self.name)
 
     async def _restore(self):
         """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,

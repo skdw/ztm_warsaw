@@ -15,6 +15,7 @@ from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers.storage import Store
 
 from custom_components.ztm_warsaw.client import ZTMApiError, ZTMStopClient
@@ -421,10 +422,11 @@ async def test_e2e_15_the_city_is_not_asked_while_it_replaces_its_timetables(env
 
 @pytest.mark.start("2026-10-17 02:30")
 async def test_e2e_15_a_first_start_inside_the_window_waits_for_its_end(env):
-    await env.add_entry(line="151")
-    assert env.state("151").state == "unavailable", "nothing to show yet, and nothing is invented"
+    entry = await env.add_entry(line="151")
+    assert entry.state is ConfigEntryState.SETUP_RETRY, "nothing to show yet, and nothing is invented"
     assert env.city.count("timetable") == 0
     await env.run_to("2026-10-17 03:30")
+    assert entry.state is ConfigEntryState.LOADED
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -486,10 +488,11 @@ async def test_e2e_15_a_first_answer_that_arrives_inside_the_window_is_not_trust
         return answer
 
     monkeypatch.setattr(ZTMStopClient, "get", slow_get)
-    await env.add_entry(line="N25")
-    assert env.state("N25").state == "unavailable"
+    entry = await env.add_entry(line="N25")
+    assert entry.state is ConfigEntryState.SETUP_RETRY
     monkeypatch.undo()
     await env.run_to("2026-10-17 03:30")
+    assert entry.state is ConfigEntryState.LOADED
     assert env.departure_local("N25") is not None
 
 
@@ -516,7 +519,8 @@ async def test_e2e_15_the_answers_are_written_even_when_the_entry_is_unloaded_ri
 
 async def test_e2e_15_every_entry_has_its_own_store_and_a_removed_entry_leaves_none(env, hass_storage):
     first = await env.add_entry(line="N25")
-    second = await env.add_entry(line="N25", api_key="another-key")
+    env.city.valid_keys.add("11111111-2222-4333-8444-555555555555")
+    second = await env.add_entry(line="N25", api_key="11111111-2222-4333-8444-555555555555")
     assert env.coordinator(first)._store.key != env.coordinator(second)._store.key
     await env.advance(minutes=1)
     assert f"ztm_warsaw.{first.entry_id}" in hass_storage
