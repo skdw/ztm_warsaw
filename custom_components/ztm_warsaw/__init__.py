@@ -16,10 +16,8 @@ from .coordinator import ZTMStopCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up the integration from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
+def _entry_values(entry: ConfigEntry) -> tuple[str, str, str, str] | None:
+    """The (api_key, stop_id, stop_nr, line) of the entry, or None when one is missing (logged, key never named)."""
     # Merge data and options (options override data) for robustness
     merged: dict[str, Any] = {}
     if isinstance(entry.data, Mapping):
@@ -43,25 +41,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     stop_nr = _first_nonempty("stop_nr", "busstop_nr", "busstopNr", "stopNr", "slupek")
     line = _first_nonempty("line", "linia")
 
-    missing = [name for name, val in [("api_key", api_key), ("stop_id", stop_id), ("stop_nr", stop_nr), ("line", line)] if val is None]
-    if missing:
-        sensitive = {"api_key", "apikey", "apiKey"}
-        non_sensitive_missing = [m for m in missing if m not in sensitive]
-
-        if len(non_sensitive_missing) == len(missing):
-            # No sensitive fields missing – safe to list them
-            _LOGGER.error("Missing required config: %s", ", ".join(non_sensitive_missing))
+    if api_key is None or stop_id is None or stop_nr is None or line is None:
+        missing = [name for name, val in [("stop_id", stop_id), ("stop_nr", stop_nr), ("line", line)] if val is None]
+        if api_key is not None:
+            # No sensitive field missing: safe to list them
+            _LOGGER.error("Missing required config: %s", ", ".join(missing))
         else:
-            # Sensitive field missing – keep ERROR generic and move details to DEBUG, redacting
+            # The key is missing: keep ERROR generic and never name or print sensitive fields
             _LOGGER.error("Missing required configuration. Please reconfigure this integration.")
-            # Do not log any sensitive field names or values, even at DEBUG level
             _LOGGER.debug(
                 "Some required fields are missing (at least one is sensitive). Provided non-sensitive keys: %s",
-                ", ".join(sorted(k for k in merged.keys() if k not in sensitive)),
+                ", ".join(sorted(k for k in merged if k not in ("api_key", "apikey", "apiKey"))),
             )
-        return False
+        return None
+    return api_key, stop_id, stop_nr, line
 
-    assert api_key is not None and stop_id is not None and stop_nr is not None and line is not None
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the integration from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
+    values = _entry_values(entry)
+    if values is None:
+        return False
+    api_key, stop_id, stop_nr, line = values
 
     session = async_get_clientsession(hass)
 

@@ -31,17 +31,11 @@ def get_line_type(line: str) -> str:
     return LINE_TYPE_MAP.get(line[0].upper(), "unknown")
 
 def get_line_icon(line: str) -> str:
-    """Return appropriate MDI icon name for given line type."""
+    """Return appropriate MDI icon name for given line type (a bus unless it is a tram, a train or a metro)."""
     if re.fullmatch(r"[1-9]\d?", line):
         return "mdi:tram"
-    elif re.match(r"^\d{3}$", line):
-        return "mdi:bus"
-    elif re.match(r"^N\d{2}$", line):
-        return "mdi:bus"
-    elif re.match(r"^L-?\d{1,2}$", line):
-        return "mdi:bus"
-    elif re.match(r"^S\d{1,2}$", line):
+    if re.match(r"^S\d{1,2}$", line):
         return "mdi:train"
-    elif re.match(r"^M\d$", line):
+    if re.match(r"^M\d$", line):
         return "mdi:train-variant"
     return "mdi:bus"
