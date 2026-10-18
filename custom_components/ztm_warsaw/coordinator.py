@@ -50,6 +50,22 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         )
 
 
+    def _data_changed(self, new_data: ZTMDepartureData) -> bool:
+        """Whether the timetable differs from the cached one; logs what changed."""
+        if self.data is None:
+            _LOGGER.info("ZTM Coordinator [%s] — first data load", self.name)
+            return True
+        if len(new_data.departures) != len(self.data.departures):
+            _LOGGER.info(
+                "ZTM Coordinator [%s] — departure count changed: %d → %d",
+                self.name, len(self.data.departures), len(new_data.departures)
+            )
+            return True
+        if [d.czas for d in self.data.departures] != [d.czas for d in new_data.departures]:
+            _LOGGER.info("ZTM Coordinator [%s] — departure times changed", self.name)
+            return True
+        return False
+
     async def _async_update_data(self) -> ZTMDepartureData:
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)
         try:
@@ -63,22 +79,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                     return self.data
                 raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
             
-            data_changed = False
-            if self.data is None:
-                data_changed = True
-                _LOGGER.info("ZTM Coordinator [%s] — first data load", self.name)
-            elif len(new_data.departures) != len(self.data.departures):
-                data_changed = True
-                _LOGGER.info(
-                    "ZTM Coordinator [%s] — departure count changed: %d → %d", 
-                    self.name, len(self.data.departures), len(new_data.departures)
-                )
-            else:
-                old_times = [d.czas for d in self.data.departures]
-                new_times = [d.czas for d in new_data.departures]
-                if old_times != new_times:
-                    data_changed = True
-                    _LOGGER.info("ZTM Coordinator [%s] — departure times changed", self.name)
+            data_changed = self._data_changed(new_data)
             
             self.data = new_data
             self._api_error = False
