@@ -92,6 +92,25 @@ def test_the_update_window_of_the_city(moment, inside):
     assert in_swap_window(warsaw(moment)) is inside
 
 
+@pytest.mark.parametrize(
+    ("utc", "inside"),
+    [
+        ("2026-10-25 00:09", False),  # 02:09 CEST, before the update begins
+        ("2026-10-25 00:10", True),  # the first 02:10
+        ("2026-10-25 01:05", True),  # the second 02:05: still inside, although the wall clock shows 02:05 again
+        ("2026-10-25 01:10", True),  # the second 02:10
+        ("2026-10-25 02:04", True),  # 03:04 CET
+        ("2026-10-25 02:05", False),  # 03:05 CET
+        ("2026-03-29 00:09", False),
+        ("2026-03-29 00:10", True),  # 01:10 CET: the earlier reading of the missing 02:10 starts the window
+        ("2026-03-29 01:04", True),  # 03:04 CEST
+        ("2026-03-29 01:05", False),  # 03:05 CEST
+    ],
+)
+def test_the_update_window_is_measured_in_elapsed_time(utc, inside):
+    assert in_swap_window(datetime.fromisoformat(utc).replace(tzinfo=timezone.utc)) is inside
+
+
 def test_the_service_day_is_the_same_whatever_zone_the_moment_is_in():
     moment = warsaw("2026-10-17 03:30")
     assert service_date_at(moment.astimezone(timezone.utc)) == service_date_at(moment.astimezone(ZoneInfo("America/New_York")))

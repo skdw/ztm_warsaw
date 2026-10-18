@@ -25,9 +25,20 @@ SWAP_END = time(3, 5)  # complete: measured by 03:00:51, plus a margin. From her
 FLIP_REFRESH = time(3, 6)  # when the coordinator asks again, once the swap is over
 
 
+def _warsaw_moment(day: date, at: time, *, first: bool) -> datetime:
+    """The UTC instant of a Warsaw wall time that may exist twice (autumn) or not at all (spring)."""
+    options = [datetime.combine(day, at, WARSAW).replace(fold=fold).astimezone(timezone.utc) for fold in (0, 1)]
+    return min(options) if first else max(options)
+
+
 def in_swap_window(moment: datetime) -> bool:
-    """Whether an answer fetched at ``moment`` could be either the old or the new service day."""
-    return SWAP_START <= moment.astimezone(WARSAW).time() < SWAP_END
+    """Whether an answer fetched at ``moment`` could be either the old or the new service day.
+
+    Measured in elapsed time, not wall time: on the autumn night the clock shows 02:00-02:09 twice, and the second
+    pass is still inside the update that began at the first 02:10. On the spring night 02:10 does not exist and the
+    window starts at the earlier of the two readings of it (an hour of caution, once a year)."""
+    day = moment.astimezone(WARSAW).date()
+    return _warsaw_moment(day, SWAP_START, first=True) <= moment < _warsaw_moment(day, SWAP_END, first=False)
 
 
 def service_date_at(moment: datetime) -> date:
