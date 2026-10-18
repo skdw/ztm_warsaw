@@ -12,8 +12,13 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading, in_swap_window, n
 
 _LOGGER = logging.getLogger(__name__)
 
+def store_key(entry_id: str) -> str:
+    """One store per config entry: the saved failure marker belongs to the key of that entry."""
+    return f"ztm_warsaw.{entry_id}"
+
+
 class ZTMStopCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, stop_id: str, stop_nr: str, line: str, client: ZTMStopClient):
+    def __init__(self, hass, stop_id: str, stop_nr: str, line: str, client: ZTMStopClient, entry_id: str):
         super().__init__(
             hass,
             _LOGGER,
@@ -34,7 +39,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
-        self._store: Store[dict] = Store(hass, 1, f"ztm_warsaw.{self.name}")
+        self._store: Store[dict] = Store(hass, 1, store_key(entry_id))
 
         # Hourly timetable refresh handled by DataUpdateCoordinator
         self.update_interval = timedelta(hours=1)
@@ -80,21 +85,20 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 self._previous = answer
 
     def _save(self):
-        self._store.async_delay_save(
-            lambda: {
-                "answers": [
-                    {
-                        "service_date": a.service_date.isoformat(),
-                        "rows": [{k: v for k, v in asdict(r).items() if k != "dt"} for r in a.departures],
-                        "stop_info": a.stop_info,
-                    }
-                    for a in (self._previous, self.data)
-                    if a and a.service_date
-                ],
-                "api_error": self._api_error,
-            },
-            30,
-        )
+        # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
+        payload = {
+            "answers": [
+                {
+                    "service_date": a.service_date.isoformat(),
+                    "rows": [{k: v for k, v in asdict(r).items() if k != "dt"} for r in a.departures],
+                    "stop_info": a.stop_info,
+                }
+                for a in (self._previous, self.data)
+                if a and a.service_date
+            ],
+            "api_error": self._api_error,
+        }
+        self._store.async_delay_save(lambda: payload, 30)
 
     def _schedule_flip_refresh(self):
         """Ask again at 03:06 Warsaw time, when the update of the API is over."""

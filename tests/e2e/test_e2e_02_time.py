@@ -447,12 +447,15 @@ async def test_e2e_15_an_answer_that_arrives_after_the_update_has_begun_is_not_t
 async def test_e2e_15_stored_answers_that_are_broken_or_too_old_are_ignored(env, hass_storage):
     """The stored answers are a convenience: garbage, or an answer of two days ago, must not stop the sensor."""
     old = {"service_date": "2026-10-15", "rows": [{"czas": "27:30:00"}], "stop_info": {}}
-    hass_storage["ztm_warsaw.line_151_from_7009_01"] = {
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    hass_storage[key] = {
         "version": 1,
-        "key": "ztm_warsaw.line_151_from_7009_01",
+        "key": key,
         "data": {"answers": [{"service_date": "not a date", "rows": []}, {"rows": []}, "junk", old]},
     }
-    entry = await env.add_entry(line="151")
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
     assert env.departure_local("151") == "2026-10-17 12:17"
     assert env.coordinator(entry)._previous is None
 
@@ -497,3 +500,22 @@ async def test_e2e_15_a_restart_inside_the_window_keeps_a_rejected_key_a_failure
     await env.hass.config_entries.async_reload(entry.entry_id)
     await env.settle()
     assert env.state("N25").state == "unavailable"
+
+
+async def test_e2e_15_the_answers_are_written_even_when_the_entry_is_unloaded_right_after_a_refresh(env, hass_storage):
+    """The write is delayed by 30 s; the payload is built at the refresh, not after the shutdown cleared the answers."""
+    entry = await env.add_entry(line="N25")
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    await env.advance(minutes=1)
+    assert hass_storage[f"ztm_warsaw.{entry.entry_id}"]["data"]["answers"]
+
+
+async def test_e2e_15_every_entry_has_its_own_store_and_a_removed_entry_leaves_none(env, hass_storage):
+    first = await env.add_entry(line="N25")
+    second = await env.add_entry(line="N25", api_key="another-key")
+    assert env.coordinator(first)._store.key != env.coordinator(second)._store.key
+    await env.advance(minutes=1)
+    assert f"ztm_warsaw.{first.entry_id}" in hass_storage
+    await env.hass.config_entries.async_remove(first.entry_id)
+    await env.settle()
+    assert f"ztm_warsaw.{first.entry_id}" not in hass_storage
