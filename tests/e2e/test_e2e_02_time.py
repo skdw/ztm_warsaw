@@ -9,7 +9,7 @@ exactly one hour after that, every hour.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
@@ -61,7 +61,7 @@ TIMELINE = [
     ("151", "2026-10-17 01:55", None),
     ("151", "2026-10-17 00:00", None),
     ("151", "2026-10-17 02:29", None),
-    ("151", "2026-10-17 03:05", "2026-10-17 04:41"),  # a refresh at 02:40 has happened, so the morning shows
+    ("151", "2026-10-17 03:07", "2026-10-17 04:41"),  # the refresh at 03:06 has happened, so the morning shows
     ("151", "2026-10-17 04:30", "2026-10-17 04:41"),
     ("523", "2026-10-16 23:50", None),
     ("523", "2026-10-17 02:29", None),
@@ -124,12 +124,12 @@ async def test_e2e_07_the_state_itself_is_right_after_midnight_even_if_labels_la
 # ===================================================================== E2E-08
 @pytest.mark.start("2026-10-16 23:40")
 async def test_e2e_08_morning_schedule_appears_once_the_api_has_flipped_at_0300(env):
-    """Before 03:00 the API still serves Friday's timetable, whose morning departures are Friday's: nothing to show.
-    The sensor asks again at 03:02, and the Saturday timetable shows."""
+    """Before 03:05 the cached Friday timetable is what we have (the City is replacing it from 02:10): nothing to show.
+    The sensor asks again at 03:06, and the Saturday timetable shows."""
     await env.add_entry(line="151")
     await env.run_to("2026-10-17 02:59")
     assert env.departure_local("151") is None
-    await env.run_to("2026-10-17 03:03")
+    await env.run_to("2026-10-17 03:07")
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -160,7 +160,7 @@ async def test_e2e_09_sensor_follows_the_api_within_minutes_of_the_0300_flip(env
     assert env.departure_local("523") == "2026-10-17 05:15"
 
 
-@pytest.mark.parametrize("setup_at", ["2026-10-17 00:10", "2026-10-17 00:55", "2026-10-17 02:40"])
+@pytest.mark.parametrize("setup_at", ["2026-10-17 00:10", "2026-10-17 00:55", "2026-10-17 02:00"])
 async def test_e2e_09_every_refresh_phase_converges_within_an_hour_of_the_flip(env, setup_at):
     env.move_to(setup_at)
     await env.add_entry(line="523")
@@ -199,7 +199,8 @@ async def test_e2e_10_the_timetable_is_not_refetched_at_departures_only_hourly(e
 async def test_e2e_11_one_timetable_request_per_hour_and_no_more_catalogue_downloads(env):
     await env.add_entry(line="151")
     assert (env.city.count("stops"), env.city.count("timetable")) == (1, 1)
-    await env.advance(hours=24, minutes=1)
+    # the 03:06 refresh moves the hourly phase to :06, so run past 12:06 of the next day
+    await env.advance(hours=24, minutes=10)
     assert env.city.count("stops") == 1, "the catalogue is fetched once, at setup"
     assert env.city.count("timetable") - 1 == 24, "exactly one refresh per hour"
     # the hourly requests are the same GET the config flow validated, nothing else
@@ -209,7 +210,7 @@ async def test_e2e_11_one_timetable_request_per_hour_and_no_more_catalogue_downl
 
 
 async def test_e2e_11_coordinator_notices_a_changed_schedule_and_the_sensor_follows(env):
-    env.move_to("2026-10-17 02:30")
+    env.move_to("2026-10-17 02:00")
     await env.add_entry(line="151")
     first = env.coordinator(env.hass.config_entries.async_entries("ztm_warsaw")[0]).data
     assert len(first.departures) == 81  # Friday set still served before 03:00
@@ -240,7 +241,7 @@ async def test_e2e_12_next_n_labels_are_warsaw_time_whatever_the_process_zone(en
 async def test_e2e_12_morning_cutoff_is_warsaw_time_whatever_the_process_zone(env, process_tz, zone):
     process_tz(zone)
     await env.add_entry(line="151")
-    await env.run_to("2026-10-17 03:05")
+    await env.run_to("2026-10-17 03:07")
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -358,9 +359,12 @@ def _omniscient_next(env, stop, line, now, count=2):
 
 
 @pytest.mark.timeout(600)
+@pytest.mark.parametrize("flip_at", [time(2, 10), time(2, 40), time(3, 0)], ids=["swap_at_0210", "swap_at_0240", "swap_at_0300"])
 @pytest.mark.parametrize("sweep", SWEEPS)
-async def test_e2e_14_every_shape_of_line_follows_the_service_day_across_the_night(env, sweep):
+async def test_e2e_14_every_shape_of_line_follows_the_service_day_across_the_night(env, sweep, flip_at):
+    """Whenever inside the update window the City swaps its timetables, the sensor shows what really departs next."""
     start, end = SWEEPS[sweep]
+    env.city.flip_at = flip_at
     env.move_to(start)
     for stop, line in SHAPES:
         await env.add_entry(line=line, stop_id=stop[0], stop_nr=stop[1], departures=2)
@@ -383,3 +387,36 @@ async def test_e2e_14_every_shape_of_line_follows_the_service_day_across_the_nig
                     mismatches.append((env.now.astimezone(WARSAW).strftime("%d %H:%M"), line, "label " + str(label), expected[1].astimezone(WARSAW).strftime("%H:%M")))
     assert samples > 1000, samples
     assert not mismatches, f"{len(mismatches)} of {samples} samples differ from the oracle, for example {mismatches[:6]}"
+
+
+# ===================================================================== E2E-15
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_a_restart_after_the_swap_keeps_the_night_tail(env):
+    """N25 of the Friday service day runs to 28:54 (04:54). After 03:05 the API serves Saturday and the tail is gone
+    from its answer; the sensor keeps it, also across a restart (the last answers are stored)."""
+    entry = await env.add_entry(line="N25")
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_the_city_is_not_asked_while_it_replaces_its_timetables(env):
+    await env.add_entry(line="N25")
+    calls = env.city.count("timetable")
+    await env.run_to("2026-10-17 03:04")
+    assert env.city.count("timetable") == calls, "no request between 02:10 and 03:05"
+    assert env.departure_local("N25") is not None, "the cached answer keeps the sensor going"
+    await env.run_to("2026-10-17 03:07")
+    assert env.city.count("timetable") == calls + 1, "one request right after the window, at 03:06"
+
+
+@pytest.mark.start("2026-10-17 02:30")
+async def test_e2e_15_a_first_start_inside_the_window_waits_for_its_end(env):
+    await env.add_entry(line="151")
+    assert env.state("151").state == "unavailable", "nothing to show yet, and nothing is invented"
+    assert env.city.count("timetable") == 0
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("151") == "2026-10-17 04:41"

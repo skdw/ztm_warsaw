@@ -1,11 +1,13 @@
 """The timetable the City of Warsaw API serves, and the time arithmetic that goes with it.
 
-The API serves the timetable of one *service day* at a time. A service day starts at 03:00 (measured: the answer
-changes between 02:55:51 and 03:00:51) and its times run past midnight: a night bus of the service day of Friday has
-a ``czas`` of ``27:24``, which is 03:24 on Saturday. The timetable of Saturday is served from 03:00 on Saturday, so
-from then on the 27:xx and 28:xx times of Friday are no longer in the answer although the buses still run.
-That is why every reading carries the absolute moment it departs, computed from the service date of the answer,
-and why the coordinator keeps the previous answer for as long as its late departures are ahead.
+The API serves the timetable of one *service day* at a time, and its times run past midnight: a night bus of the
+service day of Friday has a ``czas`` of ``27:24``, which is 03:24 on Saturday. The City says (letter CRWIP/3980/25)
+that the update starts at 02:10 and then publishes the day's timetables together with the night lines of the coming
+night; the change was measured to be complete between 02:55:51 and 03:00:51. So from some moment in that window the
+27:xx and 28:xx times of the previous service day are no longer in the answer although the buses still run.
+An answer fetched inside the window cannot be told apart from the old or the new day, so none is fetched there:
+the integration keeps the answer it has, tags a fresh one with its service date and keeps the previous answer for
+as long as its late departures are ahead.
 """
 
 import logging
@@ -18,20 +20,24 @@ _LOGGER = logging.getLogger(__name__)
 
 WARSAW = ZoneInfo("Europe/Warsaw")
 
-SERVICE_DAY_FLIP = time(3, 0)  # the API serves the next service day from here
-FLIP_SAFETY = timedelta(minutes=1)  # the flip was measured within 02:55:51 to 03:00:51: an answer before 03:01 is not trusted
-FLIP_REFRESH = time(3, 2)  # when the coordinator asks again, once the flip has certainly happened
+SWAP_START = time(2, 10)  # the City starts replacing the timetables here (its letter); nothing fetched from now on is trusted
+SWAP_END = time(3, 5)  # complete: measured by 03:00:51, plus a margin. From here an answer belongs to the new service day
+FLIP_REFRESH = time(3, 6)  # when the coordinator asks again, once the swap is over
+
+
+def in_swap_window(moment: datetime) -> bool:
+    """Whether an answer fetched at ``moment`` could be either the old or the new service day."""
+    return SWAP_START <= moment.astimezone(WARSAW).time() < SWAP_END
 
 
 def service_date_at(moment: datetime) -> date:
     """The service day that an answer received at ``moment`` belongs to."""
     local = moment.astimezone(WARSAW)
-    flip = datetime.combine(local.date(), SERVICE_DAY_FLIP, WARSAW) + FLIP_SAFETY
-    return local.date() if local >= flip else local.date() - timedelta(days=1)
+    return local.date() if local.time() >= SWAP_END else local.date() - timedelta(days=1)
 
 
 def next_flip_refresh(after: datetime) -> datetime:
-    """The next 03:02 in Warsaw after ``after``, in UTC."""
+    """The next 03:06 in Warsaw after ``after``, in UTC."""
     local = after.astimezone(WARSAW)
     candidate = datetime.combine(local.date(), FLIP_REFRESH, WARSAW)
     if candidate <= after:

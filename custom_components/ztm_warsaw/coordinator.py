@@ -1,12 +1,14 @@
 import logging
-from datetime import datetime, timedelta
+from dataclasses import asdict
+from datetime import date, datetime, timedelta
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .client import ZTMApiError, ZTMStopClient
-from .models import ZTMDepartureData, next_flip_refresh, service_date_at
+from .models import ZTMDepartureData, ZTMDepartureDataReading, in_swap_window, next_flip_refresh, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +33,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         # The answer before this one, kept while its late departures (the 27:xx of a night bus) are still ahead.
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
+        # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
+        self._store: Store[dict] = Store(hass, 1, f"ztm_warsaw.{self.name}")
 
         # Hourly timetable refresh handled by DataUpdateCoordinator
         self.update_interval = timedelta(hours=1)
@@ -38,6 +42,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
     async def async_config_entry_first_refresh(self):
         """Perform first refresh and set up schedules."""
         if not self._initial_refresh_done:
+            await self._restore()
             _LOGGER.debug("ZTM Coordinator [%s] — performing initial refresh", self.name)
             await self.async_refresh()
             self._initial_refresh_done = True
@@ -55,8 +60,41 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self.name,
         )
 
+    async def _restore(self):
+        """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,
+        one of the previous day keeps its night tail."""
+        today = service_date_at(dt_util.utcnow())
+        for saved in (await self._store.async_load() or {}).get("answers", []):
+            try:
+                day = date.fromisoformat(saved["service_date"])
+                answer = ZTMDepartureData(
+                    [ZTMDepartureDataReading.from_dict(row, day) for row in saved["rows"]], saved.get("stop_info") or {}, day
+                )
+            except (TypeError, KeyError, ValueError, AttributeError):
+                continue
+            if day == today:
+                self.data = answer
+            elif day == today - timedelta(days=1):
+                self._previous = answer
+
+    def _save(self):
+        self._store.async_delay_save(
+            lambda: {
+                "answers": [
+                    {
+                        "service_date": a.service_date.isoformat(),
+                        "rows": [{k: v for k, v in asdict(r).items() if k != "dt"} for r in a.departures],
+                        "stop_info": a.stop_info,
+                    }
+                    for a in (self._previous, self.data)
+                    if a and a.service_date
+                ]
+            },
+            30,
+        )
+
     def _schedule_flip_refresh(self):
-        """Ask again at 03:02 Warsaw time, when the API has certainly moved on to the next service day."""
+        """Ask again at 03:06 Warsaw time, when the update of the API is over."""
         if self._flip_unsub:
             self._flip_unsub()
         self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
@@ -94,6 +132,11 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         return False
 
     async def _async_update_data(self) -> ZTMDepartureData:
+        if in_swap_window(dt_util.utcnow()):
+            # The City is replacing the timetables: an answer now may be either day, so keep what we have.
+            if self.data is None:
+                raise UpdateFailed("The City of Warsaw is updating its timetables; trying again after 03:05")
+            return self.data
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)
         try:
             new_data = await self.client.get()
@@ -111,6 +154,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             if self.data is not None and self.data.service_date != new_data.service_date:
                 self._previous = self.data
             self.data = new_data
+            self._save()
             self._api_error = False
             self.last_update_success_time = dt_util.utcnow()
             # Track last success date in local time (Europe/Warsaw)

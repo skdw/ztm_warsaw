@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.ztm_warsaw.models import (
+    in_swap_window,
     ZTMDepartureDataReading,
     departure_datetime,
     next_flip_refresh,
@@ -74,13 +75,21 @@ def test_a_label_in_the_hour_the_clock_repeats_is_its_first_occurrence():
         ("2026-10-17 12:00", date(2026, 10, 17)),
         ("2026-10-17 00:00", date(2026, 10, 16)),  # midnight does not flip the day
         ("2026-10-17 02:59", date(2026, 10, 16)),
-        ("2026-10-17 03:00", date(2026, 10, 16)),  # the flip was measured up to 03:00:51: not trusted before 03:01
-        ("2026-10-17 03:01", date(2026, 10, 17)),
+        ("2026-10-17 03:04", date(2026, 10, 16)),  # the City's update (from 02:10) was measured done by 03:00:51
+        ("2026-10-17 03:05", date(2026, 10, 17)),
         ("2026-10-17 23:59", date(2026, 10, 17)),
     ],
 )
 def test_the_service_day_of_an_answer(moment, service_date):
     assert service_date_at(warsaw(moment)) == service_date
+
+
+@pytest.mark.parametrize(
+    ("moment", "inside"),
+    [("2026-10-17 02:09", False), ("2026-10-17 02:10", True), ("2026-10-17 03:04", True), ("2026-10-17 03:05", False), ("2026-10-17 12:00", False)],
+)
+def test_the_update_window_of_the_city(moment, inside):
+    assert in_swap_window(warsaw(moment)) is inside
 
 
 def test_the_service_day_is_the_same_whatever_zone_the_moment_is_in():
@@ -91,11 +100,11 @@ def test_the_service_day_is_the_same_whatever_zone_the_moment_is_in():
 @pytest.mark.parametrize(
     ("after", "expected"),
     [
-        ("2026-10-17 12:00", "2026-10-18 03:02"),
-        ("2026-10-17 03:01", "2026-10-17 03:02"),
-        ("2026-10-17 03:02", "2026-10-18 03:02"),  # strictly after
-        ("2026-10-24 20:00", "2026-10-25 03:02"),  # the fall-back night: 03:02 CET
-        ("2026-03-28 20:00", "2026-03-29 03:02"),  # the spring-forward night: 03:02 CEST
+        ("2026-10-17 12:00", "2026-10-18 03:06"),
+        ("2026-10-17 03:01", "2026-10-17 03:06"),
+        ("2026-10-17 03:06", "2026-10-18 03:06"),  # strictly after
+        ("2026-10-24 20:00", "2026-10-25 03:06"),  # the fall-back night: 03:06 CET
+        ("2026-03-28 20:00", "2026-03-29 03:06"),  # the spring-forward night: 03:06 CEST
     ],
 )
 def test_the_next_refresh_after_the_flip(after, expected):
