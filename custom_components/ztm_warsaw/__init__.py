@@ -88,13 +88,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_id=entry.entry_id,
     )
 
-    # Do not block setup on a transient API failure
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except Exception as err:  # noqa: BLE001 - surface initial error but continue
-        _LOGGER.warning(
-            "Initial fetch failed for %s/%s line %s: %s", stop_id, stop_nr, line, err
-        )
+    # Raises ConfigEntryNotReady when the City does not answer: Home Assistant then retries the setup by itself.
+    await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,

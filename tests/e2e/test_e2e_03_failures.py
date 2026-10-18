@@ -36,7 +36,7 @@ from .fake_city import (
     Truncated,
     drop_czas_from_first_row,
 )
-from .helpers import known_bug, log_blob
+from .helpers import log_blob
 
 pytestmark = pytest.mark.e2e
 
@@ -300,7 +300,6 @@ async def test_e2e_18_a_hanging_server_costs_two_timeouts_then_the_cache_is_kept
     assert shows_a_future_departure(env)
 
 
-@known_bug("no-total-setup-deadline", "no total deadline: setup against a hanging API blocks ~83 s (4 x 20 s timeouts + back-off)")
 async def test_e2e_18_setup_against_a_hanging_server_does_not_block_for_over_a_minute(env):
     env.city.always(None, Hang())
     task = asyncio.ensure_future(env.add_entry())
@@ -359,9 +358,9 @@ async def test_e2e_19_a_row_with_an_unparseable_time_is_skipped_not_fatal(env):
 
 async def test_e2e_19_a_redirect_on_a_credentialed_request_is_not_followed(env):
     env.city.script("timetable", RedirectOnce())
-    await env.add_entry()
+    entry = await env.add_entry()
     assert env.city.count("timetable") == 1, "the integration must not chase the redirect"
-    assert env.state().state == "unavailable"
+    assert entry.state is ConfigEntryState.SETUP_RETRY, "visible as a setup that is retried, with no sensor"
 
 
 # ===================================================================== E2E-20
@@ -467,13 +466,43 @@ async def test_e2e_21_it_recovers_on_its_own_at_the_latest_at_the_next_hourly_re
     assert departing(env)
 
 
-@known_bug(
-    "first-refresh-failure-not-retried",
-    "first-refresh failure raises no ConfigEntryNotReady: entities stay unavailable for up to an hour",
-)
 async def test_e2e_21_it_recovers_within_ten_minutes_of_the_city_coming_back(env):
     env.city.always(None, Http(500))
     await env.add_entry()  # HA boots, the network is not up yet
     env.city.heal()  # two minutes later it is
     await env.advance(minutes=10)
     assert departing(env), "setup should have been retried (SETUP_RETRY) instead of waiting for the hourly tick"
+
+
+async def test_e2e_21_a_retried_setup_says_why(env, caplog):
+    """HA raises ConfigEntryNotReady without a reason; the entry shows the City's one, and never the key."""
+    env.city.valid_keys.clear()
+    entry = await env.add_entry()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.reason
+    assert DEFAULT_KEY not in entry.reason
+    assert "rejected" in entry.reason.lower()
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_21_a_slow_city_does_not_throw_away_the_stored_timetable(env, hass_storage):
+    """The deadline ends a first refresh that hangs; with a stored timetable of today the sensor starts from it."""
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    rows = [{"czas": "13:30:00"}, {"czas": "14:30:00"}]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"answers": [{"service_date": "2026-10-17", "rows": rows}]}}
+    env.city.always(None, Hang())
+    task = asyncio.ensure_future(env.hass.config_entries.async_setup(entry.entry_id))
+    await env.drive_timeouts(task)
+    await env.settle()
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.departure_local("151") == "2026-10-17 13:30"
+
+
+async def test_e2e_21_a_hanging_stops_catalogue_does_not_keep_the_sensor_away(env):
+    """The stop's name is optional: with the timetable healthy and the catalogue hanging, setup still succeeds (a review finding)."""
+    env.city.always("stops", Hang())
+    task = asyncio.ensure_future(env.add_entry())
+    entry = await env.drive_timeouts(task)
+    assert entry.state is ConfigEntryState.LOADED
+    assert departing(env)
