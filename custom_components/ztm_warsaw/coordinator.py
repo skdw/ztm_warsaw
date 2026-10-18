@@ -64,7 +64,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,
         one of the previous day keeps its night tail."""
         today = service_date_at(dt_util.utcnow())
-        for saved in (await self._store.async_load() or {}).get("answers", []):
+        stored = await self._store.async_load() or {}
+        self._api_error = stored.get("api_error") is True  # a rejected key stays a failure across a restart
+        for saved in stored.get("answers", []):
             try:
                 day = date.fromisoformat(saved["service_date"])
                 answer = ZTMDepartureData(
@@ -88,7 +90,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                     }
                     for a in (self._previous, self.data)
                     if a and a.service_date
-                ]
+                ],
+                "api_error": self._api_error,
             },
             30,
         )
@@ -184,6 +187,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
             # when the state changes, and again when it recovers.
             self._api_error = True
+            self._save()
             raise UpdateFailed(str(err)) from err
         except Exception as err:
             if self.data is not None and not self._api_error:

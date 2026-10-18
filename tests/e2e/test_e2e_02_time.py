@@ -484,3 +484,16 @@ async def test_e2e_15_a_first_answer_that_arrives_inside_the_window_is_not_trust
     monkeypatch.undo()
     await env.run_to("2026-10-17 03:30")
     assert env.departure_local("N25") is not None
+
+
+@pytest.mark.start("2026-10-17 00:30")
+async def test_e2e_15_a_restart_inside_the_window_keeps_a_rejected_key_a_failure(env):
+    """The stored answer must not bring a sensor back that was unavailable because the key was rejected (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.run_to("2026-10-17 01:31")
+    assert env.state("N25").state == "unavailable"
+    await env.run_to("2026-10-17 02:20")
+    await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.state("N25").state == "unavailable"
