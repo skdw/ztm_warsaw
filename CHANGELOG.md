@@ -13,6 +13,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 ### Added
 
 - The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. Adding a token through the setup screen follows in a later change.
+- Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
 
 ### Fixed
 

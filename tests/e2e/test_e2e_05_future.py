@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 import json
+from pathlib import Path
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -65,6 +66,16 @@ async def test_e2e_28_a_line_that_does_not_run_today_is_no_service_with_a_token_
     st = env.state("411")
     assert st.state == "unknown", "an empty timetable: available, no departure"
     assert st.attributes["Upcoming, Headsign"] == "No service"
+
+
+async def test_e2e_28_every_request_says_which_software_asks_and_nothing_about_who(env):
+    manifest = json.loads((Path(__file__).parents[2] / "custom_components/ztm_warsaw/manifest.json").read_text())
+    expected = f"ztm_warsaw/{manifest['version']} (Home Assistant custom integration; +https://github.com/solarssk/ztm_warsaw)"
+    await env.add_entry()
+    await env.add_entry(api_key=DEFAULT_TOKEN, line="N25")
+    assert {c.contract for c in env.city.calls} == {"legacy", "new"}, "the scenario must reach both hosts"
+    assert {c.user_agent for c in env.city.calls} == {expected}
+    assert DEFAULT_KEY not in expected and DEFAULT_TOKEN not in expected
 
 
 async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):

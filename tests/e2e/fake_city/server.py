@@ -79,6 +79,7 @@ class Call:
     status: int | None = None
     bytes_sent: int = 0
     hanging: bool = False
+    user_agent: str | None = None  # the User-Agent header the request carried
     mutator: Any = field(default=None, repr=False)
 
     @property
@@ -289,6 +290,7 @@ class FakeCity:
             at_utc=now,
             service_date=sd,
             day_set=self.day_set_for(sd).name,
+            user_agent=request.headers.get("User-Agent"),
         )
         self.calls.append(call)
         return call

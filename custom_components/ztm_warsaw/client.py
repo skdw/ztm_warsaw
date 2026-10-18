@@ -112,8 +112,10 @@ class ZTMStopClient:
         line: str,
         timeout: int | None = None,
         stop_info_ttl: int | None = None,
+        user_agent: str | None = None,
     ):
         api_key = api_key.strip()
+        self._user_agent = user_agent
         self._legacy = bool(_LEGACY_KEY.match(api_key))
         # Endpoint to fetch the timetable for a given stop, line, and post number
         self._endpoint = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
@@ -192,6 +194,8 @@ class ZTMStopClient:
 
     async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt):
         """One request. The answer, None for a failure that is final, or _RETRY for a 5xx worth another try."""
+        if self._user_agent:  # says which software asks (name, version, repository), never who
+            headers = {**(headers or {}), "User-Agent": self._user_agent}
         async with (
             asyncio.timeout(self._timeout),
             self._session.request(
