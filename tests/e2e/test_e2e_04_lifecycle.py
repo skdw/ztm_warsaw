@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util.async_ import get_scheduled_timer_handles
 
@@ -133,7 +134,7 @@ async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_
     a = await env.add_entry(line="151", stop_nr="01")
     b = await env.add_entry(line="151", stop_nr="02")  # same line, other pole: same device (ztm_warsaw, line_151)
     devices = find_devices(env.device_registry, {(DOMAIN, "line_151")})
-    assert owners_of(devices) == {a.entry_id, b.entry_id}  # one shared device, or one per entry on HA 2026.10
+    assert owners_of(devices) == {a.entry_id, b.entry_id}  # the layout is pinned by the next test
 
     await env.hass.config_entries.async_remove(a.entry_id)
     await env.settle()
@@ -151,6 +152,20 @@ async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_
     await env.hass.config_entries.async_remove(b.entry_id)
     await env.settle()
     assert not find_devices(env.device_registry, {(DOMAIN, "line_151")})
+
+
+@pytest.mark.xfail(
+    strict=True,
+    condition=hasattr(dr.DeviceRegistry, "async_get_devices"),  # Home Assistant 2026.10 and newer
+    raises=AssertionError,
+    reason="device-per-entry-on-ha-2026-10: a device belongs to one config entry there, so two entries of one "
+    "line get two devices with the same identifiers instead of sharing the one device per line",
+)
+async def test_e2e_25_two_entries_of_one_line_share_one_device(env):
+    """The frozen contract: one device per line. Broken by Home Assistant 2026.10, not yet by a fix of ours."""
+    await env.add_entry(line="151", stop_nr="01")
+    await env.add_entry(line="151", stop_nr="02")
+    assert len(find_devices(env.device_registry, {(DOMAIN, "line_151")})) == 1
 
 
 # ===================================================================== E2E-26
