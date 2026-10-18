@@ -175,7 +175,8 @@ async def test_e2e_09_every_refresh_phase_converges_within_an_hour_of_the_flip(e
     served = [(c.at_utc.astimezone(WARSAW).strftime("%H:%M"), c.day_set) for c in env.city.matching("timetable")]
     before_flip = [d for t, d in served if t < "03:00"]
     after_flip = [d for t, d in served if t >= "03:00"]
-    assert set(before_flip) == {"friday"} and set(after_flip) == {"saturday"}, served
+    assert set(before_flip) == {"friday"}, served
+    assert set(after_flip) == {"saturday"}, served
 
 
 # ===================================================================== E2E-10

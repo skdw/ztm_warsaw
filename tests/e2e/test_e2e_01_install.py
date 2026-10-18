@@ -96,7 +96,8 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     assert st.state not in ("unknown", "unavailable")
     assert st.attributes["Stop, Name"] == stop_name_for("7009")
     assert st.attributes["friendly_name"] == f"Line 151 {stop_name_for('7009')} 01"
-    assert "Next 2, Headsign" in st.attributes and "Next 3, Headsign" not in st.attributes
+    assert "Next 2, Headsign" in st.attributes
+    assert "Next 3, Headsign" not in st.attributes
 
 
 # ===================================================================== E2E-02
@@ -172,7 +173,8 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert (main.entity_id, main.platform, main.domain) == (f"sensor.line_{slug}_from_7009_01", "ztm_warsaw", "sensor")
     assert main.original_device_class == "timestamp"
     assert main.original_icon == icon
-    assert main.disabled_by is None and main.entity_category is None
+    assert main.disabled_by is None
+    assert main.entity_category is None
     diag = registered[f"line_{line}_from_7009_01_last_update"]
     assert diag.entity_id == f"sensor.line_{slug}_from_7009_01_last_update"
     assert diag.entity_category == "diagnostic"
@@ -337,7 +339,8 @@ async def test_e2e_04_every_error_the_user_can_see_has_a_translation(env, case):
     _, overrides, arrange, _ = next(c for c in FLOW_CASES if c[0] == case)
     arrange(env)
     result = await env.submit_flow(**overrides)
-    assert result["type"] == "form" and result["errors"], f"case {case!r} is meant to show an error"
+    assert result["type"] == "form", f"case {case!r} is meant to show an error"
+    assert result["errors"], f"case {case!r} is meant to show an error"
     key = result["errors"]["base"]
     assert key in FLOW_ERROR_STRINGS, f"flow error '{key}' has no string in translations/en.json"
 
@@ -358,7 +361,8 @@ async def test_e2e_04_pasted_whitespace_is_forgiven(env, user_input):
 async def test_e2e_04_user_input_cannot_inject_query_parameters(env):
     result = await env.submit_flow(api_key=f"{DEFAULT_KEY}&busstopId=9999&id={LEGACY_STOPS_ID}")
     if not env.city.calls:  # rejecting a key that is not a key before any request is a fine fix as well
-        assert result["type"] == "form" and result["errors"], "nothing was sent, so the flow must have refused the key"
+        assert result["type"] == "form", "nothing was sent, so the flow must have refused the key"
+        assert result["errors"], "nothing was sent, so the flow must have refused the key"
     for call in env.city.calls:
         counts = {k: len(v) for k, v in parse_qs(call.query_string).items()}
         assert all(n == 1 for n in counts.values()), f"duplicated parameters reached the city: {counts}"
@@ -371,7 +375,8 @@ async def test_e2e_05_options_flow_changes_departures_and_reloads_the_entry(env)
     flow = env.hass.config_entries.options
 
     form = await flow.async_init(entry.entry_id)
-    assert form["type"] == "form" and form["step_id"] == "init"
+    assert form["type"] == "form"
+    assert form["step_id"] == "init"
     assert [str(k) for k in form["data_schema"].schema] == ["departures"]
     assert form["data_schema"]({}) == {"departures": 1}  # default = current value
 
@@ -383,7 +388,8 @@ async def test_e2e_05_options_flow_changes_departures_and_reloads_the_entry(env)
     assert entry.data["departures"] == 1, "options never rewrite entry.data"
     assert entry.state is ConfigEntryState.LOADED
     attrs = env.state().attributes
-    assert {f"Next {n}, Headsign" for n in (1, 2, 3)} <= set(attrs) and "Next 4, Headsign" not in attrs
+    assert {f"Next {n}, Headsign" for n in (1, 2, 3)} <= set(attrs)
+    assert "Next 4, Headsign" not in attrs
     # the entity (and its registry identity) survived the reload
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
     assert len(er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)) == 2

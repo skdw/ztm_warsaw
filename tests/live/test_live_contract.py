@@ -111,7 +111,8 @@ async def test_live_error_semantics_the_fake_relies_on():
     """Legacy host: an unknown key is HTTP 200 with result "false"."""
     unknown = "00000000-0000-0000-0000-000000000000"  # shaped like a legacy key, certainly not issued
     status, body = await _call(unknown, "timetable", busstopId=STOP_ID, busstopNr=STOP_NR, line="151")
-    assert status == 200 and classify_legacy(_json(body)) == "bad_key"
+    assert status == 200
+    assert classify_legacy(_json(body)) == "bad_key"
 
 
 async def test_live_the_new_host_answers_a_rejected_token_with_the_generic_500():
@@ -123,7 +124,8 @@ async def test_live_the_new_host_answers_a_rejected_token_with_the_generic_500()
 async def test_live_unknown_parameters_answer_the_way_the_fake_does(live_key):
     status, body = await _call(live_key, "timetable", busstopId="9999", busstopNr="99", line="ZZZ")
     if is_legacy_key(live_key):
-        assert status == 200 and classify_legacy(_json(body)) == "param_error"
+        assert status == 200
+        assert classify_legacy(_json(body)) == "param_error"
     else:
         assert classify_new(status, _json(body)) == "failure"
 

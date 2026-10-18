@@ -67,7 +67,8 @@ def unwrap(payload: Any) -> list:
     """Rows of either envelope (legacy ``{"result": [...]}`` or the new bare list)."""
     if isinstance(payload, list):
         return payload
-    assert isinstance(payload, dict) and isinstance(payload.get("result"), list), f"no rows in {str(payload)[:120]}"
+    assert isinstance(payload, dict), f"no rows in {str(payload)[:120]}"
+    assert isinstance(payload.get("result"), list), f"no rows in {str(payload)[:120]}"
     return payload["result"]
 
 
@@ -81,7 +82,8 @@ def czas_to_minutes(czas: str) -> int:
     m = CZAS_RE.match(czas)
     assert m, f"czas {czas!r} is not HH:MM:SS"
     hours, minutes, seconds = (int(x) for x in m.groups())
-    assert minutes < 60 and seconds < 60, czas
+    assert minutes < 60, czas
+    assert seconds < 60, czas
     assert hours < MAX_SERVICE_HOUR, f"czas {czas!r} beyond the {MAX_SERVICE_HOUR}h service-day window"
     return hours * 60 + minutes
 
@@ -105,10 +107,12 @@ def assert_lines_rows(payload: Any) -> list[str]:
     """Lines at a stop: ``[{"values": [{"key": "linia", "value": "151"}]}]``."""
     lines = []
     for row in unwrap(payload):
-        assert isinstance(row, dict) and "values" in row, row
+        assert isinstance(row, dict), row
+        assert "values" in row, row
         fields = kv(row)
         assert set(fields) == {"linia"}, sorted(fields)
-        assert isinstance(fields["linia"], str) and fields["linia"], fields
+        assert isinstance(fields["linia"], str), fields
+        assert fields["linia"], fields
         lines.append(fields["linia"])
     return lines
 

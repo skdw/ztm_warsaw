@@ -122,7 +122,8 @@ async def test_e2e_14_a_coordinator_failure_with_cached_data_is_visible_in_the_s
     """White-box fault injection: 1.1.4 never raises with a warm cache, but a fail-closed fix will, and
     without a matching entity change the entity would keep its old state while ``coordinator.last_update_success`` is False."""
     entry = await env.add_entry()
-    assert entry.state is ConfigEntryState.LOADED and departing(env), "precondition: a loaded entry with a warm cache"
+    assert entry.state is ConfigEntryState.LOADED, "precondition: a loaded entry with a warm cache"
+    assert departing(env), "precondition: a loaded entry with a warm cache"
     coord = coordinator_of(env)
     with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=UpdateFailed("forced by the test"))):
         await coord.async_refresh()
@@ -215,7 +216,8 @@ async def test_e2e_15_a_line_that_stops_running_today_becomes_no_service_and_sta
     env.city.always("timetable", make())
     await env.hourly_tick()
     st = env.state()
-    assert st.state == "unknown" and st.attributes["Upcoming, Headsign"] == "No service"
+    assert st.state == "unknown"
+    assert st.attributes["Upcoming, Headsign"] == "No service"
 
 
 @pytest.mark.start("2026-10-16 23:40")
@@ -260,7 +262,8 @@ async def test_e2e_16_a_five_minute_outage_spanning_a_refresh_keeps_the_cached_s
 
     env.city.heal()  # five minutes later the city is back; the next refresh is the next hourly tick
     await env.hourly_tick()
-    assert coord.data is not cached and coord.last_update_success_time > stamp
+    assert coord.data is not cached
+    assert coord.last_update_success_time > stamp
     assert shows_a_future_departure(env)
 
 

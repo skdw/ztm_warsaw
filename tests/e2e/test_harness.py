@@ -373,7 +373,8 @@ async def test_h05_the_new_host_sends_compact_json_without_a_charset(fake_city, 
     assert status == 200
     assert headers["Content-Type"] == "application/json"  # measured: no "; charset=utf-8"
     assert raw.startswith(b'[{"values":[{"value":"')
-    assert b", " not in raw and b": " not in raw
+    assert b", " not in raw
+    assert b": " not in raw
 
 
 @pytest.mark.city(catalogue_bytes=FULL_NEW_CATALOGUE)
