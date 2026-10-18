@@ -171,24 +171,22 @@ class ZTMStopClient:
         """
         attempt = 0
         while True:
+            reason = None
             try:
                 result = await self._attempt(url, params, expect_json, method, json_body, headers, wrap, attempt)
             except asyncio.TimeoutError:
-                if attempt >= self._max_retries:
-                    _LOGGER.error("Timeout after %ss for %s", self._timeout, url)
-                    return None
-                _LOGGER.warning("Timeout talking to %s; retrying (%s/%s)", url, attempt + 1, self._max_retries)
+                reason = f"timeout after {self._timeout}s"
             except aiohttp.ClientError as err:
                 # The text of a network error can carry the URL, and so the key: only its class is logged.
-                if attempt >= self._max_retries:
-                    _LOGGER.error("Network error for %s: %s", url, type(err).__name__)
-                    return None
-                _LOGGER.warning(
-                    "Network error for %s: %s; retrying (%s/%s)", url, type(err).__name__, attempt + 1, self._max_retries
-                )
+                reason = f"network error ({type(err).__name__})"
             else:
                 if result is not _RETRY:
                     return result
+            if reason is not None:
+                if attempt >= self._max_retries:
+                    _LOGGER.error("Request to %s failed: %s", url, reason)
+                    return None
+                _LOGGER.warning("Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
             attempt += 1
             await asyncio.sleep(self._retry_backoff * attempt)
 
