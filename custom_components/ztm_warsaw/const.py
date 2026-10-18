@@ -8,7 +8,7 @@ CONF_BUSSTOP_ID = "busstop_id"
 CONF_BUSSTOP_NR = "busstop_nr"
 CONF_LINE = "line"
 CONF_DEPARTURES = "departures"
-CONF_ATTRIBUTION = "Data provided by the City of Warsaw (api.um.warszawa.pl)"
+CONF_ATTRIBUTION = "Data provided by Miasto Stołeczne Warszawa and Zarząd Transportu Miejskiego (CC BY)"
 
 # Platforms exposed by this integration
 PLATFORMS = [Platform.SENSOR]

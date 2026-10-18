@@ -7,21 +7,24 @@
 [![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
 [![custom_component](https://img.shields.io/badge/type-custom_component-red.svg)](https://github.com/solarssk/ztm_warsaw)
 
-ZTM Warsaw Integration brings real-time public transport departure data from the City of Warsaw API directly into Home Assistant. Whether you're tracking buses, trams, or metro lines, this integration allows you to view live departures at a glance.
+Shows the next **scheduled** departures of one Warsaw public-transport line (bus, tram, metro, rail or night line) at one stop pole as a sensor in Home Assistant, from the City of Warsaw's open data. Use it for dashboards and automations such as "leave in eight minutes" without opening a timetable app.
 
-> Powered by data from [api.um.warszawa.pl](https://api.um.warszawa.pl) – the official public transport data provider.
+It shows the **timetable**, not live vehicles. What it does **not** do:
+
+- no live positions, delays or disruptions: the City publishes planned departures, refreshed once a day;
+- no timetables for other days: the API serves the current service day only;
+- no journey planning: use [wtp.waw.pl](https://wtp.waw.pl) for that.
 
 ---
 
 ## 🔧 Features
 
-- ✅ Real-time and static timetable support for buses, trams, metro, night, cemetery, express and local lines.
-- ✅ Supports multiple instances (you can monitor multiple stops and lines).
-- ✅ Displays current or upcoming departure as timestamp (compatible with UI and automations).
-- ✅ Optional display of up to 3 upcoming departures.
-- ✅ Automatically recognizes and handles no-schedule days, seasonal or partial-day routes.
-- ✅ Full Home Assistant UI configuration – no YAML needed.
-- ✅ Custom attributes: stop info, direction, timetable link and contextual notes.
+- ✅ Buses, trams, metro, night, cemetery, express and local lines.
+- ✅ Several instances: monitor as many stops and lines as you like.
+- ✅ The next departure as a timestamp, usable in the UI and in automations; optionally up to 3 more.
+- ✅ A clear "No service" state on days when a line does not run, and an `unavailable` state when the City's API fails (see [Troubleshooting](#-troubleshooting)).
+- ✅ Set up entirely in the Home Assistant UI, in English or Polish.
+- ✅ Attributes with the stop, the direction, a timetable link and notes.
 
 ---
 
@@ -45,94 +48,75 @@ ZTM Warsaw Integration brings real-time public transport departure data from the
 
 ## ⚙️ Requirements
 
-- Home Assistant 2024.4+
-- API key from [City of Warsaw](https://api.um.warszawa.pl)
+- Home Assistant 2024.4 or newer
+- An API key or token from the City of Warsaw (below)
 
 ---
 
-## 🧭 How to Get API Key?
+## 🧭 Getting a key or token
 
-1. Go to [https://api.um.warszawa.pl](https://api.um.warszawa.pl)
-2. Register or log in
-3. Copy your key and paste it into the integration setup
+The City runs two portals, and the integration accepts the key of either one:
+
+- **New (recommended):** on [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) enter a nick, accept the terms and download your own token. It is a long text in three parts separated by dots.
+- **Old:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Existing old keys still work when this was written, but the City publishes no date or promise for how long, so move to a token when you can.
+
+The integration recognises which one you pasted and talks only to the matching API. To move an existing entry to a token, **remove the old entry first** and then add the integration again with the token: two entries for the same stop, pole and line cannot coexist, and the second one would silently have no sensor.
 
 ---
 
 ## 📦 Installation
 
-### Manual installation:
-
-1. Download the latest version from [GitHub Releases](https://github.com/solarssk/ztm_warsaw/releases).
-2. Copy the `ztm_warsaw` folder to `/config/custom_components/`.
-3. Restart Home Assistant.
-
-### Installation via HACS:
+### With HACS
 
 1. In Home Assistant, go to **HACS → Integrations**.
 2. Search for **Warsaw Public Transport**.
 3. Click **Download** and confirm.
 4. Restart Home Assistant.
 
+### Manually
+
+1. Download the latest version from [GitHub Releases](https://github.com/solarssk/ztm_warsaw/releases).
+2. Copy the `ztm_warsaw` folder to `/config/custom_components/`.
+3. Restart Home Assistant.
+
 ---
 
 ## ⚙️ Configuration
 
-Once installed:
+1. Go to **Settings → Devices & Services**.
+2. Click **+ Add Integration** and search for **Warsaw Public Transport**.
+3. Fill in:
+   - **API key or token** (see above),
+   - **Stop ID** and **stop number** (for example 7009 and 01),
+   - **Line number** (for example 151),
+   - **Number of departures to show**.
 
-1. Go to **Settings → Devices & Services**
-2. Click **+ Add Integration**
-3. Search for **Warsaw Public Transport**
-4. Fill in:
-   - **API key**: You can get it at [https://api.um.warszawa.pl](https://api.um.warszawa.pl)
-   - **Stop ID** and **Stop number** (e.g., 7009 / 01)
-   - **Line number** (e.g., 151)
-   - **Number of departures to show**
+The entity is named after the stop and the line, for example `sensor.line_151_from_7009_01`. You can change the number of upcoming departures at any time in **Settings → Devices & Services → Warsaw Public Transport → Configure**.
 
-The entity name will be generated automatically, e.g., `sensor.line_151_from_7009_01`.
-
-## 🔄 Reconfiguration
-
-You can change the number of upcoming departures at any time by going to Settings → Devices & Services → Warsaw Public Transport → Configure of specific entity.
-
-## 🧾 Notes
-
-This integration depends on the official City of Warsaw public API, which has several known limitations:
-
-- **🧭 Stop ID (busstopId) vs. Stop Pole (busstopNr)**
-  These are not the same — both are required for a valid query:
-  - `busstopId`: The ID of the stop (shared by all poles at that stop).
-  - `busstopNr`: The specific pole number — typically 01, 02, etc.
-  It’s the number painted on the physical bus/tram stop sign (słupek).
-  If a stop has multiple directions or platforms, each usually has a different pole number.
-
-- **📅 Schedule data availability is limited to the current day only**  
-  The API does not provide access to schedules for the upcoming days. This means:
-  - If a bus line (e.g., `E-2`) does not operate today (e.g., during weekends), it **won’t appear in the API at all**, even if it normally runs on weekdays. As a result, you won’t be able to add the integration for such a line on a day when it doesn’t operate, because the validation will fail with a `no_departures` error.
-  - If you add an entity when the line is active, it will work correctly.  
-    On days when the line is inactive, the entity will show a `60+ min` state and the following attribute will appear:
-    ```
-    note: "No upcoming schedule available. Please verify on wtp.waw.pl or call 19115 for more information."
-    ```
-
-- **🔍 Some lines visible on wtp.waw.pl are not available in the API**  
-  The official journey planner (wtp.waw.pl) uses internal systems that may include more complete data than what’s exposed by the public API. If a line exists on the website but not in the integration — that’s a limitation of the API. Nothing can be done on my end.
-
-- **🌙 Night line schedules (e.g. `N01`, `N44`) and how they’re handled**  
-  ZTM (Zarząd Transportu Publicznego) treats the **entire night as part of the same service day**, so buses departing at `24:50`, `26:20`, etc. are **still part of the "previous" day’s schedule**.
-
-  This integration now correctly interprets such hours by **treating all times up to 4:59 as part of the previous service day**. This fix has been implemented starting from version `v1.0.2`.
-
-  - This ensures that **night departures do not disappear after midnight**.
-  - You can expect to see accurate countdowns like "15 min" even if it’s `02:00` and the bus is scheduled for `02:15` (`26:15` in the API).
-
-**Important Reminder**
-These limitations are caused by the official API and are **out of scope of this integration**. I always recommend checking the official journey planner: [wtp.waw.pl](https://wtp.waw.pl)
+**Stop ID and stop number** are not the same thing: the stop ID is shared by all poles of a stop, and the stop number (usually 01, 02, ...) is the number painted on the sign of the pole (*słupek*). A stop with several directions has a different number for each.
 
 ---
 
-## 🙌 Acknowledgments
+## 🩺 Troubleshooting
 
-Data provided by **Miasto Stołeczne Warszawa** and **Warszawski Transport Publiczny** via [api.um.warszawa.pl](https://api.um.warszawa.pl)
+- **The state is empty and the attribute says "No service".** The line does not run today, or its last departure has passed. This is not an error: check [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
+- **The sensor is `unavailable`.** The City's API answered, but not with a timetable: the key or token was rejected, the stop, pole and line are not known to the API, or the answer was in a format the integration does not understand. The same happens if the very first load fails. The error is in the Home Assistant log (the key is never logged), and the sensor recovers by itself when the API answers properly again; if it does not, check the key and the stop, pole and line in the settings.
+- **The data look stale during an outage.** A timeout, a network error or a server error (HTTP 5xx) after a successful load does **not** make the sensor `unavailable`: it keeps the last timetable it got and tries again every hour, because the timetable is planned data that does not change within a day. The diagnostic sensor **Last update** (disabled by default; enable it in the entity settings) shows when the data were last fetched successfully.
+- **Setup says the line was not found.** The API lists only the lines that run today. A line that does not run today (for example a weekday-only line on a Sunday) cannot be added until the day it runs.
+- **A line on wtp.waw.pl is missing here.** The journey planner has more data than the public API. That cannot be fixed in the integration.
+- **Night lines** (`N01`, `N44` ...): the City counts the whole night as part of the previous service day, so a bus at `24:50` or `26:20` is still in that day's timetable. The integration reads these hours correctly, so a departure at `02:15` (`26:15` in the API) is shown at 02:00 as in 15 minutes.
+
+---
+
+## 🧑‍💻 Contributing and security
+
+Ideas, bug reports and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+---
+
+## 🙌 Data and acknowledgments
+
+Data: the City of Warsaw (**Miasto Stołeczne Warszawa**) and the Warsaw Public Transport Authority (**Zarząd Transportu Miejskiego**, ZTM), via the City's open data portal ([dane.um.warszawa.pl](https://dane.um.warszawa.pl)), under the [Creative Commons Attribution](https://creativecommons.org/licenses/by/4.0/) licence.
 
 This project was fully planned and designed by me — from the concept and expected behavior of the integration, to how it interacts with the City of Warsaw’s public API. While I’m not a professional Python developer, I understand the essentials well enough to define the structure, logic, and features I wanted this integration to offer.
 

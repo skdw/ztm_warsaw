@@ -100,7 +100,7 @@ I thank all researchers and users who privately disclosed vulnerabilities and he
 ## 8. Data-Source Disclaimer 📢
 
 **I am *not* the provider of the timetable data.**  
-This integration merely **reads** publicly available information from the City of Warsaw open-data API (`api.um.warszawa.pl`). The city's newer portal, `dane.um.warszawa.pl`, is not used by this version yet.
+This integration merely **reads** publicly available information from the City of Warsaw open-data APIs: `api.um.warszawa.pl` for an old-style key (a UUID) and `dane.um.warszawa.pl` for a token. A key is sent only to the host that accepts it.
 
 * If you believe the **API itself** exposes sensitive data or behaves insecurely, please contact **Urząd Miasta Stołecznego Warszawy**.  
 * Issues regarding **how the integration uses that data** (parsing, storage, display) should be reported to me as described in Section 2.

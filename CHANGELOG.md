@@ -16,6 +16,10 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 - A Polish translation of the setup screen.
 - Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
 
+### Changed
+
+- The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw (Miasto Stołeczne Warszawa), the Zarząd Transportu Miejskiego (ZTM) and the licence (CC BY) instead of a host name.
+
 ### Fixed
 
 - Requests that carry the API key no longer follow redirects (a redirect is an error now), and a network error is logged by its class only. The API key can no longer reach the log through a redirect loop or an error text.
