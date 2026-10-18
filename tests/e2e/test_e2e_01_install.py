@@ -223,7 +223,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert st.attributes["Line, Type"] == line_type
     assert (st.attributes["Stop, ID"], st.attributes["Stop, Number"]) == ("7009", "01")
     assert st.attributes["Line, Timezone"] == st.attributes["Stop, Timezone"] == "Europe/Warsaw"
-    assert st.attributes["attribution"] == "Data provided by the City of Warsaw (api.um.warszawa.pl)"
+    assert st.attributes["attribution"] == "Data provided by Miasto Stołeczne Warszawa and ZTM Warszawa (CC BY)"
     assert st.attributes["Line, Full Timetable"] == f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={line}"
 
 
