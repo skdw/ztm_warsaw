@@ -1,6 +1,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ztm_warsaw"
+REPOSITORY_URL = "https://github.com/solarssk/ztm_warsaw"
 
 CONF_API_KEY = "api_key"
 CONF_BUSSTOP_ID = "busstop_id"

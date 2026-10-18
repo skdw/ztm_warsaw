@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 import json
+from pathlib import Path
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
@@ -12,7 +13,7 @@ from homeassistant.data_entry_flow import UnknownStep
 
 from custom_components.ztm_warsaw.const import DOMAIN
 
-from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, Http
+from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, Http, stop_name_for
 from .helpers import known_bug
 
 pytestmark = pytest.mark.e2e
@@ -36,10 +37,6 @@ async def test_e2e_28_setup_with_a_jwt_talks_the_new_contract_end_to_end(env):
     assert timetable.body == {"busstopId": "7009", "busstopNr": "01", "line": "151"}, "all values are strings"
 
 
-@known_bug(
-    "key-sent-to-wrong-host",
-    "a JWT-shaped key is sent to the legacy host as ?apikey=, and a legacy UUID would go to the new host",
-)
 async def test_e2e_28_a_key_is_only_ever_sent_to_the_host_that_can_accept_it(env):
     env.city.valid_keys.add(DEFAULT_KEY)
     await env.add_entry(api_key=DEFAULT_TOKEN, line="151")
@@ -51,6 +48,37 @@ async def test_e2e_28_a_key_is_only_ever_sent_to_the_host_that_can_accept_it(env
     assert DEFAULT_KEY in legacy_keys
 
 
+async def test_e2e_28_an_entry_with_a_token_talks_only_to_the_new_host_and_shows_departures(env):
+    await env.add_entry(api_key=DEFAULT_TOKEN)
+    assert env.state().state not in ("unknown", "unavailable")
+    assert env.city.count(contract="legacy") == 0, "a token never goes to api.um.warszawa.pl"
+    new_calls = env.city.matching(contract="new")
+    assert {c.endpoint for c in new_calls} == {"timetable", "stops"}
+    timetable = next(c for c in new_calls if c.endpoint == "timetable")
+    assert (timetable.method, timetable.key) == ("POST", DEFAULT_TOKEN), "the raw token, no 'Bearer'"
+    assert timetable.body == {"busstopId": "7009", "busstopNr": "01", "line": "151"}, "all values are strings"
+    assert env.state().attributes["Stop, Name"] == stop_name_for("7009"), "the name comes from the new catalogue"
+
+
+@pytest.mark.start("2026-10-17 12:00")  # Saturday: line 411 does not run
+async def test_e2e_28_a_line_that_does_not_run_today_is_no_service_with_a_token_too(env):
+    await env.add_entry(api_key=DEFAULT_TOKEN, line="411")
+    st = env.state("411")
+    assert st.state == "unknown", "an empty timetable: available, no departure"
+    assert st.attributes["Upcoming, Headsign"] == "No service"
+
+
+async def test_e2e_28_every_request_says_which_software_asks_and_nothing_about_who(env):
+    manifest = json.loads((Path(__file__).parents[2] / "custom_components/ztm_warsaw/manifest.json").read_text())
+    expected = f"ztm_warsaw/{manifest['version']} (Home Assistant custom integration; +https://github.com/solarssk/ztm_warsaw)"
+    await env.add_entry()
+    await env.add_entry(api_key=DEFAULT_TOKEN, line="N25")
+    assert {c.contract for c in env.city.calls} == {"legacy", "new"}, "the scenario must reach both hosts"
+    assert {c.user_agent for c in env.city.calls} == {expected}
+    assert DEFAULT_KEY not in expected
+    assert DEFAULT_TOKEN not in expected
+
+
 async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):
     """The no-regression half of the routing rule, true today and must stay true after JWT support lands."""
     await env.add_entry_via_flow()
@@ -58,10 +86,6 @@ async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):
     assert env.city.count(contract="legacy") > 0
 
 
-@known_bug(
-    "new-host-500-not-a-failure",
-    "a 500 from the new host (its one answer to a bad token, an unknown stop or line and any malformed request) must not be reported as anything but a failure",
-)
 async def test_e2e_28_new_host_500_is_a_failed_setup_not_a_silent_no_service(env):
     env.city.always(None, Http(500), contract="new")
     entry = await env.add_entry(api_key=DEFAULT_TOKEN)

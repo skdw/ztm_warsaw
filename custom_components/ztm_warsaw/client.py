@@ -12,6 +12,14 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
 
+_RETRY = object()  # what _attempt returns for an answer worth another try
+_NEW_API = "https://dane.um.warszawa.pl/api/action/"
+_NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
+_NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
+# A key shaped like this belongs to the legacy host (GET, key in the query); any other key is a token for the new
+# host (POST, raw Authorization header). A key is only ever sent to the host that can accept it.
+_LEGACY_KEY = re.compile(r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$", re.IGNORECASE)
+
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
 _PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"
 
@@ -104,7 +112,11 @@ class ZTMStopClient:
         line: str,
         timeout: int | None = None,
         stop_info_ttl: int | None = None,
+        user_agent: str | None = None,
     ):
+        api_key = api_key.strip()
+        self._user_agent = user_agent
+        self._legacy = bool(_LEGACY_KEY.match(api_key))
         # Endpoint to fetch the timetable for a given stop, line, and post number
         self._endpoint = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
         # Endpoint to fetch metadata for stops (name, location, etc.)
@@ -133,79 +145,86 @@ class ZTMStopClient:
         self._stop_name: dict | None = None
         self._stop_info_cache: dict[tuple[str, str], dict] = {}
 
-    async def _get_with_retry(self, url: str, params: dict, *, expect_json: bool = True):
-        """Perform GET with timeout and a small retry on timeout/5xx.
+    async def _call(self, kind: str):
+        """One request for the ``timetable`` or the ``stops`` of this client, on the host that matches its key.
+
+        The answer has the legacy shape ``{"result": ...}`` whichever host sent it, so the parsing is shared.
+        """
+        if self._legacy:
+            params = self._params if kind == "timetable" else {"id": self._stop_info_data_id, "apikey": self._params["apikey"]}
+            return await self._get_with_retry(self._endpoint, params)
+        body = None
+        if kind == "timetable":
+            body = {key: str(self._params[key]) for key in ("busstopId", "busstopNr", "line")}
+        action = _NEW_TIMETABLE if kind == "timetable" else _NEW_STOPS
+        return await self._get_with_retry(
+            _NEW_API + action, None, method="POST", json_body=body,
+            headers={"Authorization": self._params["apikey"]}, wrap=True,
+        )
+
+    async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
+                              method: str = "GET", json_body: dict | None = None,
+                              headers: dict | None = None, wrap: bool = False):
+        """Send the request with a timeout and a small retry on timeout, network error and 5xx.
+
+        Redirects are never followed: the request carries the key, and a 3xx is an error. ``wrap`` puts a bare
+        JSON answer into ``{"result": ...}``. Returns the answer, or None when the request finally failed.
         # English-only comments for OSS clarity
         """
         attempt = 0
         while True:
+            reason = None
             try:
-                async with (
-                    asyncio.timeout(self._timeout),
-                    self._session.get(url, params=params, allow_redirects=True) as resp,
-                ):
-                    chunks: list[bytes] = []
-                    total = 0
-                    async for chunk in resp.content.iter_chunked(65536):
-                        total += len(chunk)
-                        if total > 2_000_000:
-                            _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
-                            return None
-                        chunks.append(chunk)
-                    text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
-                    # Retry on 5xx
-                    if 500 <= resp.status <= 599 and attempt < self._max_retries:
-                        _LOGGER.warning(
-                            "HTTP %s from %s; retrying (%s/%s)",
-                            resp.status, url, attempt + 1, self._max_retries
-                        )
-                        attempt += 1
-                        await asyncio.sleep(self._retry_backoff * attempt)
-                        continue
-                    if resp.status != 200:
-                        _LOGGER.error(
-                            "HTTP %s from %s",
-                            resp.status, url
-                        )
-                        return None
-                    if expect_json:
-                        try:
-                            return json.loads(text)
-                        except Exception:
-                            _LOGGER.error(
-                                "Invalid JSON from %s",
-                                url
-                            )
-                            return None
-                    return text
+                result = await self._attempt(url, params, expect_json, method, json_body, headers, wrap, attempt)
             except asyncio.TimeoutError:
-                if attempt < self._max_retries:
-                    _LOGGER.warning(
-                        "Timeout talking to %s; retrying (%s/%s)",
-                        url, attempt + 1, self._max_retries
-                    )
-                    attempt += 1
-                    await asyncio.sleep(self._retry_backoff * attempt)
-                    continue
-                _LOGGER.error(
-                    "Timeout after %ss for %s",
-                    self._timeout, url
-                )
+                reason = f"timeout after {self._timeout}s"
+            except aiohttp.ClientError as err:
+                # The text of a network error can carry the URL, and so the key: only its class is logged.
+                reason = f"network error ({type(err).__name__})"
+            else:
+                if result is not _RETRY:
+                    return result
+            if reason is not None:
+                if attempt >= self._max_retries:
+                    _LOGGER.error("Request to %s failed: %s", url, reason)
+                    return None
+                _LOGGER.warning("Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
+            attempt += 1
+            await asyncio.sleep(self._retry_backoff * attempt)
+
+    async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt):
+        """One request. The answer, None for a failure that is final, or _RETRY for a 5xx worth another try."""
+        if self._user_agent:  # says which software asks (name, version, repository), never who
+            headers = {**(headers or {}), "User-Agent": self._user_agent}
+        async with (
+            asyncio.timeout(self._timeout),
+            self._session.request(
+                method, url, params=params, json=json_body, headers=headers, allow_redirects=False
+            ) as resp,
+        ):
+            chunks: list[bytes] = []
+            total = 0
+            async for chunk in resp.content.iter_chunked(65536):
+                total += len(chunk)
+                if total > 2_000_000:
+                    _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
+                    return None
+                chunks.append(chunk)
+            text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
+            if 500 <= resp.status <= 599 and attempt < self._max_retries:
+                _LOGGER.warning("HTTP %s from %s; retrying (%s/%s)", resp.status, url, attempt + 1, self._max_retries)
+                return _RETRY
+            if resp.status != 200:
+                _LOGGER.error("HTTP %s from %s", resp.status, url)
                 return None
-            except aiohttp.ClientError as e:
-                if attempt < self._max_retries:
-                    _LOGGER.warning(
-                        "Network error for %s: %s; retrying (%s/%s)",
-                        url, e, attempt + 1, self._max_retries
-                    )
-                    attempt += 1
-                    await asyncio.sleep(self._retry_backoff * attempt)
-                    continue
-                _LOGGER.error(
-                    "Network error for %s: %s",
-                    url, e
-                )
+            if not expect_json:
+                return text
+            try:
+                value = json.loads(text)
+            except ValueError:
+                _LOGGER.error("Invalid JSON from %s", url)
                 return None
+            return {"result": value} if wrap else value
 
     async def get_stop_name(self) -> Optional[dict]:
         """Fetch stop metadata (name, etc.) with caching and strict validation.
@@ -245,12 +264,7 @@ class ZTMStopClient:
             self._stop_info_last_fetch = now
             return self._stop_name
 
-        params = {
-            "id": self._stop_info_data_id,
-            "apikey": self._params["apikey"],
-        }
-
-        json_response = await self._get_with_retry(self._stop_info_endpoint, params)
+        json_response = await self._call("stops")
         if not isinstance(json_response, dict):
             from homeassistant.util import dt as dt_util
             # Increment failed attempts and schedule next retry (capped at 3 attempts)
@@ -313,7 +327,7 @@ class ZTMStopClient:
             # ZTM sometimes returns a localized string message instead of a list (transient backend state).
             # Treat ANY string result as transient; retry once after a short backoff.
             await asyncio.sleep(0.8)
-            retry_resp = await self._get_with_retry(self._stop_info_endpoint, params)
+            retry_resp = await self._call("stops")
             if isinstance(retry_resp, dict):
                 result = retry_resp.get("result")
                 if isinstance(result, list):
@@ -458,7 +472,7 @@ class ZTMStopClient:
             # This will not spam the API: get_stop_name() respects backoff and permanent-missing.
             if self._stop_name is None:
                 await self.get_stop_name()
-            json_response = await self._get_with_retry(self._endpoint, self._params)
+            json_response = await self._call("timetable")
             if json_response is None:
                 _LOGGER.warning(
                     "Timetable fetch failed (no response) for %s",
