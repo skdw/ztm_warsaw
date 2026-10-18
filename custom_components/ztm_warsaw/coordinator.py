@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime, timedelta
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .client import ZTMApiError, ZTMStopClient
-from .models import ZTMDepartureData
+from .models import ZTMDepartureData, next_flip_refresh, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +28,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         # True after the API answered with something that is not a timetable, until a timetable arrives. While it
         # is set a network error must not bring the cached timetable back: that would make the sensor look healthy.
         self._api_error = False
+        # The answer before this one, kept while its late departures (the 27:xx of a night bus) are still ahead.
+        self._previous: ZTMDepartureData | None = None
+        self._flip_unsub = None
 
         # Hourly timetable refresh handled by DataUpdateCoordinator
         self.update_interval = timedelta(hours=1)
@@ -44,10 +49,32 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             except Exception:
                 _LOGGER.debug("ZTM Coordinator [%s] — initial stop-info fetch skipped (non-fatal)", self.name)
 
+        self._schedule_flip_refresh()
         _LOGGER.debug(
             "ZTM Coordinator [%s] — hourly timetable refresh enabled",
             self.name,
         )
+
+    def _schedule_flip_refresh(self):
+        """Ask again at 03:02 Warsaw time, when the API has certainly moved on to the next service day."""
+        if self._flip_unsub:
+            self._flip_unsub()
+        self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
+
+    @callback
+    def _flip_refresh(self, _now):
+        self._flip_unsub = None
+        self._schedule_flip_refresh()
+        self.hass.async_create_task(self.async_refresh())
+
+    def is_fresh(self, now) -> bool:
+        """Whether the cached timetable is the one of the service day that ``now`` is in."""
+        return self.data is not None and self.data.service_date == service_date_at(now)
+
+    def upcoming(self, now) -> list:
+        """The departures at or after ``now`` from the current and the previous answer, in order."""
+        known = [d for part in (self._previous, self.data) if part for d in part.departures]
+        return sorted((d for d in known if d.dt and d.dt >= now), key=lambda d: d.dt)
 
 
     def _data_changed(self, new_data: ZTMDepartureData) -> bool:
@@ -81,6 +108,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             
             data_changed = self._data_changed(new_data)
             
+            if self.data is not None and self.data.service_date != new_data.service_date:
+                self._previous = self.data
             self.data = new_data
             self._api_error = False
             self.last_update_success_time = dt_util.utcnow()
@@ -125,5 +154,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             return
         self._ztm_shutdown_done = True
         self.data = None
+        self._previous = None
+        if self._flip_unsub:
+            self._flip_unsub()
+            self._flip_unsub = None
         await super().async_shutdown()
         _LOGGER.info("ZTM Coordinator [%s] — shutdown complete", self.name)

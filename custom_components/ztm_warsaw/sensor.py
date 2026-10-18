@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
 from homeassistant.util import dt as dt_util
 from homeassistant.util.dt import as_local
@@ -16,27 +16,23 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import CONF_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
+from .models import WARSAW, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
 
-def _friendly_day(dt):
-    """Helper to show friendly day names relative to today."""
+def _friendly_day(dt, now):
+    """Name the day of a departure relative to today in Warsaw: today, tomorrow, yesterday or the weekday."""
     if not dt:
         return NOT_AVAILABLE
-    
-    try:
-        today = datetime.now(tz=timezone.utc).astimezone().date()
-        dt_date = dt.astimezone().date()
-        
-        if dt_date == today:
-            return "today"
-        if dt_date == (today + timedelta(days=1)):
-            return "tomorrow"
-        if dt_date == (today - timedelta(days=1)):
-            return "yesterday"
-        return dt.strftime("%a")  # Mon, Tue ...
-    except (AttributeError, TypeError):
-        return NOT_AVAILABLE
+    today = now.astimezone(WARSAW).date()
+    day = dt.astimezone(WARSAW).date()
+    if day == today:
+        return "today"
+    if day == today + timedelta(days=1):
+        return "tomorrow"
+    if day == today - timedelta(days=1):
+        return "yesterday"
+    return dt.astimezone(WARSAW).strftime("%a")  # Mon, Tue ...
 
 
 NOT_AVAILABLE = "Not available"
@@ -77,7 +73,7 @@ def _departure_attrs(label, dep, day, time_str=None):
 def _timetable_url(line):
     """The timetable page of the line for today."""
     try:
-        today_str = datetime.now(tz=timezone.utc).astimezone().strftime("%Y-%m-%d")
+        today_str = datetime.now(tz=timezone.utc).astimezone(WARSAW).strftime("%Y-%m-%d")
         return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={quote(str(line))}"
     except Exception:
         return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(line))}"
@@ -134,19 +130,10 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._scheduled_unsub = None
         self._last_coordinator_update = None
         self._written_available: bool | None = None
+        self._written_attributes: dict | None = None
 
     def _get_stop_info(self):
         return _stop_info_of(self.coordinator)
-
-    def _is_night_line(self, line):
-        """Check if this is a night line (starting with N)."""
-        return str(line).upper().startswith('N')
-
-    def _get_schedule_date(self, now: datetime) -> date:
-        """Determine logical schedule day (shifted if before 2:30)."""
-        if now.hour < 2 or (now.hour == 2 and now.minute < 40):
-            return (now - timedelta(days=1)).date()
-        return now.date()
 
     @property
     def native_value(self):
@@ -175,23 +162,14 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             self._scheduled_unsub()
             self._scheduled_unsub = None
 
-    def _schedule_update_at_departure(self, departure_time):
-        """Schedule update at specific departure time."""
-        if not departure_time:
-            return
-        
-        # Don't schedule if departure time is in the past
-        now = dt_util.now().astimezone()
-        if departure_time <= now:
-            _LOGGER.debug("Not scheduling update for past departure time: %s", departure_time)
-            return
-        
+    def _schedule_wakeup(self, departure_time, now):
+        """Wake up at the next departure, or at midnight in Warsaw if that comes first: the labels 'today' and
+        'tomorrow' change then, and nothing else would tell the sensor."""
+        wake = min(departure_time, next_warsaw_midnight(now))
         try:
             self._cancel_scheduled_update()
-            self._scheduled_unsub = async_track_point_in_time(
-                self.hass, self._scheduled_update, departure_time
-            )
-            _LOGGER.debug("Scheduled update for %s at %s", self.entity_id, as_local(departure_time))
+            self._scheduled_unsub = async_track_point_in_time(self.hass, self._scheduled_update, wake)
+            _LOGGER.debug("Scheduled update for %s at %s", self.entity_id, as_local(wake))
         except Exception:
             _LOGGER.exception("Failed to schedule update for %s", self.entity_id)
 
@@ -204,8 +182,15 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         )
         self._apply_coordinator_data(has_new_data)
         availability_changed = self.available != self._written_available
-        if self._next_departure != old_next_departure or has_new_data or availability_changed:
+        attributes = self.extra_state_attributes
+        if (
+            self._next_departure != old_next_departure
+            or has_new_data
+            or availability_changed
+            or attributes != self._written_attributes
+        ):
             self._written_available = self.available
+            self._written_attributes = attributes
             self.async_write_ha_state()
 
     def _apply_coordinator_data(self, has_new_data):
@@ -222,39 +207,15 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             self._last_coordinator_update = self.coordinator.last_update_success_time
             self._cancel_scheduled_update()
 
-        departures = self._sorted_departures(data)
-        now_warsaw = dt_util.now().astimezone()
-        future_departures = self._future_departures(departures, now_warsaw)
+        now = dt_util.utcnow()
+        future_departures = self.coordinator.upcoming(now)
         if not future_departures:
             _LOGGER.info("No future departures found for %s", self.entity_id)
             self._set_no_departures()
             return
 
-        self._update_departure_info(future_departures, now_warsaw)
-        # Schedule exact trigger at next departure time
-        self._schedule_update_at_departure(future_departures[0].dt)
-
-    def _sorted_departures(self, data):
-        """The departures that have a time, in order; none when they cannot be ordered."""
-        valid = [d for d in (data.departures or []) if isinstance(getattr(d, "dt", None), datetime)]
-        try:
-            return sorted(valid, key=lambda d: d.dt)
-        except TypeError:
-            _LOGGER.exception("Failed to sort departures for %s", self.entity_id)
-            return []
-
-    def _future_departures(self, departures, now):
-        """The departures still to come. A day line also drops the early next-day ones between its last departure
-        and 02:30, to avoid the false impression that the morning schedule is already in effect."""
-        cutoff_time = now.replace(hour=2, minute=30, second=0, microsecond=0)
-        if now > cutoff_time:
-            cutoff_time = cutoff_time + timedelta(days=1)
-        night_line = self._is_night_line(self._line)
-        schedule_date = self._get_schedule_date(now)
-        return [
-            d for d in departures
-            if d.dt >= now and (night_line or d.dt.date() == schedule_date or d.dt <= cutoff_time)
-        ]
+        self._update_departure_info(future_departures, now)
+        self._schedule_wakeup(future_departures[0].dt, now)
 
     def _update_stop_name(self):
         """Update friendly name if stop info is now available."""
@@ -266,7 +227,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
                 _LOGGER.info("Updating friendly name for %s to: %s", self.entity_id, new_name)
                 self._attr_name = new_name
 
-    def _update_departure_info(self, future_departures, now_warsaw):
+    def _update_departure_info(self, future_departures, now):
         """Update departure information and attributes."""
         current = future_departures[0]
         self._next_departure = current.dt
@@ -276,14 +237,14 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._attributes.update(_stop_attributes(self._get_stop_info()))
         self._attributes["Stop, Timezone"] = TIMEZONE
         self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-        self._attributes.update(_departure_attrs("Upcoming", current, _friendly_day(current.dt)))
+        self._attributes.update(_departure_attrs("Upcoming", current, _friendly_day(current.dt, now)))
 
         # Add information about next departures
         for seq, dep in enumerate(future_departures[1:self._max_departures + 1], start=1):
             try:
-                local_dt = dep.dt.astimezone(now_warsaw.tzinfo)
+                local_dt = dep.dt.astimezone(WARSAW)
                 self._attributes.update(
-                    _departure_attrs(f"Next {seq}", dep, _friendly_day(local_dt), local_dt.strftime("%H:%M"))
+                    _departure_attrs(f"Next {seq}", dep, _friendly_day(dep.dt, now), local_dt.strftime("%H:%M"))
                 )
             except Exception as e:
                 _LOGGER.warning("Failed to process departure %d for %s: %s", seq, self.entity_id, e)
@@ -327,7 +288,11 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self):
         """Return if entity is available."""
-        return self.coordinator and self.coordinator.last_update_success
+        if not (self.coordinator and self.coordinator.last_update_success):
+            return False
+        # An answer of an earlier service day is not today's timetable: only its late departures (27:xx) still count.
+        now = dt_util.utcnow()
+        return self.coordinator.is_fresh(now) or bool(self.coordinator.upcoming(now))
         
     @callback
     def _handle_coordinator_update(self):

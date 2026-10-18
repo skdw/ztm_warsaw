@@ -9,13 +9,13 @@ exactly one hour after that, every hour.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from .conftest import at
-from .fake_city import WARSAW
-from .helpers import known_bug, local, reference_next, rows_for
+from .fake_city import WARSAW, day_sets
+from .helpers import instants, local, reference_next, rows_for
 
 pytestmark = pytest.mark.e2e
 
@@ -105,7 +105,6 @@ async def test_e2e_07_departure_day_label_before_midnight(env, line, check_at, l
 
 @pytest.mark.start("2026-10-16 23:40")
 @pytest.mark.parametrize("line", ["N25", "520"])
-@known_bug("stale-at-midnight", "'Upcoming/Next N, Departure Day' goes stale at midnight: nothing wakes the sensor")
 async def test_e2e_07_departure_day_label_turns_from_tomorrow_to_today_at_midnight(env, line):
     await env.add_entry(line=line)
     await env.run_to("2026-10-17 00:00:30")
@@ -124,15 +123,13 @@ async def test_e2e_07_the_state_itself_is_right_after_midnight_even_if_labels_la
 
 # ===================================================================== E2E-08
 @pytest.mark.start("2026-10-16 23:40")
-@known_bug(
-    "no-wakeup-at-sensor-cutoff", "no wake-up at the sensor's own 02:30 cutoff: day lines stay 'No service' until the next hourly tick"
-)
-async def test_e2e_08_morning_schedule_appears_at_the_0230_cutoff(env):
-    """Encodes the 1.1.4 intent (cutoff 02:30). If the maintainer moves the boundary to the API's 03:00, change the two instants; the point is only that crossing the boundary wakes the sensor."""
+async def test_e2e_08_morning_schedule_appears_once_the_api_has_flipped_at_0300(env):
+    """Before 03:00 the API still serves Friday's timetable, whose morning departures are Friday's: nothing to show.
+    The sensor asks again at 03:02, and the Saturday timetable shows."""
     await env.add_entry(line="151")
-    await env.run_to("2026-10-17 02:29")
+    await env.run_to("2026-10-17 02:59")
     assert env.departure_local("151") is None
-    await env.run_to("2026-10-17 02:31")
+    await env.run_to("2026-10-17 03:03")
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -154,9 +151,6 @@ FLIP_PHASES = [
 
 
 @pytest.mark.parametrize(("setup_at", "check_at"), FLIP_PHASES)
-@known_bug(
-    "no-wakeup-after-api-day-flip", "after the API flips at 03:00 the sensor keeps the previous service day until the next hourly tick"
-)
 async def test_e2e_09_sensor_follows_the_api_within_minutes_of_the_0300_flip(env, setup_at, check_at):
     env.move_to(setup_at)
     await env.add_entry(line="523")  # Friday set starts 04:50, Saturday set 05:15: distinguishable
@@ -226,8 +220,7 @@ async def test_e2e_11_coordinator_notices_a_changed_schedule_and_the_sensor_foll
 
 
 # ===================================================================== E2E-12
-_TZ_BUG = known_bug("process-timezone-used", "sensor.py uses the process zone (.astimezone() with no argument)")
-PROCESS_ZONES = ["Europe/Warsaw", pytest.param("UTC", marks=_TZ_BUG), pytest.param("America/New_York", marks=_TZ_BUG)]
+PROCESS_ZONES = ["Europe/Warsaw", "UTC", "America/New_York"]
 
 
 @pytest.mark.parametrize("zone", PROCESS_ZONES)
@@ -242,7 +235,7 @@ async def test_e2e_12_next_n_labels_are_warsaw_time_whatever_the_process_zone(en
     assert attrs["Next 2, Departure Time"] == "01:54"
 
 
-@pytest.mark.parametrize("zone", ["Europe/Warsaw", pytest.param("UTC", marks=_TZ_BUG)])
+@pytest.mark.parametrize("zone", ["Europe/Warsaw", "UTC"])
 @pytest.mark.start("2026-10-16 23:40")
 async def test_e2e_12_morning_cutoff_is_warsaw_time_whatever_the_process_zone(env, process_tz, zone):
     process_tz(zone)
@@ -285,9 +278,6 @@ async def test_e2e_13_end_of_the_dst_night_is_on_the_local_wall_clock(env, night
     assert env.departure_local("N25") == end[:11] + "04:54", "28:54 of the service day is 04:54 local, CET or CEST"
 
 
-@known_bug(
-    "fixed-offset-across-dst", "'Next N, Departure Time' is rendered with the fixed offset of NOW: wrong by 1 h across the change"
-)
 async def test_e2e_13_labels_after_the_fall_back_change_are_in_the_new_offset(env):
     env.move_to("2026-10-24 23:40")
     await env.add_entry(line="N25", departures=3)
@@ -298,7 +288,6 @@ async def test_e2e_13_labels_after_the_fall_back_change_are_in_the_new_offset(en
     assert [attrs[f"Next {n}, Departure Time"] for n in (1, 2, 3)] == ["03:24", "03:54", "04:24"]
 
 
-@known_bug("skipped-hour-collision", "times inside the skipped spring-forward hour collide: 26:24 and 27:24 become the same instant")
 async def test_e2e_13_no_two_listed_departures_collapse_into_one_in_the_skipped_hour(env):
     env.move_to("2026-03-28 23:40")
     await env.add_entry(line="N25", departures=3)
@@ -332,3 +321,65 @@ async def test_e2e_07_a_day_line_shows_its_after_midnight_departure_before_the_s
     shown = env.departure_local("520")
     assert shown is not None, "the 00:xx departures of the Friday timetable are still ahead"
     assert shown.startswith("2026-10-17 00:")
+
+
+# ===================================================================== E2E-14
+# The whole network, not four lines: the weekend timetable has the shapes the real API serves (a tram that starts at
+# 03:36, a night line that runs until 29:xx, buses that start at 03:xx, a replacement line with one departure,
+# after-midnight tails of day lines). An oracle that knows both service days says what the next departure is;
+# the sensor must say the same at every sampled instant, through the flip, the repeated hour and the skipped hour.
+SHAPES = sorted(
+    {pair for pair, how in day_sets()["saturday"].provenance.items() if how == "captured"}
+    | {(("7009", "01"), "520")}
+)
+SWEEPS = {
+    "weekend": ("2026-10-17 18:00:30", "2026-10-18 06:00"),
+    "fall_back": ("2026-10-24 18:00:30", "2026-10-25 06:00"),
+    "spring_forward": ("2026-03-28 18:00:30", "2026-03-29 06:00"),
+}
+
+
+def _service_date(now: datetime) -> date:
+    """Written out again here on purpose: the API flips at 03:00 and an answer is trusted from 03:01."""
+    local_now = now.astimezone(WARSAW)
+    return local_now.date() if (local_now.hour, local_now.minute) >= (3, 1) else local_now.date() - timedelta(days=1)
+
+
+def _omniscient_next(env, stop, line, now, count=2):
+    """The next ``count`` departures if the sensor knew the timetables of both service days that overlap ``now``."""
+    found = []
+    today = _service_date(now)
+    for service_date in (today - timedelta(days=1), today):
+        rows = env.city.day_set_for(service_date).timetables.get((stop, line))
+        if rows:
+            found += instants([r_czas for r_czas in (next(e["value"] for e in row if e["key"] == "czas") for row in rows)], service_date)
+    # In UTC: Python never calls a moment of the repeated hour equal to the same moment in another zone (PEP 495).
+    return sorted(i.astimezone(UTC) for i in found if i.astimezone(UTC) > now.astimezone(UTC))[:count]
+
+
+@pytest.mark.timeout(600)
+@pytest.mark.parametrize("sweep", SWEEPS)
+async def test_e2e_14_every_shape_of_line_follows_the_service_day_across_the_night(env, sweep):
+    start, end = SWEEPS[sweep]
+    env.move_to(start)
+    for stop, line in SHAPES:
+        await env.add_entry(line=line, stop_id=stop[0], stop_nr=stop[1], departures=2)
+    mismatches = []
+    samples = 0
+    while env.now < at(end):
+        await env.advance(minutes=10)
+        for stop, line in SHAPES:
+            expected = _omniscient_next(env, stop, line, env.now)
+            state = env.state(line, stop[0], stop[1])
+            shown = datetime.fromisoformat(state.state) if state.state not in ("unknown", "unavailable") else None
+            want = expected[0] if expected else None
+            samples += 1
+            if shown != want:
+                mismatches.append((env.now.astimezone(WARSAW).strftime("%d %H:%M"), line, local(shown), local(want)))
+                continue
+            if len(expected) == 2:
+                label = state.attributes.get("Next 1, Departure Time")
+                if label != expected[1].astimezone(WARSAW).strftime("%H:%M"):
+                    mismatches.append((env.now.astimezone(WARSAW).strftime("%d %H:%M"), line, "label " + str(label), expected[1].astimezone(WARSAW).strftime("%H:%M")))
+    assert samples > 1000, samples
+    assert not mismatches, f"{len(mismatches)} of {samples} samples differ from the oracle, for example {mismatches[:6]}"
