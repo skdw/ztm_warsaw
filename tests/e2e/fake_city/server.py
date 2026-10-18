@@ -22,7 +22,7 @@ import base64
 import json
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from datetime import timezone, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -245,8 +245,12 @@ class FakeCity:
         return dt_util.utcnow()
 
     def service_date(self, now: datetime | None = None) -> date:
-        local = (now or self.now()).astimezone(WARSAW)
-        return local.date() if local.time() >= self.flip_at else local.date() - timedelta(days=1)
+        moment = now or self.now()
+        local = moment.astimezone(WARSAW)
+        # The flip is one instant: the first time the clock shows ``flip_at`` that night. Comparing wall times would
+        # roll back to yesterday during the repeated hour of the autumn night.
+        flip = datetime.combine(local.date(), self.flip_at, WARSAW).astimezone(timezone.utc)
+        return local.date() if moment >= flip else local.date() - timedelta(days=1)
 
     def day_set_for(self, d: date) -> DaySet:
         name = self.day_overrides.get(d) or ("friday" if d.weekday() < 5 else "saturday")

@@ -115,7 +115,7 @@ async def test_e2e_23_hourly_load_is_one_request_per_entry_and_never_the_catalog
     await _five_entries(env)
     stops_after_setup = env.city.count("stops")
     tt = env.city.count("timetable")
-    await env.advance(hours=24, minutes=1)
+    await env.advance(hours=24, minutes=10)  # the 03:06 refresh moves the hourly phase to :06
     assert env.city.count("timetable") - tt == 5 * 24
     assert env.city.count("stops") == stops_after_setup
 

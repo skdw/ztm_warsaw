@@ -9,13 +9,19 @@ exactly one hour after that, every hour.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+import asyncio
+from unittest.mock import AsyncMock, Mock
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
+from homeassistant.helpers.storage import Store
+
+from custom_components.ztm_warsaw.client import ZTMApiError, ZTMStopClient
+
 from .conftest import at
-from .fake_city import WARSAW
-from .helpers import known_bug, local, reference_next, rows_for
+from .fake_city import DEFAULT_KEY, WARSAW, Http, day_sets
+from .helpers import instants, local, reference_next, rows_for
 
 pytestmark = pytest.mark.e2e
 
@@ -61,7 +67,7 @@ TIMELINE = [
     ("151", "2026-10-17 01:55", None),
     ("151", "2026-10-17 00:00", None),
     ("151", "2026-10-17 02:29", None),
-    ("151", "2026-10-17 03:05", "2026-10-17 04:41"),  # a refresh at 02:40 has happened, so the morning shows
+    ("151", "2026-10-17 03:07", "2026-10-17 04:41"),  # the refresh at 03:06 has happened, so the morning shows
     ("151", "2026-10-17 04:30", "2026-10-17 04:41"),
     ("523", "2026-10-16 23:50", None),
     ("523", "2026-10-17 02:29", None),
@@ -105,7 +111,6 @@ async def test_e2e_07_departure_day_label_before_midnight(env, line, check_at, l
 
 @pytest.mark.start("2026-10-16 23:40")
 @pytest.mark.parametrize("line", ["N25", "520"])
-@known_bug("stale-at-midnight", "'Upcoming/Next N, Departure Day' goes stale at midnight: nothing wakes the sensor")
 async def test_e2e_07_departure_day_label_turns_from_tomorrow_to_today_at_midnight(env, line):
     await env.add_entry(line=line)
     await env.run_to("2026-10-17 00:00:30")
@@ -124,15 +129,13 @@ async def test_e2e_07_the_state_itself_is_right_after_midnight_even_if_labels_la
 
 # ===================================================================== E2E-08
 @pytest.mark.start("2026-10-16 23:40")
-@known_bug(
-    "no-wakeup-at-sensor-cutoff", "no wake-up at the sensor's own 02:30 cutoff: day lines stay 'No service' until the next hourly tick"
-)
-async def test_e2e_08_morning_schedule_appears_at_the_0230_cutoff(env):
-    """Encodes the 1.1.4 intent (cutoff 02:30). If the maintainer moves the boundary to the API's 03:00, change the two instants; the point is only that crossing the boundary wakes the sensor."""
+async def test_e2e_08_morning_schedule_appears_once_the_api_has_flipped_at_0300(env):
+    """Before 03:05 the cached Friday timetable is what we have (the City is replacing it from 02:10): nothing to show.
+    The sensor asks again at 03:06, and the Saturday timetable shows."""
     await env.add_entry(line="151")
-    await env.run_to("2026-10-17 02:29")
+    await env.run_to("2026-10-17 02:59")
     assert env.departure_local("151") is None
-    await env.run_to("2026-10-17 02:31")
+    await env.run_to("2026-10-17 03:07")
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -154,9 +157,6 @@ FLIP_PHASES = [
 
 
 @pytest.mark.parametrize(("setup_at", "check_at"), FLIP_PHASES)
-@known_bug(
-    "no-wakeup-after-api-day-flip", "after the API flips at 03:00 the sensor keeps the previous service day until the next hourly tick"
-)
 async def test_e2e_09_sensor_follows_the_api_within_minutes_of_the_0300_flip(env, setup_at, check_at):
     env.move_to(setup_at)
     await env.add_entry(line="523")  # Friday set starts 04:50, Saturday set 05:15: distinguishable
@@ -166,7 +166,7 @@ async def test_e2e_09_sensor_follows_the_api_within_minutes_of_the_0300_flip(env
     assert env.departure_local("523") == "2026-10-17 05:15"
 
 
-@pytest.mark.parametrize("setup_at", ["2026-10-17 00:10", "2026-10-17 00:55", "2026-10-17 02:40"])
+@pytest.mark.parametrize("setup_at", ["2026-10-17 00:10", "2026-10-17 00:55", "2026-10-17 02:00"])
 async def test_e2e_09_every_refresh_phase_converges_within_an_hour_of_the_flip(env, setup_at):
     env.move_to(setup_at)
     await env.add_entry(line="523")
@@ -205,7 +205,8 @@ async def test_e2e_10_the_timetable_is_not_refetched_at_departures_only_hourly(e
 async def test_e2e_11_one_timetable_request_per_hour_and_no_more_catalogue_downloads(env):
     await env.add_entry(line="151")
     assert (env.city.count("stops"), env.city.count("timetable")) == (1, 1)
-    await env.advance(hours=24, minutes=1)
+    # the 03:06 refresh moves the hourly phase to :06, so run past 12:06 of the next day
+    await env.advance(hours=24, minutes=10)
     assert env.city.count("stops") == 1, "the catalogue is fetched once, at setup"
     assert env.city.count("timetable") - 1 == 24, "exactly one refresh per hour"
     # the hourly requests are the same GET the config flow validated, nothing else
@@ -215,7 +216,7 @@ async def test_e2e_11_one_timetable_request_per_hour_and_no_more_catalogue_downl
 
 
 async def test_e2e_11_coordinator_notices_a_changed_schedule_and_the_sensor_follows(env):
-    env.move_to("2026-10-17 02:30")
+    env.move_to("2026-10-17 02:00")
     await env.add_entry(line="151")
     first = env.coordinator(env.hass.config_entries.async_entries("ztm_warsaw")[0]).data
     assert len(first.departures) == 81  # Friday set still served before 03:00
@@ -226,8 +227,7 @@ async def test_e2e_11_coordinator_notices_a_changed_schedule_and_the_sensor_foll
 
 
 # ===================================================================== E2E-12
-_TZ_BUG = known_bug("process-timezone-used", "sensor.py uses the process zone (.astimezone() with no argument)")
-PROCESS_ZONES = ["Europe/Warsaw", pytest.param("UTC", marks=_TZ_BUG), pytest.param("America/New_York", marks=_TZ_BUG)]
+PROCESS_ZONES = ["Europe/Warsaw", "UTC", "America/New_York"]
 
 
 @pytest.mark.parametrize("zone", PROCESS_ZONES)
@@ -242,12 +242,12 @@ async def test_e2e_12_next_n_labels_are_warsaw_time_whatever_the_process_zone(en
     assert attrs["Next 2, Departure Time"] == "01:54"
 
 
-@pytest.mark.parametrize("zone", ["Europe/Warsaw", pytest.param("UTC", marks=_TZ_BUG)])
+@pytest.mark.parametrize("zone", ["Europe/Warsaw", "UTC"])
 @pytest.mark.start("2026-10-16 23:40")
 async def test_e2e_12_morning_cutoff_is_warsaw_time_whatever_the_process_zone(env, process_tz, zone):
     process_tz(zone)
     await env.add_entry(line="151")
-    await env.run_to("2026-10-17 03:05")
+    await env.run_to("2026-10-17 03:07")
     assert env.departure_local("151") == "2026-10-17 04:41"
 
 
@@ -285,9 +285,6 @@ async def test_e2e_13_end_of_the_dst_night_is_on_the_local_wall_clock(env, night
     assert env.departure_local("N25") == end[:11] + "04:54", "28:54 of the service day is 04:54 local, CET or CEST"
 
 
-@known_bug(
-    "fixed-offset-across-dst", "'Next N, Departure Time' is rendered with the fixed offset of NOW: wrong by 1 h across the change"
-)
 async def test_e2e_13_labels_after_the_fall_back_change_are_in_the_new_offset(env):
     env.move_to("2026-10-24 23:40")
     await env.add_entry(line="N25", departures=3)
@@ -298,7 +295,6 @@ async def test_e2e_13_labels_after_the_fall_back_change_are_in_the_new_offset(en
     assert [attrs[f"Next {n}, Departure Time"] for n in (1, 2, 3)] == ["03:24", "03:54", "04:24"]
 
 
-@known_bug("skipped-hour-collision", "times inside the skipped spring-forward hour collide: 26:24 and 27:24 become the same instant")
 async def test_e2e_13_no_two_listed_departures_collapse_into_one_in_the_skipped_hour(env):
     env.move_to("2026-03-28 23:40")
     await env.add_entry(line="N25", departures=3)
@@ -332,3 +328,296 @@ async def test_e2e_07_a_day_line_shows_its_after_midnight_departure_before_the_s
     shown = env.departure_local("520")
     assert shown is not None, "the 00:xx departures of the Friday timetable are still ahead"
     assert shown.startswith("2026-10-17 00:")
+
+
+# ===================================================================== E2E-14
+# The whole network, not four lines: the weekend timetable has the shapes the real API serves (a tram that starts at
+# 03:36, a night line that runs until 29:xx, buses that start at 03:xx, a replacement line with one departure,
+# after-midnight tails of day lines). An oracle that knows both service days says what the next departure is;
+# the sensor must say the same at every sampled instant, through the flip, the repeated hour and the skipped hour.
+SHAPES = sorted(
+    {pair for pair, how in day_sets()["saturday"].provenance.items() if how == "captured"}
+    | {(("7009", "01"), "520")}
+)
+SWEEPS = {
+    "weekend": ("2026-10-17 18:00:30", "2026-10-18 06:00"),
+    "fall_back": ("2026-10-24 18:00:30", "2026-10-25 06:00"),
+    "spring_forward": ("2026-03-28 18:00:30", "2026-03-29 06:00"),
+}
+
+
+def _service_date(now: datetime) -> date:
+    """Written out again here on purpose: the API flips at 03:00 and an answer is trusted from 03:01."""
+    local_now = now.astimezone(WARSAW)
+    return local_now.date() if (local_now.hour, local_now.minute) >= (3, 1) else local_now.date() - timedelta(days=1)
+
+
+def _omniscient_next(env, stop, line, now, count=2):
+    """The next ``count`` departures if the sensor knew the timetables of both service days that overlap ``now``."""
+    found = []
+    today = _service_date(now)
+    for service_date in (today - timedelta(days=1), today):
+        rows = env.city.day_set_for(service_date).timetables.get((stop, line))
+        if rows:
+            found += instants([r_czas for r_czas in (next(e["value"] for e in row if e["key"] == "czas") for row in rows)], service_date)
+    # In UTC: Python never calls a moment of the repeated hour equal to the same moment in another zone (PEP 495).
+    return sorted(i.astimezone(UTC) for i in found if i.astimezone(UTC) > now.astimezone(UTC))[:count]
+
+
+@pytest.mark.timeout(600)
+@pytest.mark.parametrize("flip_at", [time(2, 10), time(2, 40), time(3, 0)], ids=["swap_at_0210", "swap_at_0240", "swap_at_0300"])
+@pytest.mark.parametrize("sweep", SWEEPS)
+async def test_e2e_14_every_shape_of_line_follows_the_service_day_across_the_night(env, sweep, flip_at):
+    """Whenever inside the update window the City swaps its timetables, the sensor shows what really departs next."""
+    start, end = SWEEPS[sweep]
+    env.city.flip_at = flip_at
+    env.move_to(start)
+    for stop, line in SHAPES:
+        await env.add_entry(line=line, stop_id=stop[0], stop_nr=stop[1], departures=2)
+    mismatches = []
+    samples = 0
+    while env.now < at(end):
+        await env.advance(minutes=10)
+        for stop, line in SHAPES:
+            expected = _omniscient_next(env, stop, line, env.now)
+            state = env.state(line, stop[0], stop[1])
+            shown = datetime.fromisoformat(state.state) if state.state not in ("unknown", "unavailable") else None
+            want = expected[0] if expected else None
+            samples += 1
+            if shown != want:
+                mismatches.append((env.now.astimezone(WARSAW).strftime("%d %H:%M"), line, local(shown), local(want)))
+                continue
+            if len(expected) == 2:
+                label = state.attributes.get("Next 1, Departure Time")
+                if label != expected[1].astimezone(WARSAW).strftime("%H:%M"):
+                    mismatches.append((env.now.astimezone(WARSAW).strftime("%d %H:%M"), line, "label " + str(label), expected[1].astimezone(WARSAW).strftime("%H:%M")))
+    assert samples > 1000, samples
+    assert not mismatches, f"{len(mismatches)} of {samples} samples differ from the oracle, for example {mismatches[:6]}"
+
+
+# ===================================================================== E2E-15
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_a_restart_after_the_swap_keeps_the_night_tail(env):
+    """N25 of the Friday service day runs to 28:54 (04:54). After 03:05 the API serves Saturday and the tail is gone
+    from its answer; the sensor keeps it, also across a restart (the last answers are stored)."""
+    entry = await env.add_entry(line="N25")
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_the_city_is_not_asked_while_it_replaces_its_timetables(env):
+    await env.add_entry(line="N25")
+    calls = env.city.count("timetable")
+    await env.run_to("2026-10-17 03:04")
+    assert env.city.count("timetable") == calls, "no request between 02:10 and 03:05"
+    assert env.departure_local("N25") is not None, "the cached answer keeps the sensor going"
+    await env.run_to("2026-10-17 03:07")
+    assert env.city.count("timetable") == calls + 1, "one request right after the window, at 03:06"
+
+
+@pytest.mark.start("2026-10-17 02:30")
+async def test_e2e_15_a_first_start_inside_the_window_waits_for_its_end(env):
+    await env.add_entry(line="151")
+    assert env.state("151").state == "unavailable", "nothing to show yet, and nothing is invented"
+    assert env.city.count("timetable") == 0
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("151") == "2026-10-17 04:41"
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_an_answer_that_arrives_after_the_update_has_begun_is_not_trusted(env):
+    """A request sent at 02:09:50 and answered at 02:10:20 may carry either day (a review finding): it is dropped."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    before = coordinator.data
+    env.move_to("2026-10-17 02:09:50")
+    get = coordinator.client.get
+
+    async def slow_get():
+        answer = await get()
+        env.clock.tick(timedelta(seconds=30))
+        return answer
+
+    coordinator.client.get = slow_get
+    await coordinator.async_refresh()
+    assert coordinator.data is before
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_15_stored_answers_that_are_broken_or_too_old_are_ignored(env, hass_storage):
+    """The stored answers are a convenience: garbage, or an answer of two days ago, must not stop the sensor."""
+    old = {"service_date": "2026-10-15", "rows": [{"czas": "27:30:00"}], "stop_info": {}}
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    hass_storage[key] = {
+        "version": 1,
+        "key": key,
+        "data": {"answers": [{"service_date": "not a date", "rows": []}, {"rows": []}, "junk", old]},
+    }
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.departure_local("151") == "2026-10-17 12:17"
+    assert env.coordinator(entry)._previous is None
+
+
+@pytest.mark.start("2026-10-17 00:30")
+async def test_e2e_15_a_rejected_key_stays_a_failure_inside_the_window(env):
+    """The window must not turn a fail-closed sensor back into one that shows the cached timetable (a review finding)."""
+    await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.run_to("2026-10-17 01:31")  # the refresh at 01:30 meets the rejected key
+    assert env.state("N25").state == "unavailable"
+    await env.run_to("2026-10-17 02:40")  # the refresh at 02:30 falls inside the update window
+    assert env.state("N25").state == "unavailable"
+
+
+@pytest.mark.start("2026-10-17 02:09:50")
+async def test_e2e_15_a_first_answer_that_arrives_inside_the_window_is_not_trusted(env, monkeypatch):
+    """The very first request, sent at 02:09:50 and answered at 02:10:20, has no cache to fall back on (a review finding)."""
+    get = ZTMStopClient.get
+
+    async def slow_get(self):
+        answer = await get(self)
+        env.clock.tick(timedelta(seconds=30))
+        return answer
+
+    monkeypatch.setattr(ZTMStopClient, "get", slow_get)
+    await env.add_entry(line="N25")
+    assert env.state("N25").state == "unavailable"
+    monkeypatch.undo()
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("N25") is not None
+
+
+@pytest.mark.start("2026-10-17 00:30")
+async def test_e2e_15_a_restart_inside_the_window_keeps_a_rejected_key_a_failure(env):
+    """The stored answer must not bring a sensor back that was unavailable because the key was rejected (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.run_to("2026-10-17 01:31")
+    assert env.state("N25").state == "unavailable"
+    await env.run_to("2026-10-17 02:20")
+    await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.state("N25").state == "unavailable"
+
+
+async def test_e2e_15_the_answers_are_written_even_when_the_entry_is_unloaded_right_after_a_refresh(env, hass_storage):
+    """The write is delayed by 30 s; the payload is built at the refresh, not after the shutdown cleared the answers."""
+    entry = await env.add_entry(line="N25")
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    await env.advance(minutes=1)
+    assert hass_storage[f"ztm_warsaw.{entry.entry_id}"]["data"]["answers"]
+
+
+async def test_e2e_15_every_entry_has_its_own_store_and_a_removed_entry_leaves_none(env, hass_storage):
+    first = await env.add_entry(line="N25")
+    second = await env.add_entry(line="N25", api_key="another-key")
+    assert env.coordinator(first)._store.key != env.coordinator(second)._store.key
+    await env.advance(minutes=1)
+    assert f"ztm_warsaw.{first.entry_id}" in hass_storage
+    await env.hass.config_entries.async_remove(first.entry_id)
+    await env.settle()
+    assert f"ztm_warsaw.{first.entry_id}" not in hass_storage
+
+
+async def test_e2e_15_removing_an_entry_right_after_a_refresh_leaves_no_store_behind(env, hass_storage):
+    """A delayed write that is still pending must not bring the store of a removed entry back (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    await env.hass.config_entries.async_remove(entry.entry_id)
+    await env.settle()
+    await env.advance(minutes=1)
+    assert f"ztm_warsaw.{entry.entry_id}" not in hass_storage
+
+
+async def test_e2e_15_the_stored_failure_marker_is_cleared_by_the_recovery(env, hass_storage):
+    entry = await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    assert env.state("N25").state == "unavailable"
+    env.city.valid_keys.add(DEFAULT_KEY)
+    await env.hourly_tick()
+    await env.advance(minutes=1)
+    assert hass_storage[f"ztm_warsaw.{entry.entry_id}"]["data"]["api_error"] is False
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_15_two_refreshes_at_the_same_moment_ask_the_city_once(env):
+    """The refresh at 03:06 and the hourly one can fire together once the hourly phase is :06 (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    calls = env.city.count("timetable")
+    # the interval timer calls _async_refresh without the lock that async_refresh takes, as the 03:06 callback does
+    await asyncio.gather(coordinator.async_refresh(), coordinator._async_refresh(scheduled=True))
+    assert env.city.count("timetable") - calls == 1
+    await coordinator.async_refresh()
+    assert env.city.count("timetable") - calls == 2, "a refresh that did not wait for another one still asks"
+
+
+@pytest.mark.start("2026-10-17 03:30")
+async def test_e2e_15_a_restored_night_tail_survives_a_failing_first_request(env, hass_storage):
+    """Restart after the swap with only yesterday's answer stored, and the City down: the tail is still shown."""
+    env.city.always("timetable", Http(500))
+    entry = await env.add_entry(line="N25", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    rows = [{"czas": "27:54:00"}, {"czas": "28:24:00"}]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"answers": [{"service_date": "2026-10-16", "rows": rows}]}}
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.state("N25").state != "unavailable"
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+
+
+async def test_e2e_15_a_failing_final_write_does_not_leave_the_timers_running(env):
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    assert coordinator._flip_unsub is not None
+    coordinator._store.async_save = AsyncMock(side_effect=OSError("disk gone"))
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    assert coordinator._flip_unsub is None
+
+
+@pytest.mark.parametrize("stored", ["junk", {"answers": None}, {"answers": 7, "api_error": True}, {"answers": [{"service_date": "2026-10-17", "rows": 5}]}])
+async def test_e2e_15_a_damaged_store_does_not_stop_the_first_refresh(env, hass_storage, stored):
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    hass_storage[key] = {"version": 1, "key": key, "data": stored}
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.departure_local("151") is not None, "the first request was made and answered"
+
+
+async def test_e2e_15_an_unreadable_store_does_not_stop_the_first_refresh(env, monkeypatch):
+    monkeypatch.setattr(Store, "async_load", AsyncMock(side_effect=PermissionError("denied")))
+    await env.add_entry(line="151")
+    assert env.departure_local("151") is not None
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_an_api_error_that_arrives_inside_the_window_is_not_a_failure_of_the_key(env):
+    """A request sent at 02:09:50 and answered with a non-timetable at 02:10:20 meets the City mid-update."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    env.move_to("2026-10-17 02:09:50")
+
+    async def straddling_get():
+        env.clock.tick(timedelta(seconds=30))
+        raise ZTMApiError("the City answered with something else")
+
+    coordinator.client.get = straddling_get
+    await coordinator.async_refresh()
+    assert coordinator._api_error is False
+    assert env.state("N25").state != "unavailable"
+
+
+async def test_e2e_15_a_refresh_that_outlives_the_entry_does_not_write_its_store(env):
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    coordinator._store.async_delay_save = Mock()
+    coordinator._save()
+    coordinator._store.async_delay_save.assert_not_called()

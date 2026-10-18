@@ -225,8 +225,8 @@ async def test_e2e_15_line_411_stops_running_when_the_service_day_flips_to_satur
     """Captured: 411 runs on Friday (34 departures, 06:52..18:40) and answers {"result": null} on Saturday."""
     await env.add_entry(line="411")
     await env.run_to("2026-10-17 02:50")
-    assert env.departure_local("411") == "2026-10-17 06:52", "still the Friday set before the 03:00 flip"
-    await env.run_to("2026-10-17 03:45")  # the 03:40 refresh gets null
+    assert env.departure_local("411") is None, "Friday's 06:52 is Friday's: nothing is announced before the flip"
+    await env.run_to("2026-10-17 03:45")  # the 03:02 refresh gets null
     st = env.state("411")
     assert st.state == "unknown", "an available entity without a departure, not an error"
     assert st.attributes["Upcoming, Headsign"] == "No service"
@@ -277,9 +277,6 @@ async def test_e2e_17_a_short_outage_serves_the_cached_schedule_and_stays_availa
     assert env.departure_local()[:10] == "2026-10-16"
 
 
-@known_bug(
-    "cached-timetable-never-expires", "the cached timetable never expires: Friday's schedule is replayed on Monday as if current"
-)
 async def test_e2e_17_after_days_of_outage_an_old_schedule_is_not_presented_as_live(env):
     await env.add_entry()
     env.city.always("timetable", Http(500))
@@ -337,7 +334,6 @@ async def test_e2e_19_garbage_does_not_poison_the_cache(env, make):
     assert shows_a_future_departure(env)
 
 
-@known_bug("missing-czas-phantom-departure", "a reading without 'czas' becomes a phantom 00:00 departure")
 async def test_e2e_19_a_row_without_a_departure_time_is_ignored(env):
     env.move_to("2026-10-16 23:40")
     env.city.always("timetable", Mutate(drop_czas_from_first_row, "row_without_czas"))

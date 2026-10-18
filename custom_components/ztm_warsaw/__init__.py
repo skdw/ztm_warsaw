@@ -11,7 +11,9 @@ from collections.abc import Mapping
 
 from .const import DOMAIN, PLATFORMS
 from .client import ZTMStopClient, user_agent
-from .coordinator import ZTMStopCoordinator
+from homeassistant.helpers.storage import Store
+
+from .coordinator import ZTMStopCoordinator, store_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         stop_id=stop_id,
         stop_nr=stop_nr,
         line=line,
+        entry_id=entry.entry_id,
     )
 
     # Do not block setup on a transient API failure
@@ -129,3 +132,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data.pop(DOMAIN, None)
 
     return unload_ok
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete the answers stored for a removed entry."""
+    await Store(hass, 1, store_key(entry.entry_id)).async_remove()

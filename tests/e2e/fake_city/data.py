@@ -129,7 +129,20 @@ def day_sets() -> dict[str, DaySet]:
                     ds.timetables[pair] = synthesize_rows(stop, line, t["n"], t["first"], t["last"])
                     ds.provenance[pair] = "synthesized"
         out[name] = ds
+    _add_survey(out["saturday"])
     return out
+
+
+def _add_survey(ds: DaySet) -> None:
+    """Real shapes of the whole network (``survey_2026-10-18.json``, the timetable of a Sunday) as weekend lines."""
+    for key, times in _load("survey_2026-10-18.json")["timetables"].items():
+        line, pole = key.split("@")
+        stop = _split_key(pole)
+        rows = [make_row(czas, f"Survey {line}", f"TR-{line}", f"{i % 40 + 1:02d}") for i, czas in enumerate(times)]
+        ds.timetables[(stop, line)] = rows
+        ds.provenance[(stop, line)] = "captured"
+        if line not in ds.lines.setdefault(stop, []):
+            ds.lines[stop].append(line)
 
 
 def all_known_pairs() -> set[tuple[StopKey, str]]:

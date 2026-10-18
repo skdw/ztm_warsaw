@@ -11,7 +11,7 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, REPOSITORY_URL
-from .models import ZTMDepartureData, ZTMDepartureDataReading
+from .models import ZTMDepartureData, ZTMDepartureDataReading, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -370,6 +370,7 @@ class ZTMStopClient:
                 )
                 return None
             result = _checked_result(json_response)
+            service_date = service_date_at(dt_util.utcnow())
 
             # Parse each departure from the API response
             _departures = []
@@ -381,7 +382,7 @@ class ZTMStopClient:
 
                 _data = {entry["key"]: entry["value"] for entry in reading if isinstance(entry, dict) and "key" in entry and "value" in entry}
                 try:
-                    parsed = ZTMDepartureDataReading.from_dict(_data)
+                    parsed = ZTMDepartureDataReading.from_dict(_data, service_date)
                     # Load all departures, without time filtering
                     if parsed.dt:
                         _departures.append(parsed)
@@ -392,9 +393,9 @@ class ZTMStopClient:
                 raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
 
             # Sort departures by their scheduled time
-            _departures.sort(key=lambda x: x.time_to_depart)
+            _departures.sort(key=lambda x: x.dt)
             _LOGGER.debug("Loaded %d departures from API", len(_departures))
-            return ZTMDepartureData(departures=_departures, stop_info=self._stop_name)
+            return ZTMDepartureData(departures=_departures, stop_info=self._stop_name, service_date=service_date)
 
         except ZTMApiError:
             raise

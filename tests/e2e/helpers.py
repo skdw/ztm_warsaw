@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -62,7 +62,10 @@ def instants(czas_values: list[str], service_date: date) -> list[datetime]:
     for czas in czas_values:
         hours, minutes, _ = (int(x) for x in czas.split(":"))
         day = service_date + timedelta(days=hours // 24)
-        out.append(datetime(day.year, day.month, day.day, hours % 24, minutes, tzinfo=WARSAW))
+        wall = datetime(day.year, day.month, day.day, hours % 24, minutes, tzinfo=WARSAW)
+        if wall.astimezone(UTC).astimezone(WARSAW).replace(tzinfo=None) != wall.replace(tzinfo=None):
+            continue  # a label inside the hour the clock skips is no moment at all
+        out.append(wall)
     return sorted(out)
 
 
