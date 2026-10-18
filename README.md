@@ -60,7 +60,7 @@ The City runs two portals, and the integration accepts the key of either one:
 - **New (recommended):** on [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) enter a nick, accept the terms and download your own token. It is a long text in three parts separated by dots.
 - **Old:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Existing old keys still work when this was written, but the City publishes no date or promise for how long, so move to a token when you can.
 
-The integration recognises which one you pasted and talks only to the matching API. To move an existing entry to a token, add the integration again with the token and remove the old entry.
+The integration recognises which one you pasted and talks only to the matching API. To move an existing entry to a token, **remove the old entry first** and then add the integration again with the token: two entries for the same stop, pole and line cannot coexist, and the second one would silently have no sensor.
 
 ---
 
@@ -100,7 +100,8 @@ The entity is named after the stop and the line, for example `sensor.line_151_fr
 ## 🩺 Troubleshooting
 
 - **The state is empty and the attribute says "No service".** The line does not run today, or its last departure has passed. This is not an error: check [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
-- **The sensor is `unavailable`.** The City's API did not answer with a timetable: the key or token was rejected, the stop, pole and line are not known to the API, or the service is down. The error is in the Home Assistant log (the key is never logged). The sensor recovers by itself when the API answers properly again; if it does not, check the key and the stop, pole and line in the settings.
+- **The sensor is `unavailable`.** The City's API answered, but not with a timetable: the key or token was rejected, the stop, pole and line are not known to the API, or the answer was in a format the integration does not understand. The same happens if the very first load fails. The error is in the Home Assistant log (the key is never logged), and the sensor recovers by itself when the API answers properly again; if it does not, check the key and the stop, pole and line in the settings.
+- **The data look stale during an outage.** A timeout, a network error or a server error (HTTP 5xx) after a successful load does **not** make the sensor `unavailable`: it keeps the last timetable it got and tries again every hour, because the timetable is planned data that does not change within a day. The diagnostic sensor **Last update** (disabled by default; enable it in the entity settings) shows when the data were last fetched successfully.
 - **Setup says the line was not found.** The API lists only the lines that run today. A line that does not run today (for example a weekday-only line on a Sunday) cannot be added until the day it runs.
 - **A line on wtp.waw.pl is missing here.** The journey planner has more data than the public API. That cannot be fixed in the integration.
 - **Night lines** (`N01`, `N44` ...): the City counts the whole night as part of the previous service day, so a bus at `24:50` or `26:20` is still in that day's timetable. The integration reads these hours correctly, so a departure at `02:15` (`26:15` in the API) is shown at 02:00 as in 15 minutes.
