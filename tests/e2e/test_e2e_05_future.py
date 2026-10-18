@@ -75,7 +75,8 @@ async def test_e2e_28_every_request_says_which_software_asks_and_nothing_about_w
     await env.add_entry(api_key=DEFAULT_TOKEN, line="N25")
     assert {c.contract for c in env.city.calls} == {"legacy", "new"}, "the scenario must reach both hosts"
     assert {c.user_agent for c in env.city.calls} == {expected}
-    assert DEFAULT_KEY not in expected and DEFAULT_TOKEN not in expected
+    assert DEFAULT_KEY not in expected
+    assert DEFAULT_TOKEN not in expected
 
 
 async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):
