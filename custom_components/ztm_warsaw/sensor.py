@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta, date
 from urllib.parse import quote
+from homeassistant.util import dt as dt_util
 from homeassistant.util.dt import as_local
 
 from .utils import get_line_type, get_line_icon
@@ -21,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 def _friendly_day(dt):
     """Helper to show friendly day names relative to today."""
     if not dt:
-        return "Not available"
+        return NOT_AVAILABLE
     
     try:
         today = datetime.now(tz=timezone.utc).astimezone().date()
@@ -35,7 +36,62 @@ def _friendly_day(dt):
             return "yesterday"
         return dt.strftime("%a")  # Mon, Tue ...
     except (AttributeError, TypeError):
-        return "Not available"
+        return NOT_AVAILABLE
+
+
+NOT_AVAILABLE = "Not available"
+TIMEZONE = "Europe/Warsaw"
+# Attribute name -> key of the stop's record in the stops catalogue
+_STOP_ATTRIBUTES = {
+    "Stop, Name": "nazwa_zespolu",
+    "Stop, Street ID": "id_ulicy",
+    "Stop, Latitude": "szer_geo",
+    "Stop, Longitude": "dlug_geo",
+}
+
+
+def _stop_info_of(coordinator):
+    """The stop's record from the coordinator's data, or {}."""
+    try:
+        if coordinator and coordinator.data:
+            return getattr(coordinator.data, "stop_info", {}) or {}
+    except (AttributeError, TypeError):
+        pass
+    return {}
+
+
+def _stop_attributes(stop_info):
+    return {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
+
+
+def _departure_attrs(label, dep, day, time_str=None):
+    """The attributes of one departure under ``label`` ("Upcoming" or "Next 1" ...)."""
+    attrs = {f"{label}, Headsign": getattr(dep, "kierunek", NOT_AVAILABLE), f"{label}, Departure Day": day}
+    if time_str is not None:
+        attrs[f"{label}, Departure Time"] = time_str
+    attrs[f"{label}, Route ID"] = getattr(dep, "trasa", NOT_AVAILABLE)
+    attrs[f"{label}, Brigade"] = getattr(dep, "brygada", NOT_AVAILABLE)
+    return attrs
+
+
+def _timetable_url(line):
+    """The timetable page of the line for today."""
+    try:
+        today_str = datetime.now(tz=timezone.utc).astimezone().strftime("%Y-%m-%d")
+        return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={quote(str(line))}"
+    except Exception:
+        return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(line))}"
+
+
+def _device_info(line):
+    return {
+        "identifiers": {(DOMAIN, f"line_{line}")},
+        "name": f"Line {line}",
+        "manufacturer": "Zarząd Transportu Miejskiego",
+        "entry_type": "service",
+        "model": get_line_type(line),
+        "configuration_url": _timetable_url(line),
+    }
 
 
 class ZTMSensor(CoordinatorEntity, SensorEntity):
@@ -58,7 +114,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._base_attrs = {
             "Line, Number": self._line,
             "Line, Type": get_line_type(self._line),
-            "Line, Timezone": "Europe/Warsaw",
+            "Line, Timezone": TIMEZONE,
             "Line, Full Timetable": f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(self._line))}",
             "Stop, ID": self._stop_id,
             "Stop, Number": self._stop_number,
@@ -67,9 +123,9 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         # Attribute placeholders for no service
         self._no_service_attrs = {
             "Upcoming, Headsign": "No service",
-            "Upcoming, Departure Day": "Not available",
-            "Upcoming, Route ID": "Not available",
-            "Upcoming, Brigade": "Not available",
+            "Upcoming, Departure Day": NOT_AVAILABLE,
+            "Upcoming, Route ID": NOT_AVAILABLE,
+            "Upcoming, Brigade": NOT_AVAILABLE,
         }
         
         # Initialize attributes and state
@@ -80,40 +136,17 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._written_available: bool | None = None
 
     def _get_stop_info(self):
-        """Safely get stop info from coordinator data."""
-        try:
-            if self.coordinator and self.coordinator.data:
-                return getattr(self.coordinator.data, "stop_info", {}) or {}
-        except (AttributeError, TypeError):
-            pass
-        return {}
+        return _stop_info_of(self.coordinator)
 
     def _is_night_line(self, line):
         """Check if this is a night line (starting with N)."""
         return str(line).upper().startswith('N')
-
-    def _is_in_schedule_refresh_window(self, current_time):
-        """Check if we're in the schedule refresh window (00:00-2:40)."""
-        if not current_time:
-            return False
-        
-        current_hour = current_time.hour
-        current_minute = current_time.minute
-        return current_hour < 2 or (current_hour == 2 and current_minute < 40)
 
     def _get_schedule_date(self, now: datetime) -> date:
         """Determine logical schedule day (shifted if before 2:30)."""
         if now.hour < 2 or (now.hour == 2 and now.minute < 40):
             return (now - timedelta(days=1)).date()
         return now.date()
-
-    def _timetable_url(self):
-        """Generate timetable URL for today."""
-        try:
-            today_str = datetime.now(tz=timezone.utc).astimezone().strftime("%Y-%m-%d")
-            return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={quote(str(self._line))}"
-        except Exception:
-            return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(self._line))}"
 
     @property
     def native_value(self):
@@ -134,14 +167,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         """Return device info for this entity."""
-        return {
-            "identifiers": {(DOMAIN, f"line_{self._line}")},
-            "name": f"Line {self._line}",
-            "manufacturer": "Zarząd Transportu Miejskiego",
-            "entry_type": "service",
-            "model": get_line_type(self._line),
-            "configuration_url": self._timetable_url(),
-        }
+        return _device_info(self._line)
 
     def _cancel_scheduled_update(self):
         """Cancel any scheduled update."""
@@ -155,8 +181,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             return
         
         # Don't schedule if departure time is in the past
-        from homeassistant.util.dt import now as ha_utcnow
-        now = ha_utcnow().astimezone()
+        now = dt_util.now().astimezone()
         if departure_time <= now:
             _LOGGER.debug("Not scheduling update for past departure time: %s", departure_time)
             return
@@ -167,120 +192,69 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
                 self.hass, self._scheduled_update, departure_time
             )
             _LOGGER.debug("Scheduled update for %s at %s", self.entity_id, as_local(departure_time))
-        except Exception as e:
-            _LOGGER.error("Failed to schedule update for %s: %s", self.entity_id, e)
+        except Exception:
+            _LOGGER.exception("Failed to schedule update for %s", self.entity_id)
 
     def _update_from_coordinator(self):
-        """Update state and attributes based on coordinator data."""
-        from homeassistant.util.dt import now as ha_utcnow
-
+        """Update state and attributes based on coordinator data, and write the state when something changed."""
         old_next_departure = self._next_departure
-        coordinator_has_new_data = (
+        has_new_data = (
             self.coordinator is not None
             and self.coordinator.last_update_success_time != self._last_coordinator_update
         )
+        self._apply_coordinator_data(has_new_data)
+        availability_changed = self.available != self._written_available
+        if self._next_departure != old_next_departure or has_new_data or availability_changed:
+            self._written_available = self.available
+            self.async_write_ha_state()
 
-        def _write_if_changed():
-            """Write HA state only when something actually changed."""
-            availability_changed = self.available != self._written_available
-            if self._next_departure != old_next_departure or coordinator_has_new_data or availability_changed:
-                self._written_available = self.available
-                self.async_write_ha_state()
-
-        if not self.coordinator or not self.coordinator.data:
+    def _apply_coordinator_data(self, has_new_data):
+        data = self.coordinator.data if self.coordinator else None
+        if not data:
             _LOGGER.warning("No timetable data available from coordinator for %s", self.entity_id)
             self._set_no_departures()
-            _write_if_changed()
             return
-
-        data = self.coordinator.data
 
         # Update friendly name with stop name as early as possible (entity_id is already locked)
         self._update_stop_name()
-
-        # Check if coordinator has new data
-        current_coordinator_update = self.coordinator.last_update_success_time
-        if coordinator_has_new_data:
+        if has_new_data:
             _LOGGER.info("Coordinator has new data for %s, forcing full update", self.entity_id)
-            self._last_coordinator_update = current_coordinator_update
+            self._last_coordinator_update = self.coordinator.last_update_success_time
             self._cancel_scheduled_update()
 
-        # Validate and filter departures
-        valid_departures = []
-        for d in (data.departures or []):
-            if hasattr(d, 'dt') and d.dt and isinstance(d.dt, datetime):
-                valid_departures.append(d)
-            else:
-                _LOGGER.debug("Skipping invalid departure: %s", d)
-
-        if not valid_departures:
-            _LOGGER.info("No valid departures found for %s", self.entity_id)
-            self._set_no_departures()
-            _write_if_changed()
-            return
-
-        _LOGGER.debug("Found %d valid departures for %s", len(valid_departures), self.entity_id)
-
-        # Sort departures by time
-        try:
-            departures = sorted(valid_departures, key=lambda d: d.dt)
-        except Exception as e:
-            _LOGGER.error("Failed to sort departures for %s: %s", self.entity_id, e)
-            self._set_no_departures()
-            _write_if_changed()
-            return
-
-        # Get current time
-        now_warsaw = ha_utcnow().astimezone()
-
-        # Filter out early next-day departures if we're between the last departure and 2:30,
-        # to avoid the false impression that the morning schedule is already in effect.
-        cutoff_time = now_warsaw.replace(hour=2, minute=30, second=0, microsecond=0)
-        if now_warsaw > cutoff_time:
-            cutoff_time = cutoff_time + timedelta(days=1)
-
-        future_departures = []
-        for d in departures:
-            if d.dt >= now_warsaw:
-                if self._is_night_line(self._line):
-                    future_departures.append(d)
-                else:
-                    schedule_date = self._get_schedule_date(now_warsaw)
-                    same_day = d.dt.date() == schedule_date
-                    before_cutoff = d.dt <= cutoff_time
-                    if same_day or before_cutoff:
-                        future_departures.append(d)
-
-        # Check whether to hide schedule after last departure (day lines only)
-        if not future_departures and not self._is_night_line(self._line):
-            last_departure = departures[-1].dt if departures else None
-            in_night_window = now_warsaw.hour < 2 or (now_warsaw.hour == 2 and now_warsaw.minute <= 30)
-            if last_departure:
-                time_since_last = now_warsaw - last_departure
-                _LOGGER.debug(">>> last_departure=%s, now=%s, since_last=%s, in_night_window=%s",
-                              last_departure, now_warsaw, time_since_last, in_night_window)
-                if in_night_window and time_since_last > timedelta(minutes=5):
-                    _LOGGER.info("Day line %s: hiding schedule - last departure at %s (%s ago) [in night window]",
-                            self._line, last_departure, time_since_last)
-                    self._set_no_departures()
-                    _write_if_changed()
-                    return
-
-        # No future departures and not hiding — clear next departure
+        departures = self._sorted_departures(data)
+        now_warsaw = dt_util.now().astimezone()
+        future_departures = self._future_departures(departures, now_warsaw)
         if not future_departures:
             _LOGGER.info("No future departures found for %s", self.entity_id)
-            self._next_departure = None
             self._set_no_departures()
-            _write_if_changed()
             return
 
-        # Update state and attributes
         self._update_departure_info(future_departures, now_warsaw)
-
         # Schedule exact trigger at next departure time
         self._schedule_update_at_departure(future_departures[0].dt)
 
-        _write_if_changed()
+    def _sorted_departures(self, data):
+        """The departures that have a time, in order; none when they cannot be ordered."""
+        valid = [d for d in (data.departures or []) if isinstance(getattr(d, "dt", None), datetime)]
+        try:
+            return sorted(valid, key=lambda d: d.dt)
+        except TypeError:
+            _LOGGER.exception("Failed to sort departures for %s", self.entity_id)
+            return []
+
+    def _future_departures(self, departures, now):
+        """The departures still to come. A day line also drops the early next-day ones between its last departure
+        and 02:30, to avoid the false impression that the morning schedule is already in effect."""
+        cutoff_time = now.replace(hour=2, minute=30, second=0, microsecond=0)
+        if now > cutoff_time:
+            cutoff_time = cutoff_time + timedelta(days=1)
+        night_line = self._is_night_line(self._line)
+        schedule_date = self._get_schedule_date(now)
+        return [
+            d for d in departures
+            if d.dt >= now and (night_line or d.dt.date() == schedule_date or d.dt <= cutoff_time)
+        ]
 
     def _update_stop_name(self):
         """Update friendly name if stop info is now available."""
@@ -294,45 +268,23 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
 
     def _update_departure_info(self, future_departures, now_warsaw):
         """Update departure information and attributes."""
-        if not future_departures:
-            return
-        
-        # Update next departure
-        new_departure = future_departures[0].dt
-        self._next_departure = new_departure
-        
-        _LOGGER.info("Next departure for %s: %s → %s", 
-                    self.entity_id, as_local(new_departure), future_departures[0].kierunek)
-
-        # Start with base attributes
-        self._attributes = dict(self._base_attrs)
-        
-        # Add stop information
-        stop_info = self._get_stop_info()
-        self._attributes["Stop, Name"] = stop_info.get("nazwa_zespolu", "Not available")
-        self._attributes["Stop, Street ID"] = stop_info.get("id_ulicy", "Not available")
-        self._attributes["Stop, Latitude"] = stop_info.get("szer_geo", "Not available")
-        self._attributes["Stop, Longitude"] = stop_info.get("dlug_geo", "Not available")
-        self._attributes["Stop, Timezone"] = "Europe/Warsaw"
-        self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-
-        # Add current departure information
         current = future_departures[0]
-        self._attributes["Upcoming, Headsign"] = getattr(current, 'kierunek', 'Not available')
-        self._attributes["Upcoming, Departure Day"] = _friendly_day(current.dt)
-        self._attributes["Upcoming, Route ID"] = getattr(current, 'trasa', 'Not available')
-        self._attributes["Upcoming, Brigade"] = getattr(current, 'brygada', 'Not available')
+        self._next_departure = current.dt
+        _LOGGER.info("Next departure for %s: %s → %s", self.entity_id, as_local(current.dt), current.kierunek)
+
+        self._attributes = dict(self._base_attrs)
+        self._attributes.update(_stop_attributes(self._get_stop_info()))
+        self._attributes["Stop, Timezone"] = TIMEZONE
+        self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
+        self._attributes.update(_departure_attrs("Upcoming", current, _friendly_day(current.dt)))
 
         # Add information about next departures
         for seq, dep in enumerate(future_departures[1:self._max_departures + 1], start=1):
             try:
                 local_dt = dep.dt.astimezone(now_warsaw.tzinfo)
-                time_str = local_dt.strftime("%H:%M")
-                self._attributes[f"Next {seq}, Headsign"] = getattr(dep, 'kierunek', 'Not available')
-                self._attributes[f"Next {seq}, Departure Day"] = _friendly_day(local_dt)
-                self._attributes[f"Next {seq}, Departure Time"] = time_str
-                self._attributes[f"Next {seq}, Route ID"] = getattr(dep, 'trasa', 'Not available')
-                self._attributes[f"Next {seq}, Brigade"] = getattr(dep, 'brygada', 'Not available')
+                self._attributes.update(
+                    _departure_attrs(f"Next {seq}", dep, _friendly_day(local_dt), local_dt.strftime("%H:%M"))
+                )
             except Exception as e:
                 _LOGGER.warning("Failed to process departure %d for %s: %s", seq, self.entity_id, e)
 
@@ -344,42 +296,23 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
 
     def _set_no_departures(self):
         """Set attributes for no departures case."""
-        # Cancel any scheduled update
         self._cancel_scheduled_update()
 
-        # Start with base attributes
         self._attributes = dict(self._base_attrs)
+        self._attributes["Line, Full Timetable"] = _timetable_url(self._line)
 
-        # Use timetable url helper
-        self._attributes["Line, Full Timetable"] = self._timetable_url()
-
-        # Add stop info if available
         stop_info = self._get_stop_info()
-        if stop_info:
-            self._attributes["Stop, Name"] = stop_info.get("nazwa_zespolu", "Not available")
-            self._attributes["Stop, Street ID"] = stop_info.get("id_ulicy", "Not available")
-            self._attributes["Stop, Latitude"] = stop_info.get("szer_geo", "Not available")
-            self._attributes["Stop, Longitude"] = stop_info.get("dlug_geo", "Not available")
-        else:
-            self._attributes["Stop, Name"] = "Not available"
-            self._attributes["Stop, Street ID"] = "Not available"
-            self._attributes["Stop, Latitude"] = "Not available"
-            self._attributes["Stop, Longitude"] = "Not available"
-            self._attributes["Stop, Direction"] = "Not available"
-            self._attributes["Stop, Effective From"] = "Not available"
-
-        # Set timezone
-        self._attributes["Stop, Timezone"] = "Europe/Warsaw"
+        self._attributes.update(_stop_attributes(stop_info))
+        if not stop_info:
+            self._attributes["Stop, Direction"] = NOT_AVAILABLE
+            self._attributes["Stop, Effective From"] = NOT_AVAILABLE
+        self._attributes["Stop, Timezone"] = TIMEZONE
 
         # Only set no service attributes (do not set Upcoming..., Next..., etc.)
         self._attributes.update(self._no_service_attrs)
-
-        # Set note and attribution
         self._attributes["Note"] = "No upcoming schedule available. Please verify on wtp.waw.pl or call 19115."
         self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-
-        if self._next_departure is not None:
-            self._next_departure = None
+        self._next_departure = None
 
     async def async_will_remove_from_hass(self):
         """Cancel any scheduled listener when removing."""
@@ -419,13 +352,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Line {line} from {stop_id}/{stop_number} Last update"
 
     def _get_stop_info(self):
-        """Safely get stop info from coordinator data."""
-        try:
-            if self.coordinator and self.coordinator.data:
-                return getattr(self.coordinator.data, "stop_info", {}) or {}
-        except (AttributeError, TypeError):
-            pass
-        return {}
+        return _stop_info_of(self.coordinator)
 
     @property
     def native_value(self):
@@ -436,25 +363,10 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         last_update = getattr(self.coordinator, "last_update_success_time", None)
         return last_update if isinstance(last_update, datetime) else None
 
-    def _timetable_url(self):
-        """Generate timetable URL for today."""
-        try:
-            today_str = datetime.now(tz=timezone.utc).astimezone().strftime("%Y-%m-%d")
-            return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={quote(str(self._line))}"
-        except Exception:
-            return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(self._line))}"
-
     @property
     def device_info(self):
         """Return device info for this entity."""
-        return {
-            "identifiers": {(DOMAIN, f"line_{self._line}")},
-            "name": f"Line {self._line}",
-            "manufacturer": "Zarząd Transportu Miejskiego",
-            "entry_type": "service",
-            "model": get_line_type(self._line),
-            "configuration_url": self._timetable_url(),
-        }
+        return _device_info(self._line)
 
     @property
     def extra_state_attributes(self):
@@ -519,6 +431,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s",
                     line, stop_id, stop_number)
 
-    except Exception as e:
-        _LOGGER.error("Failed to set up ZTM sensor: %s", e)
+    except Exception:
+        _LOGGER.exception("Failed to set up ZTM sensor")
         raise

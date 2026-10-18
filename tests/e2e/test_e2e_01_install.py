@@ -14,6 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 import custom_components.ztm_warsaw as integration
+from tests.contract_shapes import kv
 from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.const import DOMAIN
 
@@ -31,9 +32,11 @@ from .fake_city import (
     InvalidJson,
     NullResult,
     Reset,
+    SMALL_CATALOGUE,
     Respond,
     stop_name_for,
 )
+from .fake_city.data import stops_catalogue_bytes
 from .helpers import known_bug
 
 EN = json.loads((Path(integration.__file__).parent / "translations" / "en.json").read_text(encoding="utf-8"))
@@ -43,6 +46,20 @@ pytestmark = pytest.mark.e2e
 
 
 # ===================================================================== E2E-01
+async def test_e2e_01_stop_attributes_come_from_the_catalogue_record(env):
+    await env.add_entry()
+    record = next(
+        fields
+        for fields in map(kv, json.loads(stops_catalogue_bytes(SMALL_CATALOGUE))["result"])
+        if (fields["zespol"], fields["slupek"]) == ("7009", "01")
+    )
+    attrs = env.state().attributes
+    assert attrs["Stop, Name"] == record["nazwa_zespolu"]
+    assert attrs["Stop, Street ID"] == record["id_ulicy"]
+    assert attrs["Stop, Latitude"] == record["szer_geo"]
+    assert attrs["Stop, Longitude"] == record["dlug_geo"]
+
+
 async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     """UI path: form -> user input -> city validation -> entry -> platform -> entities, over real HTTP."""
     result = await env.hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})

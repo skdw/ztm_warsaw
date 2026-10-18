@@ -324,3 +324,11 @@ async def test_e2e_13_daytime_departures_are_right_on_both_sides_of_each_change(
     assert env.departure_local("151")[:10] == expected[:10]
     assert env.departure_local("151") >= check_at
     assert env.departure_local("151") <= (at(check_at) + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M")
+
+
+@pytest.mark.start("2026-10-17 00:10")  # Saturday 00:10: still Friday's service day, the API has not flipped yet
+async def test_e2e_07_a_day_line_shows_its_after_midnight_departure_before_the_service_day_flips(env):
+    await env.add_entry(line="520")  # a day line whose Friday timetable ends at 24:38
+    shown = env.departure_local("520")
+    assert shown is not None, "the 00:xx departures of the Friday timetable are still ahead"
+    assert shown.startswith("2026-10-17 00:")

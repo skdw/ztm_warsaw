@@ -263,6 +263,15 @@ async def test_e2e_27_a_failing_catalogue_does_not_stop_departures(env):
     assert st.attributes["friendly_name"].lower() == "line 151 from 7009/01"
 
 
+@pytest.mark.start("2026-10-17 12:00")  # Saturday: line 411 does not run
+async def test_e2e_27_no_service_without_a_stop_record_says_not_available_for_every_stop_attribute(env):
+    env.city.always("stops", Http(500))
+    await env.add_entry(line="411")
+    attrs = env.state("411").attributes
+    for name in ("Name", "Street ID", "Latitude", "Longitude", "Direction", "Effective From"):
+        assert attrs[f"Stop, {name}"] == "Not available", name
+
+
 async def test_e2e_27_malformed_catalogue_rows_are_skipped_not_fatal(env):
     good = {"values": [{"key": "zespol", "value": "7009"}, {"key": "slupek", "value": "01"}, {"key": "nazwa_zespolu", "value": "Dobry"}]}
     env.city.always("stops", Respond(200, {"result": [{"values": 5}, "junk", {"values": None}, {"values": ["x"]}, good]}))
