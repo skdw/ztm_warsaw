@@ -13,7 +13,7 @@ from homeassistant.util.async_ import get_scheduled_timer_handles
 
 from custom_components.ztm_warsaw.const import DOMAIN
 
-from .fake_city import FULL_CATALOGUE, OVER_CAP_CATALOGUE, Http, ParamError, stop_name_for
+from .fake_city import FULL_CATALOGUE, OVER_CAP_CATALOGUE, Http, ParamError, Respond, stop_name_for
 from .helpers import find_devices, known_bug, owners_of
 
 pytestmark = pytest.mark.e2e
@@ -259,6 +259,15 @@ async def test_e2e_27_a_failing_catalogue_does_not_stop_departures(env):
     assert st.attributes["Stop, Name"] == "Not available"
     # Home Assistant 2026.10 capitalises words of a name it builds ("From"); the older ones keep "from".
     assert st.attributes["friendly_name"].lower() == "line 151 from 7009/01"
+
+
+async def test_e2e_27_malformed_catalogue_rows_are_skipped_not_fatal(env):
+    good = {"values": [{"key": "zespol", "value": "7009"}, {"key": "slupek", "value": "01"}, {"key": "nazwa_zespolu", "value": "Dobry"}]}
+    env.city.always("stops", Respond(200, {"result": [{"values": 5}, "junk", {"values": None}, {"values": ["x"]}, good]}))
+    await env.add_entry()
+    st = env.state()
+    assert st.state not in ("unknown", "unavailable")
+    assert st.attributes["Stop, Name"] == "Dobry"
 
 
 async def test_e2e_27_a_text_answer_for_the_catalogue_is_retried_once_shortly_after(env):
