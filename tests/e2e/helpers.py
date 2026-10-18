@@ -26,6 +26,31 @@ def known_bug(
     return pytest.mark.xfail(strict=True, raises=raises, reason=f"{finding}: {why}")
 
 
+def find_devices(registry, identifiers):
+    """The devices with these identifiers, on every Home Assistant the suite may run on.
+
+    ``async_get_device`` is deprecated (and raises under the test plugin) from Home Assistant 2026.10, where
+    ``async_get_devices`` replaces it. Also from 2026.10 a device belongs to ONE config entry, so two entries
+    of the same line get two devices with the same identifiers; the older releases share one device.
+    """
+    lookup = getattr(registry, "async_get_devices", None)
+    if lookup is not None:
+        return list(lookup(identifiers=identifiers))
+    device = registry.async_get_device(identifiers=identifiers)
+    return [device] if device is not None else []
+
+
+def owners_of(devices) -> set[str]:
+    """Every config entry id that the devices belong to (``config_entries`` before 2026.10, ``config_entry_id`` after)."""
+    owners: set[str] = set()
+    for device in devices:
+        if hasattr(device, "config_entry_id"):
+            owners.add(device.config_entry_id)
+        else:
+            owners |= set(device.config_entries)
+    return owners
+
+
 def rows_for(day: str, line: str, stop: StopKey = ("7009", "01")) -> list[str]:
     """``czas`` values (as served) of a line on the 'friday' or 'saturday' set."""
     return [kv(r)["czas"] for r in day_sets()[day].timetables[(stop, line)]]
