@@ -9,15 +9,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
-# The group names the head commit as well as the pull request, so a run can only
-# supersede another run for the same commit (two quick description edits: the later
-# one carries the newer description). It must never cancel the run for a different
-# commit: an `edited` event fired right after a push can still carry the previous
-# head commit, and with one group per pull request that stale run cancelled the run
-# for the new head, leaving the check cancelled on the commit that gets merged.
+# One group per run: no run is ever cancelled or replaced by another. This check is
+# required to merge, and a cancelled run of it on the head commit leaves the pull
+# request blocked until someone repeats the run by hand. Two runs for one commit are
+# normal here (a push, then a description edit a few seconds later), and with any
+# shared group GitHub cancels one of them, in an order nobody controls: first one
+# group per pull request let a stale run cancel the run for the new head, then one
+# group per head commit let the later of two runs for the same commit end up
+# cancelled. A run takes seconds and is idempotent, so letting every run finish costs
+# nothing. GitHub judges the newest run of a check on the commit, which is the run
+# for the newest description.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
