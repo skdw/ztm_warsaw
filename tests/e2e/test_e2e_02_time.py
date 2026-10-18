@@ -10,6 +10,7 @@ exactly one hour after that, every hour.
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import AsyncMock
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
@@ -17,7 +18,7 @@ import pytest
 from custom_components.ztm_warsaw.client import ZTMStopClient
 
 from .conftest import at
-from .fake_city import DEFAULT_KEY, WARSAW, day_sets
+from .fake_city import DEFAULT_KEY, WARSAW, Http, day_sets
 from .helpers import instants, local, reference_next, rows_for
 
 pytestmark = pytest.mark.e2e
@@ -553,3 +554,26 @@ async def test_e2e_15_two_refreshes_at_the_same_moment_ask_the_city_once(env):
     assert env.city.count("timetable") - calls == 1
     await coordinator.async_refresh()
     assert env.city.count("timetable") - calls == 2, "a refresh that did not wait for another one still asks"
+
+
+@pytest.mark.start("2026-10-17 03:30")
+async def test_e2e_15_a_restored_night_tail_survives_a_failing_first_request(env, hass_storage):
+    """Restart after the swap with only yesterday's answer stored, and the City down: the tail is still shown."""
+    env.city.always("timetable", Http(500))
+    entry = await env.add_entry(line="N25", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    rows = [{"czas": "27:54:00"}, {"czas": "28:24:00"}]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"answers": [{"service_date": "2026-10-16", "rows": rows}]}}
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.state("N25").state != "unavailable"
+    assert env.departure_local("N25") == "2026-10-17 03:54"
+
+
+async def test_e2e_15_a_failing_final_write_does_not_leave_the_timers_running(env):
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    assert coordinator._flip_unsub is not None
+    coordinator._store.async_save = AsyncMock(side_effect=OSError("disk gone"))
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    assert coordinator._flip_unsub is None

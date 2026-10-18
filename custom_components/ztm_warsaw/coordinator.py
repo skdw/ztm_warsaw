@@ -86,6 +86,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 self.data = answer
             elif day == today - timedelta(days=1):
                 self._previous = answer
+        if self.data is None and self._previous is not None:
+            # Only the night tail of yesterday is known: it is what to fall back on if the first request fails.
+            self.data, self._previous = self._previous, None
 
     def _payload(self) -> dict:
         return {
@@ -228,11 +231,13 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if getattr(self, "_ztm_shutdown_done", False):
             return
         self._ztm_shutdown_done = True
-        await self._store.async_save(self._payload())  # also cancels a delayed write that is still pending
-        self.data = None
-        self._previous = None
-        if self._flip_unsub:
-            self._flip_unsub()
-            self._flip_unsub = None
-        await super().async_shutdown()
+        try:
+            await self._store.async_save(self._payload())  # also cancels a delayed write that is still pending
+        finally:  # a failing write must not leave the 03:06 callback or the coordinator running
+            self.data = None
+            self._previous = None
+            if self._flip_unsub:
+                self._flip_unsub()
+                self._flip_unsub = None
+            await super().async_shutdown()
         _LOGGER.info("ZTM Coordinator [%s] — shutdown complete", self.name)
