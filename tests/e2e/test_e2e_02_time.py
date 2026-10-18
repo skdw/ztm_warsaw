@@ -10,12 +10,14 @@ exactly one hour after that, every hour.
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
-from custom_components.ztm_warsaw.client import ZTMStopClient
+from homeassistant.helpers.storage import Store
+
+from custom_components.ztm_warsaw.client import ZTMApiError, ZTMStopClient
 
 from .conftest import at
 from .fake_city import DEFAULT_KEY, WARSAW, Http, day_sets
@@ -577,3 +579,45 @@ async def test_e2e_15_a_failing_final_write_does_not_leave_the_timers_running(en
     coordinator._store.async_save = AsyncMock(side_effect=OSError("disk gone"))
     await env.hass.config_entries.async_unload(entry.entry_id)
     assert coordinator._flip_unsub is None
+
+
+@pytest.mark.parametrize("stored", ["junk", {"answers": None}, {"answers": 7, "api_error": True}, {"answers": [{"service_date": "2026-10-17", "rows": 5}]}])
+async def test_e2e_15_a_damaged_store_does_not_stop_the_first_refresh(env, hass_storage, stored):
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    hass_storage[key] = {"version": 1, "key": key, "data": stored}
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.departure_local("151") is not None, "the first request was made and answered"
+
+
+async def test_e2e_15_an_unreadable_store_does_not_stop_the_first_refresh(env, monkeypatch):
+    monkeypatch.setattr(Store, "async_load", AsyncMock(side_effect=PermissionError("denied")))
+    await env.add_entry(line="151")
+    assert env.departure_local("151") is not None
+
+
+@pytest.mark.start("2026-10-17 02:00")
+async def test_e2e_15_an_api_error_that_arrives_inside_the_window_is_not_a_failure_of_the_key(env):
+    """A request sent at 02:09:50 and answered with a non-timetable at 02:10:20 meets the City mid-update."""
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    env.move_to("2026-10-17 02:09:50")
+
+    async def straddling_get():
+        env.clock.tick(timedelta(seconds=30))
+        raise ZTMApiError("the City answered with something else")
+
+    coordinator.client.get = straddling_get
+    await coordinator.async_refresh()
+    assert coordinator._api_error is False
+    assert env.state("N25").state != "unavailable"
+
+
+async def test_e2e_15_a_refresh_that_outlives_the_entry_does_not_write_its_store(env):
+    entry = await env.add_entry(line="N25")
+    coordinator = env.coordinator(entry)
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    coordinator._store.async_delay_save = Mock()
+    coordinator._save()
+    coordinator._store.async_delay_save.assert_not_called()

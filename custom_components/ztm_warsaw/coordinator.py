@@ -40,6 +40,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
         self._refreshing = asyncio.Lock()
+        self._ztm_shutdown_done = False
         self._refreshes = 0  # how many refreshes have finished
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
         self._store: Store[dict] = Store(hass, 1, store_key(entry_id))
@@ -72,13 +73,23 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,
         one of the previous day keeps its night tail."""
         today = service_date_at(dt_util.utcnow())
-        stored = await self._store.async_load() or {}
+        try:
+            stored = await self._store.async_load()
+        except Exception:  # noqa: BLE001 - an unreadable store must never stop the first refresh
+            _LOGGER.debug("ZTM Coordinator [%s] — stored answers could not be read", self.name, exc_info=True)
+            return
+        if not isinstance(stored, dict):
+            return
         self._api_error = stored.get("api_error") is True  # a rejected key stays a failure across a restart
-        for saved in stored.get("answers", []):
+        answers = stored.get("answers")
+        for saved in answers if isinstance(answers, list) else []:
             try:
                 day = date.fromisoformat(saved["service_date"])
+                stop_info = saved.get("stop_info")
                 answer = ZTMDepartureData(
-                    [ZTMDepartureDataReading.from_dict(row, day) for row in saved["rows"]], saved.get("stop_info") or {}, day
+                    [ZTMDepartureDataReading.from_dict(row, day) for row in saved["rows"]],
+                    stop_info if isinstance(stop_info, dict) else {},
+                    day,
                 )
             except (TypeError, KeyError, ValueError, AttributeError):
                 continue
@@ -106,6 +117,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
 
     def _save(self):
         # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
+        if self._ztm_shutdown_done:  # a refresh that was still running must not write the store of an unloaded entry
+            return
         payload = self._payload()
         self._store.async_delay_save(lambda: payload, 30)
 
@@ -181,10 +194,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         async with self._refreshing:
             if self._refreshes != seen and self.data is not None and not self._api_error:
                 return self.data
-            try:
-                return await self._fetch()
-            finally:
-                self._refreshes += 1
+            answer = await self._fetch()
+            self._refreshes += 1  # only a finished refresh counts for a waiter
+            return answer
 
     async def _fetch(self) -> ZTMDepartureData:
         if in_swap_window(dt_util.utcnow()):
@@ -211,6 +223,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             # unknown format). Unlike a network error this is not "try again later with the cached timetable":
             # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
             # when the state changes, and again when it recovers.
+            if in_swap_window(dt_util.utcnow()):  # a request that straddles the start of the City's update
+                return self._hold_during_swap()
             self._api_error = True
             self._save()
             raise UpdateFailed(str(err)) from err
@@ -228,7 +242,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
 
     async def async_shutdown(self):
         """Clean up when coordinator is being shut down."""
-        if getattr(self, "_ztm_shutdown_done", False):
+        if self._ztm_shutdown_done:
             return
         self._ztm_shutdown_done = True
         try:
