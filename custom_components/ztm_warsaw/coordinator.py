@@ -84,9 +84,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             elif day == today - timedelta(days=1):
                 self._previous = answer
 
-    def _save(self):
-        # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
-        payload = {
+    def _payload(self) -> dict:
+        return {
             "answers": [
                 {
                     "service_date": a.service_date.isoformat(),
@@ -98,6 +97,10 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             ],
             "api_error": self._api_error,
         }
+
+    def _save(self):
+        # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
+        payload = self._payload()
         self._store.async_delay_save(lambda: payload, 30)
 
     def _schedule_flip_refresh(self):
@@ -149,8 +152,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if self.data is not None and self.data.service_date != new_data.service_date:
             self._previous = self.data
         self.data = new_data
-        self._save()
         self._api_error = False
+        self._save()
         self.last_update_success_time = dt_util.utcnow()
         # Track last success date in local time (Europe/Warsaw)
         self._last_success_local_date = dt_util.now().date()
@@ -210,6 +213,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if getattr(self, "_ztm_shutdown_done", False):
             return
         self._ztm_shutdown_done = True
+        await self._store.async_save(self._payload())  # also cancels a delayed write that is still pending
         self.data = None
         self._previous = None
         if self._flip_unsub:

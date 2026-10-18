@@ -16,7 +16,7 @@ import pytest
 from custom_components.ztm_warsaw.client import ZTMStopClient
 
 from .conftest import at
-from .fake_city import WARSAW, day_sets
+from .fake_city import DEFAULT_KEY, WARSAW, day_sets
 from .helpers import instants, local, reference_next, rows_for
 
 pytestmark = pytest.mark.e2e
@@ -519,3 +519,23 @@ async def test_e2e_15_every_entry_has_its_own_store_and_a_removed_entry_leaves_n
     await env.hass.config_entries.async_remove(first.entry_id)
     await env.settle()
     assert f"ztm_warsaw.{first.entry_id}" not in hass_storage
+
+
+async def test_e2e_15_removing_an_entry_right_after_a_refresh_leaves_no_store_behind(env, hass_storage):
+    """A delayed write that is still pending must not bring the store of a removed entry back (a review finding)."""
+    entry = await env.add_entry(line="N25")
+    await env.hass.config_entries.async_remove(entry.entry_id)
+    await env.settle()
+    await env.advance(minutes=1)
+    assert f"ztm_warsaw.{entry.entry_id}" not in hass_storage
+
+
+async def test_e2e_15_the_stored_failure_marker_is_cleared_by_the_recovery(env, hass_storage):
+    entry = await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    assert env.state("N25").state == "unavailable"
+    env.city.valid_keys.add(DEFAULT_KEY)
+    await env.hourly_tick()
+    await env.advance(minutes=1)
+    assert hass_storage[f"ztm_warsaw.{entry.entry_id}"]["data"]["api_error"] is False
