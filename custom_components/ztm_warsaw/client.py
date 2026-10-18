@@ -2,13 +2,13 @@
 import asyncio
 import logging
 from typing import Optional
-import time
 import json
 import re
 
 import aiohttp
 
 from homeassistant.loader import async_get_integration
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, REPOSITORY_URL
 from .models import ZTMDepartureData, ZTMDepartureDataReading
@@ -38,6 +38,31 @@ async def user_agent(hass) -> str:
     """Says which software asks (name, version, repository), never who."""
     version = (await async_get_integration(hass, DOMAIN)).version
     return f"{DOMAIN}/{version} (Home Assistant custom integration; +{REPOSITORY_URL})"
+
+
+_STOP_INFO_BACKOFF = (2 * 3600, 6 * 3600)  # seconds to wait after the first and the second failed attempt
+_STOP_INFO_MAX_ATTEMPTS = 3  # then the stop name is given up until the entry is reloaded
+
+
+def _stop_fields(row) -> dict:
+    """The ``{key: value}`` pairs of one record of the stops catalogue (``{"values": [{key, value}, ...]}``)."""
+    values = row.get("values") if isinstance(row, dict) else None
+    return {v["key"]: v["value"] for v in values or [] if isinstance(v, dict) and "key" in v and "value" in v}
+
+
+def _match_stop(rows, stop_id: str, stop_nr: str) -> dict | None:
+    """What the catalogue says about the pole, without the ids; the first record of the stop when the pole is not
+    listed. None when the stop is not there at all."""
+    fallback = None
+    for row in rows:
+        fields = _stop_fields(row)
+        if str(fields.get("zespol")) != stop_id:
+            continue
+        info = {k: v for k, v in fields.items() if k not in ("zespol", "slupek")}
+        if str(fields.get("slupek")) == stop_nr:
+            return info
+        fallback = fallback or info
+    return fallback
 
 
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
@@ -131,7 +156,6 @@ class ZTMStopClient:
         stop_number: str,
         line: str,
         timeout: int | None = None,
-        stop_info_ttl: int | None = None,
         user_agent: str | None = None,
     ):
         api_key = api_key.strip()
@@ -145,8 +169,6 @@ class ZTMStopClient:
         self._data_id = "e923fa0e-d96c-43f9-ae6e-60518c9f3238"  # timetable endpoint id (dbtimetable_get)
         self._timeout = timeout or 20
         self._session = session
-        self._stop_info_ttl = stop_info_ttl  # seconds; None means never refresh automatically
-        self._stop_info_last_fetch: float | None = None
         # Stop-info retry/backoff state (never refetch after first success)
         self._stop_info_attempts: int = 0               # how many failed attempts so far
         self._stop_info_next_retry: float | None = None # UTC timestamp when we may retry
@@ -209,12 +231,10 @@ class ZTMStopClient:
             rows = _checked_result(answer)
         except ZTMApiError:
             return None
-        wanted = (str(self._params["busstopId"]), str(self._params["busstopNr"]))
-        for row in rows:
-            fields = {v.get("key"): v.get("value") for v in (row.get("values") or []) if isinstance(v, dict)} if isinstance(row, dict) else {}
-            if (fields.get("zespol"), fields.get("slupek")) == wanted:
-                return True
-        return False
+        return any(
+            (str(f.get("zespol")), str(f.get("slupek"))) == (str(self._params["busstopId"]), str(self._params["busstopNr"]))
+            for f in map(_stop_fields, rows)
+        )
 
     async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
                               method: str = "GET", json_body: dict | None = None,
@@ -281,244 +301,58 @@ class ZTMStopClient:
             return {"result": value} if wrap else value
 
     async def get_stop_name(self) -> Optional[dict]:
-        """Fetch stop metadata (name, etc.) with caching and strict validation.
-        This is called by sensors frequently, but the stop name does not change often.
-        We therefore cache it and only re-fetch at most once per `self._stop_info_ttl`.
-        """
-        # If we already have a cached value, never refetch automatically
+        """The stop's metadata (name, street, position), fetched once and cached. A failure is retried after a back-off
+        and given up after a few attempts, so a missing stop name never hammers the API or blocks the timetable."""
         if self._stop_name is not None:
             return self._stop_name
-
-        # Respect permanent-missing flag to avoid log spam
-        if getattr(self, "_stop_info_permanent_missing", False):
-            _LOGGER.debug(
-                "Stop-info permanently marked missing for stop_id=%s stop_nr=%s; skip fetch",
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-            )
+        where = "stop_id=%s stop_nr=%s" % (self._params.get("busstopId"), self._params.get("busstopNr"))
+        if self._stop_info_permanent_missing:
+            _LOGGER.debug("Stop-info permanently marked missing for %s; skip fetch", where)
             return None
-
-        # Respect backoff window after previous failures
-        from homeassistant.util import dt as dt_util
-        now = time.time()
-        now_ts = dt_util.utcnow().timestamp()
-        if getattr(self, "_stop_info_next_retry", None) and now_ts < self._stop_info_next_retry:
-            _LOGGER.debug(
-                "Stop-info fetch skipped until %s (backoff) for stop_id=%s stop_nr=%s",
-                dt_util.utc_from_timestamp(self._stop_info_next_retry),
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-            )
+        if self._stop_info_next_retry and dt_util.utcnow().timestamp() < self._stop_info_next_retry:
+            _LOGGER.debug("Stop-info fetch skipped until %s (backoff) for %s", dt_util.utc_from_timestamp(self._stop_info_next_retry), where)
             return None
-
         cache_key = (self._params["busstopId"], self._params["busstopNr"])
-        if cache_key in self._stop_info_cache:
-            # Update in-memory main cache too, mark timestamp and return
-            self._stop_name = self._stop_info_cache[cache_key]
-            self._stop_info_last_fetch = now
-            return self._stop_name
-
-        json_response = await self._call("stops")
-        if not isinstance(json_response, dict):
-            from homeassistant.util import dt as dt_util
-            # Increment failed attempts and schedule next retry (capped at 3 attempts)
-            self._stop_info_attempts = int(getattr(self, "_stop_info_attempts", 0)) + 1
-            if self._stop_info_attempts >= 3:
-                self._stop_info_permanent_missing = True
-                self._stop_info_next_retry = None
-                _LOGGER.info(
-                    "Stop-info not available for stop_id=%s stop_nr=%s after %d attempts; suppressing further retries",
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                    self._stop_info_attempts,
-                )
-            else:
-                backoffs = [2 * 3600, 6 * 3600]
-                delay = backoffs[min(self._stop_info_attempts - 1, len(backoffs) - 1)]
-                self._stop_info_next_retry = dt_util.utcnow().timestamp() + delay
-                _LOGGER.debug(
-                    "Stop-info attempt %d failed; next retry in %d seconds for stop_id=%s stop_nr=%s",
-                    self._stop_info_attempts,
-                    delay,
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                )
-            return None
-
-        # Validate response shape strictly
-        result = json_response.get("result")
-        if result is None:
-            from homeassistant.util import dt as dt_util
-            _LOGGER.debug(
-                "Stop info empty (result=None) for stop_id=%s stop_nr=%s",
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-            )
-            self._stop_info_attempts = int(getattr(self, "_stop_info_attempts", 0)) + 1
-            if self._stop_info_attempts >= 3:
-                self._stop_info_permanent_missing = True
-                self._stop_info_next_retry = None
-                _LOGGER.info(
-                    "Stop-info not available for stop_id=%s stop_nr=%s after %d attempts; suppressing further retries",
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                    self._stop_info_attempts,
-                )
-            else:
-                backoffs = [2 * 3600, 6 * 3600]
-                delay = backoffs[min(self._stop_info_attempts - 1, len(backoffs) - 1)]
-                self._stop_info_next_retry = dt_util.utcnow().timestamp() + delay
-                _LOGGER.debug(
-                    "Stop-info attempt %d failed; next retry in %d seconds for stop_id=%s stop_nr=%s",
-                    self._stop_info_attempts,
-                    delay,
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                )
-            return None
-
-        if isinstance(result, str):
-            # ZTM sometimes returns a localized string message instead of a list (transient backend state).
-            # Treat ANY string result as transient; retry once after a short backoff.
-            await asyncio.sleep(0.8)
-            retry_resp = await self._call("stops")
-            if isinstance(retry_resp, dict):
-                result = retry_resp.get("result")
-                if isinstance(result, list):
-                    json_response = retry_resp  # continue with normal parsing below
-                else:
-                    from homeassistant.util import dt as dt_util
-                    _LOGGER.debug(
-                        "Stop info string result persisted after retry: %r (stop_id=%s stop_nr=%s)",
-                        result,
-                        self._params.get("busstopId"),
-                        self._params.get("busstopNr"),
-                    )
-                    self._stop_info_attempts = int(getattr(self, "_stop_info_attempts", 0)) + 1
-                    if self._stop_info_attempts >= 3:
-                        self._stop_info_permanent_missing = True
-                        self._stop_info_next_retry = None
-                        _LOGGER.info(
-                            "Stop-info not available for stop_id=%s stop_nr=%s after %d attempts; suppressing further retries",
-                            self._params.get("busstopId"),
-                            self._params.get("busstopNr"),
-                            self._stop_info_attempts,
-                        )
-                    else:
-                        backoffs = [2 * 3600, 6 * 3600]
-                        delay = backoffs[min(self._stop_info_attempts - 1, len(backoffs) - 1)]
-                        self._stop_info_next_retry = dt_util.utcnow().timestamp() + delay
-                        _LOGGER.debug(
-                            "Stop-info attempt %d failed; next retry in %d seconds for stop_id=%s stop_nr=%s",
-                            self._stop_info_attempts,
-                            delay,
-                            self._params.get("busstopId"),
-                            self._params.get("busstopNr"),
-                        )
-                    return None
-            else:
+        if cache_key not in self._stop_info_cache:
+            rows = await self._stop_info_rows()
+            info = _match_stop(rows, str(cache_key[0]), str(cache_key[1])) if rows is not None else None
+            if info is None:
+                if rows is not None:
+                    _LOGGER.warning("Stop name not found in stop info for %s", where)
+                self._stop_info_failed(where)
                 return None
+            if "nazwa_zespolu" in info and "stop_name" not in info:
+                info["stop_name"] = info["nazwa_zespolu"]  # a stable alias for the sensors
+            self._stop_info_cache[cache_key] = info
+            self._stop_info_attempts, self._stop_info_next_retry, self._stop_info_permanent_missing = 0, None, False
+        self._stop_name = self._stop_info_cache[cache_key]
+        return self._stop_name
 
-        if not isinstance(result, list):
-            from homeassistant.util import dt as dt_util
-            _LOGGER.error(
-                "Unexpected 'result' type from stop info: %s", type(result).__name__
-            )
-            self._stop_info_attempts = int(getattr(self, "_stop_info_attempts", 0)) + 1
-            if self._stop_info_attempts >= 3:
-                self._stop_info_permanent_missing = True
-                self._stop_info_next_retry = None
-                _LOGGER.info(
-                    "Stop-info not available for stop_id=%s stop_nr=%s after %d attempts; suppressing further retries",
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                    self._stop_info_attempts,
-                )
-            else:
-                backoffs = [2 * 3600, 6 * 3600]
-                delay = backoffs[min(self._stop_info_attempts - 1, len(backoffs) - 1)]
-                self._stop_info_next_retry = dt_util.utcnow().timestamp() + delay
-                _LOGGER.debug(
-                    "Stop-info attempt %d failed; next retry in %d seconds for stop_id=%s stop_nr=%s",
-                    self._stop_info_attempts,
-                    delay,
-                    self._params.get("busstopId"),
-                    self._params.get("busstopNr"),
-                )
+    async def _stop_info_rows(self) -> list | None:
+        """The rows of the stops catalogue, or None when the answer is missing or not a list (a string is a transient
+        message of the old API: asked once more after a short wait)."""
+        answer = await self._call("stops")
+        result = answer.get("result") if isinstance(answer, dict) else None
+        if isinstance(result, str):
+            await asyncio.sleep(0.8)
+            retry = await self._call("stops")
+            result = retry.get("result") if isinstance(retry, dict) else None
+        if result is not None and not isinstance(result, list):
+            _LOGGER.error("Unexpected 'result' type from stop info: %s", type(result).__name__)
             return None
+        return result
 
-        fallback = None
-        stop_id_str = str(self._params["busstopId"])  # normalize for comparison
-        stop_nr_str = str(self._params["busstopNr"])  # normalize for comparison
-
-        for entry in result:
-            if not isinstance(entry, dict):
-                continue
-            values = entry.get("values") or []
-            if not isinstance(values, list):
-                continue
-            kv = {
-                v.get("key"): v.get("value")
-                for v in values
-                if isinstance(v, dict) and "key" in v and "value" in v
-            }
-            if str(kv.get("zespol")) == stop_id_str:
-                if str(kv.get("slupek")) == stop_nr_str:
-                    # Exact match for stop & post
-                    self._stop_name = {k: v for k, v in kv.items() if k not in ("zespol", "slupek")}
-                    # Add a stable alias key for sensors/UX
-                    if "nazwa_zespolu" in self._stop_name and "stop_name" not in self._stop_name:
-                        self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-                    self._stop_info_cache[cache_key] = self._stop_name
-                    self._stop_info_last_fetch = now
-                    # Clear retry/backoff state on success
-                    self._stop_info_attempts = 0
-                    self._stop_info_next_retry = None
-                    self._stop_info_permanent_missing = False
-                    return self._stop_name
-                if fallback is None:
-                    fallback = {k: v for k, v in kv.items() if k not in ("zespol", "slupek")}
-
-        if fallback is not None:
-            self._stop_name = fallback
-            if "nazwa_zespolu" in self._stop_name and "stop_name" not in self._stop_name:
-                self._stop_name["stop_name"] = self._stop_name["nazwa_zespolu"]
-            self._stop_info_cache[cache_key] = self._stop_name
-            self._stop_info_last_fetch = now
-            # Clear retry/backoff state on success (fallback)
-            self._stop_info_attempts = 0
-            self._stop_info_next_retry = None
-            self._stop_info_permanent_missing = False
-            return self._stop_name
-
-        from homeassistant.util import dt as dt_util
-        _LOGGER.warning(
-            "Stop name not found in stop info for stop_id=%s stop_nr=%s",
-            self._params.get("busstopId"),
-            self._params.get("busstopNr"),
-        )
-        self._stop_info_attempts = int(getattr(self, "_stop_info_attempts", 0)) + 1
-        if self._stop_info_attempts >= 3:
+    def _stop_info_failed(self, where: str) -> None:
+        """Count a failed attempt: wait 2 h, then 6 h, then give up until the entry is reloaded."""
+        self._stop_info_attempts += 1
+        if self._stop_info_attempts >= _STOP_INFO_MAX_ATTEMPTS:
             self._stop_info_permanent_missing = True
             self._stop_info_next_retry = None
-            _LOGGER.info(
-                "Stop-info not available for stop_id=%s stop_nr=%s after %d attempts; suppressing further retries",
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-                self._stop_info_attempts,
-            )
+            _LOGGER.info("Stop-info not available for %s after %d attempts; suppressing further retries", where, self._stop_info_attempts)
         else:
-            backoffs = [2 * 3600, 6 * 3600]
-            delay = backoffs[min(self._stop_info_attempts - 1, len(backoffs) - 1)]
+            delay = _STOP_INFO_BACKOFF[min(self._stop_info_attempts - 1, len(_STOP_INFO_BACKOFF) - 1)]
             self._stop_info_next_retry = dt_util.utcnow().timestamp() + delay
-            _LOGGER.debug(
-                "Stop-info attempt %d failed; next retry in %d seconds for stop_id=%s stop_nr=%s",
-                self._stop_info_attempts,
-                delay,
-                self._params.get("busstopId"),
-                self._params.get("busstopNr"),
-            )
-        return None
+            _LOGGER.debug("Stop-info attempt %d failed; next retry in %d seconds for %s", self._stop_info_attempts, delay, where)
 
     async def get(self, *, fetch_stop_name: bool = True) -> Optional[ZTMDepartureData]:
         try:
