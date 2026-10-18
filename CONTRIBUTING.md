@@ -128,7 +128,10 @@ The required checks:
 - `Documentation impact declaration`
 
 `HACS validation` is not required to merge, because it depends on the network, but it must pass
-before a release. The Codecov, SonarCloud and Scorecard results are signals, not gates.
+before a release. So must `Compat smoke (minimum Home Assistant)`: it runs `tests/compat` on the
+oldest Home Assistant the integration claims (2024.4, Python 3.12; the pins are in `.github/compat/`),
+because every other job runs the newest. To run it locally, build a Python 3.12 environment and
+install `.github/compat/min-ha.txt`, then `.github/compat/min-ha-plugin.txt` with `--no-deps`. The Codecov, SonarCloud and Scorecard results are signals, not gates.
 
 This is a single-maintainer project. [@solarssk](https://github.com/solarssk) reviews and merges
 every pull request, including their own, once the required checks are green, and sets the `type:`

@@ -1,0 +1,2 @@
+# The test plugin that pins Home Assistant 2024.4.4; installed with --no-deps (see min-ha.txt).
+pytest-homeassistant-custom-component==0.13.115

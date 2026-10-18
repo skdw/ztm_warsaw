@@ -1,0 +1,35 @@
+# The OLDEST Home Assistant the integration claims to support, for the job "Compat smoke
+# (minimum Home Assistant)" in ci.yml. hacs.json says 2024.4.0; this is the last patch release of
+# that line, which is what pytest-homeassistant-custom-component 0.13.115 pins. Python 3.12 is the
+# minimum of that Home Assistant.
+#
+# Install with:  pip install -r .github/compat/min-ha.txt
+#                pip install --no-deps -r .github/compat/min-ha-plugin.txt
+# The plugin is installed with --no-deps on purpose: it pins a development build of mypy
+# (mypy-dev==1.10.0a3) that PyPI no longer serves, so its other pins are listed here, minus mypy-dev
+# and the tools that only a Home Assistant core developer needs.
+#
+# This file lives outside the repository root so that Dependabot does not try to bump a deliberately
+# old Home Assistant. Raise it by hand, in the pull request that raises the minimum in hacs.json and
+# says so in CHANGELOG.md under "Adopter action".
+homeassistant==2024.4.4
+# Home Assistant 2024.4 imports josepy 1.x only.
+josepy==1.15.0
+SQLAlchemy==2.0.29
+paho-mqtt==1.6.1
+numpy==1.26.0
+pydantic==1.10.12
+coverage==7.4.4
+freezegun==1.4.0
+mock-open==1.4.0
+pytest==8.1.1
+pytest-aiohttp==1.0.5
+pytest-asyncio==0.23.6
+pytest-cov==5.0.0
+pytest-freezer==0.4.8
+pytest-socket==0.7.0
+pytest-timeout==2.3.1
+pytest-unordered==0.6.0
+requests-mock==1.11.0
+respx==0.21.0
+syrupy==4.6.1
