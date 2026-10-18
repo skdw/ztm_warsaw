@@ -13,6 +13,8 @@ from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
+from custom_components.ztm_warsaw.client import ZTMStopClient
+
 from .conftest import at
 from .fake_city import WARSAW, day_sets
 from .helpers import instants, local, reference_next, rows_for
@@ -453,3 +455,32 @@ async def test_e2e_15_stored_answers_that_are_broken_or_too_old_are_ignored(env,
     entry = await env.add_entry(line="151")
     assert env.departure_local("151") == "2026-10-17 12:17"
     assert env.coordinator(entry)._previous is None
+
+
+@pytest.mark.start("2026-10-17 00:30")
+async def test_e2e_15_a_rejected_key_stays_a_failure_inside_the_window(env):
+    """The window must not turn a fail-closed sensor back into one that shows the cached timetable (a review finding)."""
+    await env.add_entry(line="N25")
+    env.city.valid_keys.clear()
+    await env.run_to("2026-10-17 01:31")  # the refresh at 01:30 meets the rejected key
+    assert env.state("N25").state == "unavailable"
+    await env.run_to("2026-10-17 02:40")  # the refresh at 02:30 falls inside the update window
+    assert env.state("N25").state == "unavailable"
+
+
+@pytest.mark.start("2026-10-17 02:09:50")
+async def test_e2e_15_a_first_answer_that_arrives_inside_the_window_is_not_trusted(env, monkeypatch):
+    """The very first request, sent at 02:09:50 and answered at 02:10:20, has no cache to fall back on (a review finding)."""
+    get = ZTMStopClient.get
+
+    async def slow_get(self):
+        answer = await get(self)
+        env.clock.tick(timedelta(seconds=30))
+        return answer
+
+    monkeypatch.setattr(ZTMStopClient, "get", slow_get)
+    await env.add_entry(line="N25")
+    assert env.state("N25").state == "unavailable"
+    monkeypatch.undo()
+    await env.run_to("2026-10-17 03:30")
+    assert env.departure_local("N25") is not None

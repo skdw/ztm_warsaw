@@ -129,15 +129,43 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             return True
         return False
 
+    def _hold_during_swap(self) -> ZTMDepartureData:
+        """The City is replacing its timetables, so an answer now may be either service day: keep the cached one.
+        A failure is never hidden by it, and without a cached timetable there is nothing to keep."""
+        if self.data is None or self._api_error:
+            raise UpdateFailed("The City of Warsaw is updating its timetables; trying again after 03:05")
+        return self.data
+
+    def _accept(self, new_data: ZTMDepartureData) -> ZTMDepartureData:
+        """Make a fresh answer the current one; the answer it replaces becomes the previous one on a new service day."""
+        data_changed = self._data_changed(new_data)
+        if self.data is not None and self.data.service_date != new_data.service_date:
+            self._previous = self.data
+        self.data = new_data
+        self._save()
+        self._api_error = False
+        self.last_update_success_time = dt_util.utcnow()
+        # Track last success date in local time (Europe/Warsaw)
+        self._last_success_local_date = dt_util.now().date()
+        if data_changed:
+            _LOGGER.info("ZTM Coordinator [%s] — new schedule data available, notifying sensors", self.name)
+        count = len(new_data.departures)
+        _LOGGER.debug(
+            "ZTM Coordinator [%s] — successfully fetched %d departures%s",
+            self.name,
+            count,
+            " (empty set)" if count == 0 else "",
+        )
+        return new_data
+
     async def _async_update_data(self) -> ZTMDepartureData:
         if in_swap_window(dt_util.utcnow()):
-            # The City is replacing the timetables: an answer now may be either day, so keep what we have.
-            if self.data is None:
-                raise UpdateFailed("The City of Warsaw is updating its timetables; trying again after 03:05")
-            return self.data
+            return self._hold_during_swap()
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)
         try:
             new_data = await self.client.get()
+            if in_swap_window(dt_util.utcnow()):  # the request began before the update did and ended inside it
+                return self._hold_during_swap()
             if new_data is None:
                 if self.data is not None and not self._api_error:
                     _LOGGER.warning(
@@ -146,33 +174,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                     )
                     return self.data
                 raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
-            
-            if self.data is not None and in_swap_window(dt_util.utcnow()):
-                # The request began before the update of the City did and ended inside it: it may be either day.
-                return self.data
+            return self._accept(new_data)
 
-            data_changed = self._data_changed(new_data)
-            
-            if self.data is not None and self.data.service_date != new_data.service_date:
-                self._previous = self.data
-            self.data = new_data
-            self._save()
-            self._api_error = False
-            self.last_update_success_time = dt_util.utcnow()
-            # Track last success date in local time (Europe/Warsaw)
-            self._last_success_local_date = dt_util.now().date()
-            
-            if data_changed:
-                _LOGGER.info("ZTM Coordinator [%s] — new schedule data available, notifying sensors", self.name)
-            count = len(new_data.departures)
-            _LOGGER.debug(
-                "ZTM Coordinator [%s] — successfully fetched %d departures%s",
-                self.name,
-                count,
-                " (empty set)" if count == 0 else "",
-            )
-            return new_data
-            
         except UpdateFailed:
             raise
         except ZTMApiError as err:
