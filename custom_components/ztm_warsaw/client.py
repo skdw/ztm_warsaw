@@ -47,7 +47,9 @@ _STOP_INFO_MAX_ATTEMPTS = 3  # then the stop name is given up until the entry is
 def _stop_fields(row) -> dict:
     """The ``{key: value}`` pairs of one record of the stops catalogue (``{"values": [{key, value}, ...]}``)."""
     values = row.get("values") if isinstance(row, dict) else None
-    return {v["key"]: v["value"] for v in values or [] if isinstance(v, dict) and "key" in v and "value" in v}
+    if not isinstance(values, list):
+        return {}
+    return {v["key"]: v["value"] for v in values if isinstance(v, dict) and "key" in v and "value" in v}
 
 
 def _match_stop(rows, stop_id: str, stop_nr: str) -> dict | None:
