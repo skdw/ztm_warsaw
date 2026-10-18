@@ -42,7 +42,9 @@ async def test_e2e_22_setup_owns_exactly_two_timers_and_unload_releases_both(env
     assert integration_timers(env) == []
     assert DOMAIN not in env.hass.data, "no per-entry data left behind"
     st = env.hass.states.get("sensor.line_151_from_7009_01")
-    assert st is not None and st.state == "unavailable" and st.attributes.get("restored") is True
+    assert st is not None
+    assert st.state == "unavailable"
+    assert st.attributes.get("restored") is True
 
     calls = env.city.count()
     await env.advance(hours=3)
