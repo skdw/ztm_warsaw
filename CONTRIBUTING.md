@@ -23,7 +23,7 @@ change. The rules the checks enforce, and the list of identifiers that must not 
 
 ## Development setup
 
-You need Python 3.13.2 or newer. The tests run a real Home Assistant, whose release and minimum Python are
+You need Python 3.14.2 or newer. The tests run a real Home Assistant, whose release and minimum Python are
 pinned by `pytest-homeassistant-custom-component` in `requirements_test.txt`.
 
 ```bash

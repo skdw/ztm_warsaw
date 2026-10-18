@@ -13,7 +13,7 @@ from homeassistant.util.async_ import get_scheduled_timer_handles
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import FULL_CATALOGUE, OVER_CAP_CATALOGUE, Http, ParamError, stop_name_for
-from .helpers import known_bug
+from .helpers import find_devices, known_bug, owners_of
 
 pytestmark = pytest.mark.e2e
 
@@ -65,11 +65,11 @@ async def test_e2e_22_reloading_three_times_never_accumulates_timers_or_entities
 
 async def test_e2e_22_removing_the_last_entry_cleans_registries(env):
     entry = await env.add_entry()
-    assert env.device_registry.async_get_device(identifiers={(DOMAIN, "line_151")}) is not None
+    assert find_devices(env.device_registry, {(DOMAIN, "line_151")})
     await env.hass.config_entries.async_remove(entry.entry_id)
     await env.settle()
     assert er.async_entries_for_config_entry(env.entity_registry, entry.entry_id) == []
-    assert env.device_registry.async_get_device(identifiers={(DOMAIN, "line_151")}) is None
+    assert not find_devices(env.device_registry, {(DOMAIN, "line_151")})
     assert env.hass.states.get("sensor.line_151_from_7009_01") is None
     assert integration_timers(env) == []
     assert DOMAIN not in env.hass.data
@@ -132,15 +132,14 @@ async def test_e2e_23_the_stop_catalogue_is_downloaded_once_for_five_entries_on_
 async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_other_working(env):
     a = await env.add_entry(line="151", stop_nr="01")
     b = await env.add_entry(line="151", stop_nr="02")  # same line, other pole: same device (ztm_warsaw, line_151)
-    device = env.device_registry.async_get_device(identifiers={(DOMAIN, "line_151")})
-    assert device is not None and device.config_entries == {a.entry_id, b.entry_id}
+    devices = find_devices(env.device_registry, {(DOMAIN, "line_151")})
+    assert owners_of(devices) == {a.entry_id, b.entry_id}  # one shared device, or one per entry on HA 2026.10
 
     await env.hass.config_entries.async_remove(a.entry_id)
     await env.settle()
 
-    device = env.device_registry.async_get_device(identifiers={(DOMAIN, "line_151")})
-    assert device is not None, "the shared device must survive"
-    assert device.config_entries == {b.entry_id}
+    devices = find_devices(env.device_registry, {(DOMAIN, "line_151")})
+    assert owners_of(devices) == {b.entry_id}, "the survivor keeps its device, the removed entry's is gone"
     assert env.hass.states.get("sensor.line_151_from_7009_01") is None
     assert env.departure_local("151", 7009, "02") is not None
     calls_b = len(env.city.matching("timetable", busstopNr="02"))
@@ -151,7 +150,7 @@ async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_
 
     await env.hass.config_entries.async_remove(b.entry_id)
     await env.settle()
-    assert env.device_registry.async_get_device(identifiers={(DOMAIN, "line_151")}) is None
+    assert not find_devices(env.device_registry, {(DOMAIN, "line_151")})
 
 
 # ===================================================================== E2E-26
@@ -243,7 +242,8 @@ async def test_e2e_27_a_failing_catalogue_does_not_stop_departures(env):
     st = env.state()
     assert st.state not in ("unknown", "unavailable")
     assert st.attributes["Stop, Name"] == "Not available"
-    assert st.attributes["friendly_name"] == "Line 151 from 7009/01"
+    # Home Assistant 2026.10 capitalises words of a name it builds ("From"); the older ones keep "from".
+    assert st.attributes["friendly_name"].lower() == "line 151 from 7009/01"
 
 
 async def test_e2e_27_a_text_answer_for_the_catalogue_is_retried_once_shortly_after(env):

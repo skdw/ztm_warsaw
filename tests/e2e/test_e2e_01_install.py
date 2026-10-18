@@ -9,6 +9,7 @@ from urllib.parse import parse_qs
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 import custom_components.ztm_warsaw as integration
@@ -174,7 +175,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert diag.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default
 
     # --- device registry: one device per LINE (shared by every stop of that line)
-    devices = [d for d in env.device_registry.devices.values() if entry.entry_id in d.config_entries]
+    devices = dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
     assert len(devices) == 1
     device = devices[0]
     assert device.identifiers == {("ztm_warsaw", f"line_{line}")}
