@@ -53,7 +53,8 @@ async def test_a_sensor_appears_and_is_removed_with_the_entry(hass, enable_custo
 
     assert entry.state is ConfigEntryState.LOADED
     state = hass.states.get(SENSOR)
-    assert state is not None and state.state != "unavailable", state
+    assert state is not None
+    assert state.state != "unavailable", state
     assert "Stop, ID" in state.attributes
     assert city.count("timetable") >= 1
 
