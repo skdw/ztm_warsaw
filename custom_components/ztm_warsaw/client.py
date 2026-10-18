@@ -12,6 +12,7 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading
 
 _LOGGER = logging.getLogger(__name__)
 
+_RETRY = object()  # what _attempt returns for an answer worth another try
 _NEW_API = "https://dane.um.warszawa.pl/api/action/"
 _NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 _NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
@@ -162,82 +163,66 @@ class ZTMStopClient:
     async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
                               method: str = "GET", json_body: dict | None = None,
                               headers: dict | None = None, wrap: bool = False):
-        """Send the request with a timeout and a small retry on timeout/5xx. Redirects are never followed: the
-        request carries the key, and a 3xx is an error. ``wrap`` puts a bare JSON answer into ``{"result": ...}``.
+        """Send the request with a timeout and a small retry on timeout, network error and 5xx.
+
+        Redirects are never followed: the request carries the key, and a 3xx is an error. ``wrap`` puts a bare
+        JSON answer into ``{"result": ...}``. Returns the answer, or None when the request finally failed.
         # English-only comments for OSS clarity
         """
         attempt = 0
         while True:
             try:
-                async with (
-                    asyncio.timeout(self._timeout),
-                    self._session.request(
-                        method, url, params=params, json=json_body, headers=headers, allow_redirects=False
-                    ) as resp,
-                ):
-                    chunks: list[bytes] = []
-                    total = 0
-                    async for chunk in resp.content.iter_chunked(65536):
-                        total += len(chunk)
-                        if total > 2_000_000:
-                            _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
-                            return None
-                        chunks.append(chunk)
-                    text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
-                    # Retry on 5xx
-                    if 500 <= resp.status <= 599 and attempt < self._max_retries:
-                        _LOGGER.warning(
-                            "HTTP %s from %s; retrying (%s/%s)",
-                            resp.status, url, attempt + 1, self._max_retries
-                        )
-                        attempt += 1
-                        await asyncio.sleep(self._retry_backoff * attempt)
-                        continue
-                    if resp.status != 200:
-                        _LOGGER.error(
-                            "HTTP %s from %s",
-                            resp.status, url
-                        )
-                        return None
-                    if expect_json:
-                        try:
-                            value = json.loads(text)
-                            return {"result": value} if wrap else value
-                        except Exception:
-                            _LOGGER.error(
-                                "Invalid JSON from %s",
-                                url
-                            )
-                            return None
-                    return text
+                result = await self._attempt(url, params, expect_json, method, json_body, headers, wrap, attempt)
             except asyncio.TimeoutError:
-                if attempt < self._max_retries:
-                    _LOGGER.warning(
-                        "Timeout talking to %s; retrying (%s/%s)",
-                        url, attempt + 1, self._max_retries
-                    )
-                    attempt += 1
-                    await asyncio.sleep(self._retry_backoff * attempt)
-                    continue
-                _LOGGER.error(
-                    "Timeout after %ss for %s",
-                    self._timeout, url
+                if attempt >= self._max_retries:
+                    _LOGGER.error("Timeout after %ss for %s", self._timeout, url)
+                    return None
+                _LOGGER.warning("Timeout talking to %s; retrying (%s/%s)", url, attempt + 1, self._max_retries)
+            except aiohttp.ClientError as err:
+                # The text of a network error can carry the URL, and so the key: only its class is logged.
+                if attempt >= self._max_retries:
+                    _LOGGER.error("Network error for %s: %s", url, type(err).__name__)
+                    return None
+                _LOGGER.warning(
+                    "Network error for %s: %s; retrying (%s/%s)", url, type(err).__name__, attempt + 1, self._max_retries
                 )
+            else:
+                if result is not _RETRY:
+                    return result
+            attempt += 1
+            await asyncio.sleep(self._retry_backoff * attempt)
+
+    async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt):
+        """One request. The answer, None for a failure that is final, or _RETRY for a 5xx worth another try."""
+        async with (
+            asyncio.timeout(self._timeout),
+            self._session.request(
+                method, url, params=params, json=json_body, headers=headers, allow_redirects=False
+            ) as resp,
+        ):
+            chunks: list[bytes] = []
+            total = 0
+            async for chunk in resp.content.iter_chunked(65536):
+                total += len(chunk)
+                if total > 2_000_000:
+                    _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
+                    return None
+                chunks.append(chunk)
+            text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
+            if 500 <= resp.status <= 599 and attempt < self._max_retries:
+                _LOGGER.warning("HTTP %s from %s; retrying (%s/%s)", resp.status, url, attempt + 1, self._max_retries)
+                return _RETRY
+            if resp.status != 200:
+                _LOGGER.error("HTTP %s from %s", resp.status, url)
                 return None
-            except aiohttp.ClientError as e:
-                if attempt < self._max_retries:
-                    _LOGGER.warning(
-                        "Network error for %s: %s; retrying (%s/%s)",
-                        url, type(e).__name__, attempt + 1, self._max_retries
-                    )
-                    attempt += 1
-                    await asyncio.sleep(self._retry_backoff * attempt)
-                    continue
-                _LOGGER.error(
-                    "Network error for %s: %s",
-                    url, type(e).__name__
-                )
+            if not expect_json:
+                return text
+            try:
+                value = json.loads(text)
+            except ValueError:
+                _LOGGER.error("Invalid JSON from %s", url)
                 return None
+            return {"result": value} if wrap else value
 
     async def get_stop_name(self) -> Optional[dict]:
         """Fetch stop metadata (name, etc.) with caching and strict validation.
