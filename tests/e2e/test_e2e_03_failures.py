@@ -166,6 +166,7 @@ COLD_START = [
         "unavailable",
         id="result_false_without_apikey",
     ),
+    pytest.param(lambda: Respond(200, {"result": [[{"key": "czas", "value": "garbage"}]]}, name="junk"), "unavailable", id="rows_without_one_reading"),
     pytest.param(lambda: Http(500), "unavailable", id="http_500"),
     pytest.param(lambda: Http(403, {"message": "Forbidden"}), "unavailable", id="http_403"),
     pytest.param(lambda: Http(404, {"message": "Not found"}), "unavailable", id="http_404"),

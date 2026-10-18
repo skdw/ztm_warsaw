@@ -196,10 +196,25 @@ class ZTMStopClient:
         return [v["value"] for row in rows if isinstance(row, dict)
                 for v in row.get("values") or [] if isinstance(v, dict) and v.get("key") == "linia"]
 
-    async def token_is_accepted(self) -> bool:
-        """Whether the new API answers a request that has no parameters to get wrong. It answers every rejected
-        request alike (HTTP 500), so this is the only way to tell a bad token from a bad stop."""
-        return await self._call("stops") is not None
+    async def stop_in_catalogue(self) -> bool | None:
+        """Whether this stop pole is in the stops catalogue; None when the catalogue could not be read.
+
+        The new API answers every rejected request with the same HTTP 500, so when a request fails this is how to
+        tell a stop that does not exist (False) from a service that is down or a token that is refused (None).
+        """
+        answer = await self._call("stops")
+        if answer is None:
+            return None
+        try:
+            rows = _checked_result(answer)
+        except ZTMApiError:
+            return None
+        wanted = (str(self._params["busstopId"]), str(self._params["busstopNr"]))
+        for row in rows:
+            fields = {v.get("key"): v.get("value") for v in (row.get("values") or []) if isinstance(v, dict)} if isinstance(row, dict) else {}
+            if (fields.get("zespol"), fields.get("slupek")) == wanted:
+                return True
+        return False
 
     async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
                               method: str = "GET", json_body: dict | None = None,
@@ -536,6 +551,9 @@ class ZTMStopClient:
                         _departures.append(parsed)
                 except Exception:
                     _LOGGER.debug("Invalid reading skipped: %s", _data)
+
+            if result and not _departures:
+                raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
 
             # Sort departures by their scheduled time
             _departures.sort(key=lambda x: x.time_to_depart)

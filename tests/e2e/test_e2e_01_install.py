@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs
 
 import pytest
@@ -13,6 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 import custom_components.ztm_warsaw as integration
+from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import (
@@ -29,6 +31,7 @@ from .fake_city import (
     InvalidJson,
     NullResult,
     Reset,
+    Respond,
     stop_name_for,
 )
 from .helpers import known_bug
@@ -284,6 +287,8 @@ FLOW_CASES = [
     ("not_a_key_at_all", {"api_key": "wrong-key"}, lambda e: None, {"invalid_api_key"}),
     ("token_rejected", {"api_key": DEFAULT_TOKEN}, lambda e: e.city.valid_tokens.clear(), {"invalid_token_or_unavailable"}),
     ("token_unknown_stop", {"api_key": DEFAULT_TOKEN, "stop_id": 7999}, lambda e: None, {"line_not_found"}),
+    ("token_lines_outage", {"api_key": DEFAULT_TOKEN}, lambda e: e.city.always("lines", Http(500), contract="new"), TRANSPORT_KEYS),
+    ("timetable_only_unreadable_rows", {}, lambda e: e.city.always("timetable", Respond(200, {"result": [[{"key": "czas", "value": "garbage"}]]}, name="junk")), {"no_valid_times"}),
     ("timetable_null", {}, lambda e: e.city.always("timetable", NullResult()), {"no_departures"}),
     ("timetable_empty", {}, lambda e: e.city.always("timetable", EmptyList()), {"no_valid_times", "no_departures"}),
 ]
@@ -299,6 +304,14 @@ async def test_e2e_04_config_flow_failures_are_reported_not_swallowed(env, case,
     assert env.hass.config_entries.async_entries(DOMAIN) == [], "nothing may be created on failure"
     if case in {"http_500", "connection_reset", "invalid_json", "html_maintenance_page"}:
         assert result["errors"]["base"] != "invalid_api_key", "an outage must never look like a wrong key"
+
+
+async def test_e2e_04_an_unexpected_error_is_reported_as_unknown_and_only_its_class_is_logged(env, caplog):
+    with patch.object(ZTMStopClient, "get_lines", AsyncMock(side_effect=RuntimeError(f"boom {DEFAULT_KEY}"))):
+        result = await env.submit_flow()
+    assert result["errors"]["base"] == "unknown"
+    assert "RuntimeError" in caplog.text
+    assert DEFAULT_KEY not in caplog.text
 
 
 async def test_e2e_04_config_flow_slow_server_times_out_with_a_connection_error(env):

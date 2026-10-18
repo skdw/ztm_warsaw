@@ -25,12 +25,41 @@ DATA_SCHEMA = vol.Schema({
 })
 
 
+async def _check_lines(client, line):
+    """The line must stop at the pole. When the request fails on the new API (which answers every rejected request
+    alike) the catalogue tells a stop that does not exist from a service that is down."""
+    try:
+        lines = await client.get_lines()
+    except ZTMAuthError:
+        raise
+    except ZTMApiError:
+        raise ValueError("line_not_found") from None
+    if lines is None:
+        known = await client.stop_in_catalogue() if client.uses_token else True
+        if known is None:
+            raise ValueError("invalid_token_or_unavailable")
+        raise ValueError("line_not_found" if known is False else "api_connection_error")
+    if line not in lines:
+        raise ValueError("line_not_found")
+
+
+async def _check_timetable(client):
+    try:
+        data = await client.get(fetch_stop_name=False)
+    except ZTMAuthError:
+        raise
+    except ZTMApiError:
+        raise ValueError("no_valid_times") from None
+    if data is None:
+        raise ValueError("api_connection_error")
+    if not data.departures:
+        raise ValueError("no_departures")
+
+
 async def validate_input(hass, api_key, stop_id, stop_nr, line):
     """Check the input against the City of Warsaw API with the client the sensor uses. Raises ValueError(<error key>).
 
-    A key that is neither a UUID (old API) nor a token (new API) is refused before anything is sent. The new API
-    answers every rejected request with the same HTTP 500, so when its request for the lines fails, a request with
-    no parameters to get wrong tells a bad token from a bad stop.
+    A key that is neither a UUID (old API) nor a token (new API) is refused before anything is sent.
     """
     if key_kind(api_key) is None:
         raise ValueError("invalid_api_key")
@@ -38,22 +67,10 @@ async def validate_input(hass, api_key, stop_id, stop_nr, line):
         async_get_clientsession(hass), api_key, str(stop_id), stop_nr, line, user_agent=await user_agent(hass)
     )
     try:
-        lines = await client.get_lines()
-        if lines is None:
-            if not client.uses_token:
-                raise ValueError("api_connection_error")
-            raise ValueError("line_not_found" if await client.token_is_accepted() else "invalid_token_or_unavailable")
-        if line not in lines:
-            raise ValueError("line_not_found")
-        data = await client.get(fetch_stop_name=False)
+        await _check_lines(client, line)
+        await _check_timetable(client)
     except ZTMAuthError:
         raise ValueError("invalid_api_key") from None
-    except ZTMApiError:
-        raise ValueError("line_not_found") from None
-    if data is None:
-        raise ValueError("api_connection_error")
-    if not data.departures:
-        raise ValueError("no_departures")
 
 
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
@@ -64,9 +81,10 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
 
         if user_input is not None:
             user_input = {k: v.strip() if isinstance(v, str) else v for k, v in user_input.items()}
-            if not re.fullmatch(r"[0-9]{2}", user_input[CONF_BUSSTOP_NR]):
+            if not re.fullmatch(r"\d{2}", user_input[CONF_BUSSTOP_NR], re.ASCII):
                 errors["base"] = "invalid_stop_number"
             else:
+                unexpected = None
                 try:
                     await validate_input(
                         self.hass,
@@ -77,11 +95,14 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
                     )
                 except ValueError as err:
                     errors["base"] = str(err)
-                    _LOGGER.warning("Validation error: %s", errors["base"])
                 except Exception as err:
-                    # Only the class: the text or the traceback of an unexpected error can carry the URL, and the key.
-                    _LOGGER.error("Unexpected error during validation: %s", type(err).__name__)
+                    unexpected = type(err).__name__
                     errors["base"] = "unknown"
+                if unexpected:
+                    # Only the class: the text or the traceback of an unexpected error can carry the URL, and the key.
+                    _LOGGER.error("Unexpected error during validation: %s", unexpected)
+                elif errors:
+                    _LOGGER.warning("Validation error: %s", errors["base"])
                 else:
                     title = f"Line {user_input[CONF_LINE]} from {user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}"
                     return self.async_create_entry(title=title, data=user_input)
