@@ -15,6 +15,7 @@ from .models import ZTMDepartureData, ZTMDepartureDataReading, in_swap_window, n
 _LOGGER = logging.getLogger(__name__)
 
 SETUP_DEADLINE = 30  # seconds the first refresh of an entry may take before setup is retried
+STOP_NAME_DEADLINE = 10  # and the stop's name after it
 
 def store_key(entry_id: str) -> str:
     """One store per config entry: the saved failure marker belongs to the key of that entry."""
@@ -57,15 +58,25 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         try:
             async with asyncio.timeout(SETUP_DEADLINE):
                 await super().async_config_entry_first_refresh()
-                await self._load_stop_name()
         except TimeoutError as err:
-            raise ConfigEntryNotReady("The City of Warsaw did not answer in time") from err
+            if self.data is None:
+                raise ConfigEntryNotReady("The City of Warsaw did not answer in time") from err
+            _LOGGER.debug("ZTM Coordinator [%s] — no answer in time, starting from the stored timetable", self.name)
+            self.last_update_success = True  # the cancelled refresh marked it failed; the stored timetable is what we hold
+        except ConfigEntryNotReady as err:
+            # Home Assistant raises it without a reason; the cause is a fixed text that never holds the key.
+            raise ConfigEntryNotReady(str(err.__cause__ or err) or "The City of Warsaw did not answer properly") from err
+        await self._load_stop_name()
         self._schedule_flip_refresh()
 
     async def _load_stop_name(self):
-        """The stop's name, once at startup (the client keeps it); a failure only means the sensors have no name for it."""
+        """The stop's name, once at startup (the client keeps it), on a short leash and never inside the City's update;
+        a failure only means the sensors have no name for it."""
+        if in_swap_window(dt_util.utcnow()):
+            return
         try:
-            await self.client.get_stop_name()
+            async with asyncio.timeout(STOP_NAME_DEADLINE):
+                await self.client.get_stop_name()
         except Exception:  # noqa: BLE001
             _LOGGER.debug("ZTM Coordinator [%s] — stop-info fetch skipped (non-fatal)", self.name)
 

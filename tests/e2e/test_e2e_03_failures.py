@@ -472,3 +472,27 @@ async def test_e2e_21_it_recovers_within_ten_minutes_of_the_city_coming_back(env
     env.city.heal()  # two minutes later it is
     await env.advance(minutes=10)
     assert departing(env), "setup should have been retried (SETUP_RETRY) instead of waiting for the hourly tick"
+
+
+async def test_e2e_21_a_retried_setup_says_why(env, caplog):
+    """HA raises ConfigEntryNotReady without a reason; the entry shows the City's one, and never the key."""
+    env.city.valid_keys.clear()
+    entry = await env.add_entry()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.reason and DEFAULT_KEY not in entry.reason
+    assert "rejected" in entry.reason.lower()
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_21_a_slow_city_does_not_throw_away_the_stored_timetable(env, hass_storage):
+    """The deadline ends a first refresh that hangs; with a stored timetable of today the sensor starts from it."""
+    entry = await env.add_entry(line="151", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    rows = [{"czas": "13:30:00"}, {"czas": "14:30:00"}]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"answers": [{"service_date": "2026-10-17", "rows": rows}]}}
+    env.city.always(None, Hang())
+    task = asyncio.ensure_future(env.hass.config_entries.async_setup(entry.entry_id))
+    await env.drive_timeouts(task)
+    await env.settle()
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.departure_local("151") == "2026-10-17 13:30"
