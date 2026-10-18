@@ -625,3 +625,17 @@ async def test_e2e_15_a_refresh_that_outlives_the_entry_does_not_write_its_store
     coordinator._store.async_delay_save = Mock()
     coordinator._save()
     coordinator._store.async_delay_save.assert_not_called()
+
+
+@pytest.mark.start("2026-10-17 02:30")
+async def test_e2e_15_a_restart_inside_the_window_does_not_ask_the_city_for_the_stop_name(env, hass_storage):
+    """From the stored timetable the first refresh needs no request, and the optional catalogue waits for 03:05."""
+    entry = await env.add_entry(line="N25", setup=False)
+    key = f"ztm_warsaw.{entry.entry_id}"
+    rows = [{"czas": "27:24:00"}, {"czas": "27:54:00"}]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"answers": [{"service_date": "2026-10-16", "rows": rows}]}}
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert entry.state is ConfigEntryState.LOADED
+    assert env.city.count() == 0, "no request at all inside the City's update"
+    assert env.departure_local("N25") == "2026-10-17 03:24"

@@ -88,14 +88,14 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     }
     assert entry.options == {}
     # What the integration asked the city for, in order: 2 validation calls in the flow, then the setup
-    # (stop catalogue first, then the timetable).
+    # (the timetable first, then the stop catalogue for the name).
     assert [(c.contract, c.endpoint) for c in env.city.calls] == [
         ("legacy", "lines"),
         ("legacy", "timetable"),
-        ("legacy", "stops"),
         ("legacy", "timetable"),
+        ("legacy", "stops"),
     ]
-    lines_call, flow_tt, stops_call, setup_tt = env.city.calls
+    lines_call, flow_tt, setup_tt, stops_call = env.city.calls
     assert lines_call.query == {"id": LEGACY_LINES_ID, "busstopId": "7009", "busstopNr": "01", "apikey": DEFAULT_KEY}
     expected_tt = {
         "id": LEGACY_TIMETABLE_ID,

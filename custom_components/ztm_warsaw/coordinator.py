@@ -43,6 +43,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
         self._refreshing = asyncio.Lock()
+        self._started = False  # the first refresh is over: from then on a refresh may also ask for the stop's name
         self._ztm_shutdown_done = False
         self._refreshes = 0  # how many refreshes have finished
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
@@ -66,6 +67,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         except ConfigEntryNotReady as err:
             # Home Assistant raises it without a reason; the cause is a fixed text that never holds the key.
             raise ConfigEntryNotReady(str(err.__cause__ or err) or "The City of Warsaw did not answer properly") from err
+        self._started = True
         await self._load_stop_name()
         self._schedule_flip_refresh()
 
@@ -76,9 +78,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             return
         try:
             async with asyncio.timeout(STOP_NAME_DEADLINE):
-                await self.client.get_stop_name()
+                info = await self.client.get_stop_name()
         except Exception:  # noqa: BLE001
             _LOGGER.debug("ZTM Coordinator [%s] — stop-info fetch skipped (non-fatal)", self.name)
+            return
+        if info and self.data is not None:
+            self.data.stop_info = info
 
     async def _restore(self):
         """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,
@@ -214,7 +219,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             return self._hold_during_swap()
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)
         try:
-            new_data = await self.client.get()
+            new_data = await self.client.get(fetch_stop_name=self._started)  # the name is not worth the setup's deadline
             if in_swap_window(dt_util.utcnow()):  # the request began before the update did and ended inside it
                 return self._hold_during_swap()
             if new_data is None:

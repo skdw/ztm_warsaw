@@ -479,7 +479,8 @@ async def test_e2e_21_a_retried_setup_says_why(env, caplog):
     env.city.valid_keys.clear()
     entry = await env.add_entry()
     assert entry.state is ConfigEntryState.SETUP_RETRY
-    assert entry.reason and DEFAULT_KEY not in entry.reason
+    assert entry.reason
+    assert DEFAULT_KEY not in entry.reason
     assert "rejected" in entry.reason.lower()
 
 
@@ -496,3 +497,12 @@ async def test_e2e_21_a_slow_city_does_not_throw_away_the_stored_timetable(env, 
     await env.settle()
     assert entry.state is ConfigEntryState.LOADED
     assert env.departure_local("151") == "2026-10-17 13:30"
+
+
+async def test_e2e_21_a_hanging_stops_catalogue_does_not_keep_the_sensor_away(env):
+    """The stop's name is optional: with the timetable healthy and the catalogue hanging, setup still succeeds (a review finding)."""
+    env.city.always("stops", Hang())
+    task = asyncio.ensure_future(env.add_entry())
+    entry = await env.drive_timeouts(task)
+    assert entry.state is ConfigEntryState.LOADED
+    assert departing(env)
