@@ -24,7 +24,9 @@ counts. A check from any other app, with the same name, does not count.
 REQUIRED is the set of jobs of ci.yml that run on a push to main. It is the branch
 protection list minus "Documentation impact declaration" (that check only runs on
 pull requests, so a merge commit never has it) plus "HACS validation" (not required
-to merge, because it needs the network, but required to release). The names are the
+to merge, because it needs the network) and "Compat smoke (minimum Home Assistant)"
+(not required to merge, because it installs an old Home Assistant), both required to
+release. The names are the
 ``name:`` of the jobs in ci.yml; a test keeps the two in step.
 
 Messages are built from constants only: the check names below, never text from the
@@ -49,6 +51,7 @@ REQUIRED = (
     "Lint workflows (actionlint, zizmor)",
     "Release bookkeeping",
     "HACS validation",
+    "Compat smoke (minimum Home Assistant)",
 )
 APP = "github-actions"
 

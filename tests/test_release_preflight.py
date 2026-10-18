@@ -107,6 +107,10 @@ def test_hacs_validation_is_required_to_release_though_not_to_merge(preflight: M
     assert "HACS validation" in preflight.REQUIRED
 
 
+def test_the_compat_smoke_on_the_minimum_home_assistant_is_required_to_release(preflight: ModuleType) -> None:
+    assert "Compat smoke (minimum Home Assistant)" in preflight.REQUIRED
+
+
 def test_the_documentation_impact_check_is_not_required_because_it_never_runs_on_main(preflight: ModuleType) -> None:
     assert "Documentation impact declaration" not in preflight.REQUIRED
 

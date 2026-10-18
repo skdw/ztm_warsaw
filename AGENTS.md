@@ -76,6 +76,8 @@ changed once without a migration; do not repeat that.
   `target-version`). CI runs newer: the Home Assistant release and the Python version that
   `pytest-homeassistant-custom-component` in `requirements_test.txt` pins. Do not use an API that
   Home Assistant 2024.4 lacks without checking.
+  The job `Compat smoke (minimum Home Assistant)` runs `tests/compat` on 2024.4 and Python 3.12 (pins in
+  `.github/compat/`); it is not required to merge, but a release needs it.
 - `manifest.json` has `"requirements": []` on purpose: Home Assistant provides aiohttp, and hassfest
   rejects it as a requirement. Do not add a runtime requirement without discussing it first.
 
