@@ -118,3 +118,24 @@ def test_the_next_midnight_in_warsaw_is_one_second_past_it():
 def test_a_reading_without_a_time_has_no_moment():
     assert ZTMDepartureDataReading.from_dict({"kierunek": "X"}, FRI).dt is None
     assert ZTMDepartureDataReading.from_dict({"czas": "12:00:00"}, FRI).dt == warsaw("2026-10-16 12:00")
+
+
+@pytest.mark.parametrize(
+    ("departure", "label"),
+    [
+        ("2026-10-17 12:00", "today"),
+        ("2026-10-18 00:30", "tomorrow"),
+        ("2026-10-16 23:50", "yesterday"),
+        ("2026-10-20 08:00", "Tue"),
+    ],
+)
+def test_the_day_of_a_departure_is_named_in_warsaw_dates(departure, label):
+    from custom_components.ztm_warsaw.sensor import _friendly_day
+
+    assert _friendly_day(warsaw(departure), warsaw("2026-10-17 12:00")) == label
+
+
+def test_a_reading_without_a_moment_has_no_day_label():
+    from custom_components.ztm_warsaw.sensor import NOT_AVAILABLE, _friendly_day
+
+    assert _friendly_day(None, warsaw("2026-10-17 12:00")) == NOT_AVAILABLE

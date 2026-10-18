@@ -439,3 +439,17 @@ async def test_e2e_15_an_answer_that_arrives_after_the_update_has_begun_is_not_t
     coordinator.client.get = slow_get
     await coordinator.async_refresh()
     assert coordinator.data is before
+
+
+@pytest.mark.start("2026-10-17 12:00")
+async def test_e2e_15_stored_answers_that_are_broken_or_too_old_are_ignored(env, hass_storage):
+    """The stored answers are a convenience: garbage, or an answer of two days ago, must not stop the sensor."""
+    old = {"service_date": "2026-10-15", "rows": [{"czas": "27:30:00"}], "stop_info": {}}
+    hass_storage["ztm_warsaw.line_151_from_7009_01"] = {
+        "version": 1,
+        "key": "ztm_warsaw.line_151_from_7009_01",
+        "data": {"answers": [{"service_date": "not a date", "rows": []}, {"rows": []}, "junk", old]},
+    }
+    entry = await env.add_entry(line="151")
+    assert env.departure_local("151") == "2026-10-17 12:17"
+    assert env.coordinator(entry)._previous is None

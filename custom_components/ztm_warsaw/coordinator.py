@@ -95,8 +95,6 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
 
     def _schedule_flip_refresh(self):
         """Ask again at 03:06 Warsaw time, when the update of the API is over."""
-        if self._flip_unsub:
-            self._flip_unsub()
         self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
 
     @callback
