@@ -19,13 +19,16 @@ LEGACY_TIMETABLE_ID = "e923fa0e-d96c-43f9-ae6e-60518c9f3238"
 LEGACY_LINES_ID = "88cd555f-6f31-43ca-9de4-66c479ad5942"
 LEGACY_STOPS_ID = "ab75c33d-3a26-4342-b36a-6e5fef0a3ac3"
 
-# Actions of the NEW dane.um.warszawa.pl API (documented by the city, not captured).
+# Actions of the NEW dane.um.warszawa.pl API (measured on 2026-10-18, see data/README.md).
 NEW_ACTION_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 NEW_ACTION_LINES = "get_ztm_lista_linii_na_przystanku"
 NEW_ACTION_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
 
 PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"
 BAD_KEY_PAYLOAD = {"result": "false", "error": "Błędny apikey lub jego brak"}
+# The new host's answer to EVERY rejected request, HTTP 500 (measured 2026-10-18): a missing or bad token, an unknown
+# stop or line, a missing or non-string parameter. Nothing in it says which.
+SERVICE_UNAVAILABLE_PAYLOAD = {"message": "Service unavailable"}
 
 StopKey = tuple[str, str]  # ("7009", "01")
 Row = list[dict]  # [{"key": "czas", "value": "23:24:00"}, ...] in the API's key order
@@ -144,6 +147,7 @@ def all_known_stops() -> set[StopKey]:
 # --------------------------------------------------------------------------------------
 SMALL_CATALOGUE = 40_000  # bytes; enough for the 7 real stop poles + filler, fast
 FULL_CATALOGUE = 1_645_692  # bytes measured on the live dataset (6 986 records, 82% of 2 MB)
+FULL_NEW_CATALOGUE = 1_584_188  # bytes measured on the new host on 2026-10-18 (6 789 records, 79% of 2 MB)
 OVER_CAP_CATALOGUE = 2_150_000  # bigger than the integration's 2 MB response cap
 
 _SYLLABLES = [
@@ -168,19 +172,23 @@ _SYLLABLES = [
 _DIRECTIONS = ["Centrum", "Metro Testowe", "Pętla Testowa", "Rondo Syntetyczne", "al.Wymyślona", "Dw.Fikcyjny"]
 
 
-def _stop_record(stop_id: str, nr: str, name: str, street: str, lat: str, lon: str, direction: str) -> dict:
-    return {
-        "values": [
-            {"value": stop_id, "key": "zespol"},
-            {"value": nr, "key": "slupek"},
-            {"value": name, "key": "nazwa_zespolu"},
-            {"value": street, "key": "id_ulicy"},
-            {"value": lat, "key": "szer_geo"},
-            {"value": lon, "key": "dlug_geo"},
+def _stop_record(
+    stop_id: str, nr: str, name: str, street: str, lat: str, lon: str, direction: str, *, legacy: bool = True
+) -> dict:
+    values = [
+        {"value": stop_id, "key": "zespol"},
+        {"value": nr, "key": "slupek"},
+        {"value": name, "key": "nazwa_zespolu"},
+        {"value": street, "key": "id_ulicy"},
+        {"value": lat, "key": "szer_geo"},
+        {"value": lon, "key": "dlug_geo"},
+    ]
+    if legacy:  # the new host's records stop after the six keys above (measured on all 6 789 records)
+        values += [
             {"value": direction, "key": "kierunek"},
             {"value": "2026-10-10 00:00:00.0", "key": "obowiazuje_od"},
         ]
-    }
+    return {"values": values}
 
 
 def stop_name_for(stop_id: str) -> str:
@@ -189,8 +197,14 @@ def stop_name_for(stop_id: str) -> str:
 
 
 @lru_cache(maxsize=8)
-def stops_catalogue_bytes(target_bytes: int = SMALL_CATALOGUE, *, ensure_ascii: bool = False) -> bytes:
-    """Serialized ``{"result": [...]}`` of at least ``target_bytes`` bytes (deterministic)."""
+def stops_catalogue_bytes(
+    target_bytes: int = SMALL_CATALOGUE, *, ensure_ascii: bool = False, new_host: bool = False
+) -> bytes:
+    """The serialized catalogue, of at least ``target_bytes`` bytes (deterministic).
+
+    Legacy host: ``{"result": [...]}`` with eight keys per record. New host (measured 2026-10-18): a BARE list of
+    records with six keys, in compact JSON.
+    """
     rng = random.Random(20261017)
     core_ids = {s for s, _ in all_known_stops()}
     used = set(all_known_stops())
@@ -203,6 +217,7 @@ def stops_catalogue_bytes(target_bytes: int = SMALL_CATALOGUE, *, ensure_ascii: 
             f"52.{rng.randint(100000, 299999)}",
             f"21.{rng.randint(10000, 199999)}",
             rng.choice(_DIRECTIONS),
+            legacy=not new_host,
         )
         for sid, nr in sorted(all_known_stops())
     ]
@@ -223,13 +238,22 @@ def stops_catalogue_bytes(target_bytes: int = SMALL_CATALOGUE, *, ensure_ascii: 
             f"52.{rng.randint(100000, 299999)}",
             f"21.{rng.randint(10000, 199999)}",
             rng.choice(_DIRECTIONS),
+            legacy=not new_host,
         )
 
+    def dump(obj) -> str:
+        if new_host:
+            return json.dumps(obj, ensure_ascii=ensure_ascii, separators=(",", ":"))
+        return json.dumps(obj, ensure_ascii=ensure_ascii)
+
+    def serialize(records: list[dict]) -> bytes:
+        return dump(records if new_host else {"result": records}).encode("utf-8")
+
     def size(records: list[dict]) -> int:
-        return len(json.dumps({"result": records}, ensure_ascii=ensure_ascii).encode("utf-8"))
+        return len(serialize(records))
 
     filler: list[dict] = []
-    per_record = len(json.dumps(new_filler(), ensure_ascii=ensure_ascii)) + 2
+    per_record = len(dump(new_filler())) + 2
     # Pad in batches sized from the measured gap; two or three passes converge.
     while True:
         records = filler[: len(filler) // 2] + core + filler[len(filler) // 2 :]  # core stops mid-list
@@ -237,4 +261,4 @@ def stops_catalogue_bytes(target_bytes: int = SMALL_CATALOGUE, *, ensure_ascii: 
         if gap <= 0:
             break
         filler.extend(new_filler() for _ in range(max(1, gap // per_record)))
-    return json.dumps({"result": records}, ensure_ascii=ensure_ascii).encode("utf-8")
+    return serialize(records)

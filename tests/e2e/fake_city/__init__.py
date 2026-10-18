@@ -21,6 +21,7 @@ from .behaviors import (
 )
 from .data import (
     FULL_CATALOGUE,
+    FULL_NEW_CATALOGUE,
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
     LEGACY_TIMETABLE_ID,
@@ -37,6 +38,7 @@ __all__ = [
     "DEFAULT_KEY",
     "DEFAULT_TOKEN",
     "FULL_CATALOGUE",
+    "FULL_NEW_CATALOGUE",
     "LEGACY_LINES_ID",
     "LEGACY_STOPS_ID",
     "LEGACY_TIMETABLE_ID",

@@ -1,19 +1,19 @@
 """Optional LIVE contract check: do the REAL City of Warsaw responses still have the shape the fake city serves?
 
 Why it exists: the whole e2e suite trusts a fake. The fake is only as good as our belief about the real API, and
-beliefs go stale (the legacy host is being phased out; the new one is only partly documented). This file runs
+beliefs go stale (the legacy host is being phased out; the new one was measured once, on 2026-10-18). This file runs
 the SAME shape assertions (``tests/contract_shapes.py``) that ``test_harness.py`` runs against the fake, but
 against api.um.warszawa.pl / dane.um.warszawa.pl.
 
 Rules
 * never in PR CI; never without a key. ``-m live`` AND ``ZTM_LIVE_API_KEY`` are both required.
-* at most 6 requests per run, one or two per test, a second apart. The stops catalogue (1.6 MB) is opt-in.
+* at most 8 requests per run, one or two per test, a second apart. The stops catalogue (1.6 MB) is opt-in.
 * the key is never printed: errors are re-raised as the exception class name only, no URL, no headers, and the
   key fixture's repr is redacted, so neither pytest's failure report nor assertion introspection shows it.
 
     ZTM_LIVE_API_KEY=<uuid or jwt> python -m pytest -m live tests/live -p no:cacheprovider
     ZTM_LIVE_STOP_ID=7009 ZTM_LIVE_STOP_NR=01  # optional, these are the defaults
-    ZTM_LIVE_CATALOGUE=1                        # also download the stops catalogue (legacy host only)
+    ZTM_LIVE_CATALOGUE=1                        # also download the stops catalogue (about 1.6 MB, either host)
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ from tests.contract_shapes import (
     assert_stops_rows,
     assert_timetable_rows,
     classify_legacy,
+    classify_new,
     is_legacy_key,
 )
 
@@ -82,6 +83,8 @@ async def test_live_lines_at_the_stop_have_the_documented_shape(live_key):
     payload = _json(body)
     if is_legacy_key(live_key):
         assert classify_legacy(payload) == "rows"
+    else:
+        assert classify_new(status, payload) == "rows"
     lines = assert_lines_rows(payload)
     assert lines, "a real stop pole has at least one line today"
 
@@ -96,6 +99,8 @@ async def test_live_timetable_has_the_documented_shape_including_service_hours_p
     payload = _json(body)
     if is_legacy_key(live_key):
         assert classify_legacy(payload) == "rows"
+    else:
+        assert classify_new(status, payload) == "rows"
     rows = assert_timetable_rows(payload)  # keys, HH:MM:SS, hour < 29
     assert rows, "a line listed at the stop runs today"
     # The envelope is the whole difference between the two hosts and the thing the fake mimics:
@@ -103,17 +108,24 @@ async def test_live_timetable_has_the_documented_shape_including_service_hours_p
 
 
 async def test_live_error_semantics_the_fake_relies_on():
-    """Legacy host only (it is the only contract whose error bodies are documented by measurement)."""
+    """Legacy host: an unknown key is HTTP 200 with result "false"."""
     unknown = "00000000-0000-0000-0000-000000000000"  # shaped like a legacy key, certainly not issued
     status, body = await _call(unknown, "timetable", busstopId=STOP_ID, busstopNr=STOP_NR, line="151")
     assert status == 200 and classify_legacy(_json(body)) == "bad_key"
 
 
-async def test_live_unknown_parameters_answer_with_the_text_error(live_key):
-    if not is_legacy_key(live_key):
-        pytest.skip("the new host's error semantics are unverified (a bogus token gave HTTP 500)")
+async def test_live_the_new_host_answers_a_rejected_token_with_the_generic_500():
+    """New host: HTTP 500 and the one generic body, the same as for an unknown stop or line (2026-10-18)."""
+    status, body = await _call("x.y.z", "lines", busstopId=STOP_ID, busstopNr=STOP_NR)
+    assert classify_new(status, _json(body)) == "failure"
+
+
+async def test_live_unknown_parameters_answer_the_way_the_fake_does(live_key):
     status, body = await _call(live_key, "timetable", busstopId="9999", busstopNr="99", line="ZZZ")
-    assert status == 200 and classify_legacy(_json(body)) == "param_error"
+    if is_legacy_key(live_key):
+        assert status == 200 and classify_legacy(_json(body)) == "param_error"
+    else:
+        assert classify_new(status, _json(body)) == "failure"
 
 
 @pytest.mark.skipif(not os.environ.get("ZTM_LIVE_CATALOGUE"), reason="opt-in: downloads ~1.6 MB")

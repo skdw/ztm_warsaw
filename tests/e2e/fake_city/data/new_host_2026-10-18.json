@@ -1,0 +1,394 @@
+{
+ "what": "Every request made to the new host (dane.um.warszawa.pl/api/action/) in one capture run, with what came back. Small bodies are kept whole; the large ones are described.",
+ "captured": "2026-10-18T01:09:54+02:00 to 2026-10-18T01:10:24+02:00 (Sunday 2026-10-18 shortly after 01:00, so the service day was still Saturday 2026-10-17); one run, 18 requests, at least a second apart",
+ "token": "the maintainer's own JWT (HS256, claims jti and iat only, no exp); it is in no file of this repository",
+ "same_minute_on_the_legacy_host": "the departures of line 151 at 7009/01 equal the legacy result row for row (53 rows) and the lines at the stop are the same 12 lines",
+ "calls": [
+  {
+   "name": "lines_ok",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 517,
+   "elapsed_s": 0.11,
+   "response": [
+    {
+     "values": [
+      {
+       "value": "523",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "143",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "151",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "182",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "525",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "502",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "N25",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "514",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "520",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "188",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "138",
+       "key": "linia"
+      }
+     ]
+    },
+    {
+     "values": [
+      {
+       "value": "187",
+       "key": "linia"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "dep_151",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01",
+    "line": "151"
+   },
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 10985,
+   "elapsed_s": 0.04,
+   "shape": "bare list of 53 rows; each row a list of 6 {value, key} pairs (symbol_2, symbol_1, brygada, kierunek, trasa, czas); czas from 04:41:00 to 23:11:00"
+  },
+  {
+   "name": "dep_523",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01",
+    "line": "523"
+   },
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 21853,
+   "elapsed_s": 0.09,
+   "shape": "bare list of 101 rows; each row a list of 6 {value, key} pairs (symbol_2, symbol_1, brygada, kierunek, trasa, czas); czas from 05:15:00 to 23:45:00"
+  },
+  {
+   "name": "dep_n25",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01",
+    "line": "N25"
+   },
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 2481,
+   "elapsed_s": 0.03,
+   "shape": "bare list of 12 rows; each row a list of 6 {value, key} pairs (symbol_2, symbol_1, brygada, kierunek, trasa, czas); czas from 23:24:00 to 28:54:00"
+  },
+  {
+   "name": "dep_411",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01",
+    "line": "411"
+   },
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 4,
+   "elapsed_s": 0.03,
+   "response": null
+  },
+  {
+   "name": "dep_badline",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01",
+    "line": "ZZZ"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.57,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "dep_badstop",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "9999",
+    "busstopNr": "99",
+    "line": "20"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.03,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "dep_numbers",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": 7009,
+    "busstopNr": 1,
+    "line": 151
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.4,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "dep_noline",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.03,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "dep_emptyobj",
+   "method": "POST",
+   "action": "get_ztm_odjazdy_linii_z_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {},
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.03,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "lines_badstop",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {
+    "busstopId": "9999",
+    "busstopNr": "99"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.03,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "stops",
+   "method": "POST",
+   "action": "get_ztm_przystanki_komunikacji_miejskiej",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": null,
+   "status": 200,
+   "content_type": "application/json",
+   "bytes": 1584188,
+   "elapsed_s": 1.31,
+   "shape": "bare list of 6789 records in compact JSON; every record is {\"values\": [...]} with exactly the keys zespol, slupek, nazwa_zespolu, id_ulicy, szer_geo, dlug_geo in that order"
+  },
+  {
+   "name": "auth_bogus",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "the string x.y.z",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 1.53,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "auth_forged",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "a JWT-shaped token signed with a throwaway secret",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.02,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "auth_none",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "no Authorization header",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.37,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "auth_bearer",
+   "method": "POST",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "the maintainer's token with a 'Bearer ' prefix",
+   "request_body": {
+    "busstopId": "7009",
+    "busstopNr": "01"
+   },
+   "status": 500,
+   "content_type": "application/json",
+   "bytes": 33,
+   "elapsed_s": 0.03,
+   "response": {
+    "message": "Service unavailable"
+   }
+  },
+  {
+   "name": "get_method",
+   "method": "GET",
+   "action": "get_ztm_lista_linii_na_przystanku",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": null,
+   "status": 405,
+   "content_type": "application/json",
+   "bytes": 31,
+   "elapsed_s": 0.01,
+   "response": {
+    "detail": "Method Not Allowed"
+   }
+  },
+  {
+   "name": "unknown_action",
+   "method": "POST",
+   "action": "does_not_exist",
+   "authorization": "the maintainer's token, raw (no 'Bearer')",
+   "request_body": {},
+   "status": 404,
+   "content_type": "application/json",
+   "bytes": 32,
+   "elapsed_s": 0.02,
+   "response": {
+    "message": "Resource not found"
+   }
+  }
+ ]
+}

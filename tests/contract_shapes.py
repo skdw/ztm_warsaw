@@ -13,7 +13,11 @@ from typing import Any
 CZAS_RE = re.compile(r"^(\d{2}):(\d{2}):(\d{2})$")
 LEGACY_KEY_RE = re.compile(r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$", re.IGNORECASE)
 TIMETABLE_KEYS = {"symbol_2", "symbol_1", "brygada", "kierunek", "trasa", "czas"}
-STOP_KEYS = {"zespol", "slupek", "nazwa_zespolu", "id_ulicy", "szer_geo", "dlug_geo", "kierunek", "obowiazuje_od"}
+# The six keys of a stop record that the integration reads; both hosts have them. The legacy catalogue also
+# has "kierunek" and "obowiazuje_od"; the new one has neither (measured 2026-10-18, all 6 789 records).
+STOP_KEYS = {"zespol", "slupek", "nazwa_zespolu", "id_ulicy", "szer_geo", "dlug_geo"}
+LEGACY_ONLY_STOP_KEYS = {"kierunek", "obowiazuje_od"}
+SERVICE_UNAVAILABLE = {"message": "Service unavailable"}  # the new host's answer to EVERY rejected request (HTTP 500)
 MAX_SERVICE_HOUR = 29  # measured: night lines reach 28:58; the 24:xx day lines stop at 24:38
 RESPONSE_CAP_BYTES = 2_000_000  # the integration's own limit
 
@@ -35,6 +39,27 @@ def classify_legacy(payload: Any) -> str:
         return "param_error"
     if isinstance(result, list):
         return "rows" if result else "empty"
+    return "unknown_shape"
+
+
+def classify_new(status: int, payload: Any) -> str:
+    """What a response of the new host means, as measured on 2026-10-18 (see fake_city/data/README.md).
+
+    The point of the measurement: "failure" covers a rejected token, an unknown stop or line, a missing or
+    non-string parameter and (as far as is known) a real outage alike, so a client cannot tell them apart.
+    """
+    if status == 200:
+        if payload is None:
+            return "null"  # the line exists but does not run today
+        if isinstance(payload, list):
+            return "rows" if payload else "empty"
+        return "unknown_shape"
+    if status == 500 and payload == SERVICE_UNAVAILABLE:
+        return "failure"
+    if status == 404:
+        return "not_found"
+    if status == 405:
+        return "method_not_allowed"
     return "unknown_shape"
 
 
@@ -89,7 +114,7 @@ def assert_lines_rows(payload: Any) -> list[str]:
 
 
 def assert_stops_rows(payload: Any) -> int:
-    """The stops catalogue: every record carries the eight known keys; returns the record count."""
+    """The stops catalogue: every record carries the six keys the integration reads; returns the record count."""
     rows = unwrap(payload)
     for row in rows[:50] + rows[-50:]:  # the live dataset has ~7000 records: spot-check head and tail
         fields = kv(row)
