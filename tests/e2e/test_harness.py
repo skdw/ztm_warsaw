@@ -17,10 +17,12 @@ from yarl import URL
 
 from tests.contract_shapes import (
     RESPONSE_CAP_BYTES,
+    SERVICE_UNAVAILABLE,
     assert_lines_rows,
     assert_stops_rows,
     assert_timetable_rows,
     classify_legacy,
+    classify_new,
     czas_to_minutes,
     is_legacy_key,
 )
@@ -31,6 +33,7 @@ from .fake_city import (
     DEFAULT_KEY,
     DEFAULT_TOKEN,
     FULL_CATALOGUE,
+    FULL_NEW_CATALOGUE,
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
     LEGACY_TIMETABLE_ID,
@@ -52,6 +55,7 @@ from .fake_city import (
     czas_of,
     day_sets,
 )
+from .fake_city.data import NEW_ACTION_LINES, NEW_ACTION_STOPS, NEW_ACTION_TIMETABLE, SERVICE_UNAVAILABLE_PAYLOAD
 from .helpers import rows_for
 
 pytestmark = pytest.mark.e2e
@@ -307,6 +311,98 @@ async def test_h05_legacy_host_does_not_know_the_new_paths_and_vice_versa(fake_c
             assert r.status == 405
         async with s.get(LEGACY.replace("dbtimetable_get/", "get_ztm_odjazdy_linii_z_przystanku")) as r:
             assert r.status == 404
+
+
+NEW_STOP = {"busstopId": "7009", "busstopNr": "01"}
+NEW_PAIR = {**NEW_STOP, "line": "151"}
+
+
+async def new_post(session, action, body=None, token=DEFAULT_TOKEN):
+    headers = {} if token is None else {"Authorization": token}
+    async with session.post(NEW + action, json=body, headers=headers) as resp:
+        return resp.status, await resp.read(), resp.headers
+
+
+@pytest.mark.parametrize(
+    ("what", "action", "body", "token"),
+    [
+        ("no token", NEW_ACTION_TIMETABLE, NEW_PAIR, None),
+        ("a token that is not a JWT", NEW_ACTION_TIMETABLE, NEW_PAIR, "x.y.z"),
+        ("the right token with a Bearer prefix", NEW_ACTION_TIMETABLE, NEW_PAIR, f"Bearer {DEFAULT_TOKEN}"),
+        ("an unknown stop", NEW_ACTION_TIMETABLE, {"busstopId": "9999", "busstopNr": "99", "line": "20"}, DEFAULT_TOKEN),
+        ("an unknown line", NEW_ACTION_TIMETABLE, {**NEW_STOP, "line": "ZZZ"}, DEFAULT_TOKEN),
+        ("a missing line", NEW_ACTION_TIMETABLE, NEW_STOP, DEFAULT_TOKEN),
+        ("an empty object", NEW_ACTION_TIMETABLE, {}, DEFAULT_TOKEN),
+        (
+            "numbers instead of strings",
+            NEW_ACTION_TIMETABLE,
+            {"busstopId": 7009, "busstopNr": 1, "line": 151},
+            DEFAULT_TOKEN,
+        ),
+        ("lines at an unknown stop", NEW_ACTION_LINES, {"busstopId": "9999", "busstopNr": "99"}, DEFAULT_TOKEN),
+    ],
+)
+async def test_h05_every_rejected_request_on_the_new_host_is_the_same_500(fake_city, clock, what, action, body, token):
+    """Measured 2026-10-18: nothing tells a bad token from a bad stop from a malformed request."""
+    clock.move_to(at("2026-10-17 12:00"))
+    async with aiohttp.ClientSession() as s:
+        status, raw, _ = await new_post(s, action, body, token)
+    assert (status, raw) == (500, b'{"message":"Service unavailable"}'), what
+
+
+async def test_h05_a_line_that_does_not_run_today_is_the_bare_value_null(fake_city, clock):
+    clock.move_to(at("2026-10-17 12:00"))  # Saturday: line 411 does not run
+    async with aiohttp.ClientSession() as s:
+        status, raw, _ = await new_post(s, NEW_ACTION_TIMETABLE, {**NEW_STOP, "line": "411"})
+    assert (status, raw) == (200, b"null")
+    assert classify_new(status, json.loads(raw)) == "null"
+
+
+async def test_h05_the_new_host_answers_a_wrong_method_and_an_unknown_action_with_the_measured_bodies(fake_city):
+    async with aiohttp.ClientSession() as s:
+        async with s.get(NEW + NEW_ACTION_LINES, headers={"Authorization": DEFAULT_TOKEN}) as resp:
+            assert (resp.status, await resp.read()) == (405, b'{"detail":"Method Not Allowed"}')
+        status, raw, _ = await new_post(s, "does_not_exist", {})
+    assert (status, raw) == (404, b'{"message":"Resource not found"}')
+
+
+async def test_h05_the_new_host_sends_compact_json_without_a_charset(fake_city, clock):
+    clock.move_to(at("2026-10-17 12:00"))
+    async with aiohttp.ClientSession() as s:
+        status, raw, headers = await new_post(s, NEW_ACTION_LINES, NEW_STOP)
+    assert status == 200
+    assert headers["Content-Type"] == "application/json"  # measured: no "; charset=utf-8"
+    assert raw.startswith(b'[{"values":[{"value":"')
+    assert b", " not in raw and b": " not in raw
+
+
+@pytest.mark.city(catalogue_bytes=FULL_NEW_CATALOGUE)
+async def test_h05_the_new_host_catalogue_is_a_bare_list_of_six_key_records_under_the_cap(fake_city):
+    async with aiohttp.ClientSession() as s:
+        status, raw, _ = await new_post(s, NEW_ACTION_STOPS)
+    assert status == 200
+    assert 0.99 * FULL_NEW_CATALOGUE <= len(raw) <= 1.01 * FULL_NEW_CATALOGUE
+    assert len(raw) < RESPONSE_CAP_BYTES
+    records = json.loads(raw)
+    assert isinstance(records, list)  # no {"result": ...} envelope
+    assert assert_stops_rows(records) > 1000
+    six = ("zespol", "slupek", "nazwa_zespolu", "id_ulicy", "szer_geo", "dlug_geo")
+    assert {tuple(item["key"] for item in record["values"]) for record in records} == {six}
+
+
+def test_h05_classify_new_follows_the_measurements():
+    assert classify_new(200, None) == "null"
+    assert classify_new(200, []) == "empty"
+    assert classify_new(200, [[{"key": "czas", "value": "05:00:00"}]]) == "rows"
+    assert classify_new(200, {"result": []}) == "unknown_shape"  # the legacy envelope is not the new host's
+    assert classify_new(500, {"message": "Service unavailable"}) == "failure"
+    assert classify_new(500, {"message": "something else"}) == "unknown_shape"
+    assert classify_new(404, {"message": "Resource not found"}) == "not_found"
+    assert classify_new(405, {"detail": "Method Not Allowed"}) == "method_not_allowed"
+
+
+def test_h05_the_fake_and_the_shape_module_agree_on_the_one_error_body():
+    assert SERVICE_UNAVAILABLE_PAYLOAD == SERVICE_UNAVAILABLE
 
 
 # ---------------------------------------------------------------------- H-06 data

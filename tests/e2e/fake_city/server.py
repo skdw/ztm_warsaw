@@ -5,10 +5,11 @@ Two aiohttp servers on 127.0.0.1 (random ports), sharing one state object:
 * ``legacy``: the contract the integration speaks today, measured on api.um.warszawa.pl:
   ``GET /api/action/dbtimetable_get/?id=<dataset>&busstopId&busstopNr&line&apikey`` answering
   ``{"result": ...}`` (see ``data/README.md`` for what was captured and what is derived).
-* ``new``: the documented dane.um.warszawa.pl contract: ``POST /api/action/<action>`` with a raw
-  ``Authorization: <JWT>`` header and a JSON body, answering a BARE list. Only the bad-token answer
-  (HTTP 500 ``{"message":"Service unavailable"}``) was ever observed; everything marked
-  ``UNVERIFIED`` below is a placeholder, not knowledge.
+* ``new``: the dane.um.warszawa.pl contract, measured on 2026-10-18 with the maintainer's own token
+  (``data/README.md``): ``POST /api/action/<action>`` with a raw ``Authorization: <JWT>`` header and a JSON
+  body of STRINGS, answering a BARE list (``null`` for a line that does not run today). EVERY rejected request
+  is the same HTTP 500 ``{"message":"Service unavailable"}``. Whatever no measurement covers is marked
+  ``UNVERIFIED`` below: a placeholder, not knowledge.
 
 The "service day" is a pure function of the clock the test controls (``freezer``): before
 ``flip_at`` (default 03:00 Warsaw; measured between 02:55:51 and 03:00:51) the previous date's schedule is served.
@@ -38,6 +39,7 @@ from .data import (
     NEW_ACTION_LINES,
     NEW_ACTION_STOPS,
     NEW_ACTION_TIMETABLE,
+    SERVICE_UNAVAILABLE_PAYLOAD,
     DaySet,
 )
 
@@ -314,6 +316,14 @@ class FakeCity:
             charset="utf-8",
         )
 
+    def _new_json(self, payload: Any, status: int = 200) -> web.Response:
+        """The new host's JSON as measured: compact separators, UTF-8 bytes, NO charset in the Content-Type."""
+        return web.Response(
+            status=status,
+            body=json.dumps(payload, ensure_ascii=self.ensure_ascii, separators=(",", ":")).encode("utf-8"),
+            content_type="application/json",
+        )
+
     # ------------------------------------------------------------------ legacy contract
     async def _legacy_handler(self, request: web.Request) -> web.StreamResponse:
         q = request.query
@@ -392,34 +402,43 @@ class FakeCity:
         return self._finish(call, resp)
 
     def _new_answer(self, call: Call, request: web.Request) -> web.Response:
-        if request.method != "POST":  # UNVERIFIED: what a GET gets
-            return self._json({"message": "Method not allowed"}, status=405)
-        if call.key not in self.valid_tokens:  # OBSERVED for a bogus token: HTTP 500 + this body
+        """OBSERVED on the real service on 2026-10-18 unless a line says UNVERIFIED (see data/README.md)."""
+        if call.endpoint == "unknown":  # UNVERIFIED: whether this is checked before the method and the token
+            return self._new_json({"message": "Resource not found"}, status=404)
+        if request.method != "POST":
+            return self._new_json({"detail": "Method Not Allowed"}, status=405)
+        if call.key not in self.valid_tokens:  # no header, "x.y.z", a forged signature or "Bearer <token>": the same
             call.behavior = "bad_token"
-            return self._json({"message": "Service unavailable"}, status=500)
-        if call.endpoint == "stops":  # UNVERIFIED: envelope/size of the real answer are unknown
+            return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
+        if call.endpoint == "stops":
             return web.Response(
-                body=json.dumps(
-                    json.loads(data.stops_catalogue_bytes(self.catalogue_bytes, ensure_ascii=self.ensure_ascii))[
-                        "result"
-                    ],
-                    ensure_ascii=self.ensure_ascii,
-                ).encode("utf-8"),
+                body=data.stops_catalogue_bytes(self.catalogue_bytes, ensure_ascii=self.ensure_ascii, new_host=True),
                 content_type="application/json",
-                charset="utf-8",
             )
-        p = call.params
-        stop = (p.get("busstopId", ""), p.get("busstopNr", ""))
+        body = call.body if isinstance(call.body, dict) else {}
+        wanted = ("busstopId", "busstopNr", "line") if call.endpoint == "timetable" else ("busstopId", "busstopNr")
+        if not all(isinstance(body.get(key), str) and body[key] for key in wanted):
+            # A missing parameter, an empty object and numbers instead of strings all answer like a bad token.
+            call.behavior = "bad_params"
+            return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
+        stop = (body["busstopId"], body["busstopNr"])
         ds = self.current_day_set()
-        if call.endpoint == "lines":  # UNVERIFIED shape: bare list of {"values":[{value,key}]}
-            return self._json([{"values": [{"value": ln, "key": "linia"}]} for ln in ds.lines.get(stop, [])])
-        if call.endpoint == "timetable":
-            rows = ds.timetables.get((stop, p.get("line", "")))
-            if rows is None:  # UNVERIFIED: unknown pair / not running today
-                return self._json([])
-            # OBSERVED in the city's examples: bare list of rows of {"value":..,"key":..} pairs
-            return self._json([[{"value": e["value"], "key": e["key"]} for e in row] for row in rows])
-        return self._json({"message": "Service unavailable"}, status=500)
+        if call.endpoint == "lines":
+            if stop not in data.all_known_stops():  # OBSERVED for 9999/99
+                call.behavior = "unknown_stop"
+                return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
+            # UNVERIFIED: a known stop that has no line at all on this service day
+            return self._new_json([{"values": [{"value": ln, "key": "linia"}]} for ln in ds.lines.get(stop, [])])
+        pair = (stop, body["line"])
+        if pair not in data.all_known_pairs():  # OBSERVED for line ZZZ at a real stop and for 9999/99
+            # UNVERIFIED: a line that exists elsewhere but is not served at this stop
+            call.behavior = "unknown_pair"
+            return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
+        rows = ds.timetables.get(pair)
+        if rows is None:  # OBSERVED for line 411 on a Saturday: HTTP 200 and the bare JSON value null
+            call.behavior = "null"
+            return self._new_json(None)
+        return self._new_json([[{"value": e["value"], "key": e["key"]} for e in row] for row in rows])
 
 
 __all__ = ["DEFAULT_KEY", "DEFAULT_TOKEN", "ENDPOINTS", "Call", "FakeCity", "Respond"]

@@ -60,7 +60,7 @@ async def test_e2e_28_a_legacy_key_keeps_using_only_the_legacy_host(env):
 
 @known_bug(
     "new-host-500-not-a-failure",
-    "a 500 from the new host (the observed answer to a bad token) must not be reported as anything but a failure",
+    "a 500 from the new host (its one answer to a bad token, an unknown stop or line and any malformed request) must not be reported as anything but a failure",
 )
 async def test_e2e_28_new_host_500_is_a_failed_setup_not_a_silent_no_service(env):
     env.city.always(None, Http(500), contract="new")
