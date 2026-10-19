@@ -6,6 +6,7 @@ import importlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
@@ -373,3 +374,41 @@ async def test_e2e_32_a_stop_name_that_arrives_after_the_setup_titles_the_stop_t
     await runtime["coordinator"].async_refresh()  # now it does
     await env.settle()
     assert stop.title == f"{stop_name_for('7009')} 01"
+
+
+async def test_e2e_32_the_stop_id_is_a_text_field_that_starts_empty_in_both_dialogs(env):
+    """A number field starts as 0 in the form; a text that must be a number starts empty."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    first = await env.hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    add_stop = await env.hass.config_entries.subentries.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    for form in (first, add_stop):
+        field, validator = next((k, v) for k, v in form["data_schema"].schema.items() if str(k) == "busstop_id")
+        assert validator.type is str  # a text field: the frontend shows no 0 in it
+        assert field.default is vol.UNDEFINED
+
+
+@pytest.mark.parametrize("typed", ["", "abc", "70 09", "-7009", "7009.0", "٧٠٠٩", "1" * 5000, "1234567890"])
+async def test_e2e_32_a_stop_id_that_is_not_a_number_is_refused_in_both_dialogs(env, typed):
+    entry = await env.add_entry_via_flow(line=LINE)
+    flow = env.hass.config_entries.flow
+    form = await flow.async_init(DOMAIN, context={"source": "user"})
+    done = await flow.async_configure(
+        form["flow_id"], {"api_key": DEFAULT_KEY, "busstop_id": typed, "busstop_nr": "02", "line": LINE}
+    )
+    assert (done["type"], done["errors"]) == ("form", {"base": "invalid_stop_id"})
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    done = await manager.async_configure(form["flow_id"], {"busstop_id": typed, "busstop_nr": "02"})
+    assert (done["type"], done["errors"]) == ("form", {"base": "invalid_stop_id"})
+    assert done["description_placeholders"] == {"line": LINE}, "the title of the form names the line again"
+    assert len(entry.subentries) == 1
+
+
+async def test_e2e_32_a_stop_id_with_spaces_around_it_is_stored_as_the_number(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    done = await manager.async_configure(form["flow_id"], {"busstop_id": " 7009 ", "busstop_nr": "02"})
+    await env.settle()
+    assert done["type"] == "create_entry", done
+    assert sorted((s.data["busstop_id"], s.data["busstop_nr"]) for s in entry.subentries.values()) == [(7009, "01"), (7009, "02")]

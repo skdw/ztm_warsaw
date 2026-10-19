@@ -44,7 +44,7 @@ class KeyWorks(ValueError):
 
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
-    vol.Required(CONF_BUSSTOP_ID): vol.Coerce(int),
+    vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str),  # a text, so the form starts empty; stored as the number it is
     vol.Required(CONF_BUSSTOP_NR): str,
     vol.Required(CONF_LINE): str,
 })
@@ -181,6 +181,9 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
 
         if user_input is not None:
             user_input = {k: v.strip() if isinstance(v, str) else v for k, v in user_input.items()}
+            user_input[CONF_BUSSTOP_ID] = _stop_id_of(user_input[CONF_BUSSTOP_ID])
+            if user_input[CONF_BUSSTOP_ID] is None:
+                return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors={"base": "invalid_stop_id"})
             new_key = (str(user_input[CONF_BUSSTOP_ID]), user_input[CONF_BUSSTOP_NR], user_input[CONF_LINE])
             if self._is_configured(new_key):
                 return self.async_abort(reason="already_configured")  # a second sensor of the same stop, pole and line cannot exist
@@ -248,6 +251,12 @@ def _subentry(stop: ConfigSubentryData) -> ConfigSubentry:
         data=MappingProxyType(stop["data"]),
         unique_id=stop.get("unique_id"),
     )
+
+
+def _stop_id_of(value) -> int | None:
+    """The stop ID typed in a form as the number the entry stores, or None when it is not one (up to nine digits, spaces around are removed)."""
+    text = str(value).strip()
+    return int(text) if text.isascii() and text.isdigit() and len(text) <= 9 else None  # a longer one cannot be a stop
 
 
 def _stop_unique_id(stop_id, stop_nr) -> str:
@@ -379,6 +388,11 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         )
         return self.async_show_form(step_id="reconfigure", data_schema=schema, description_placeholders={"stop": subentry.title})
 
+    @staticmethod
+    def _schema() -> vol.Schema:
+        """The form of *Add stop*: the stop ID (a text that must be a number) and the pole number."""
+        return vol.Schema({vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str), vol.Required(CONF_BUSSTOP_NR): str})
+
     async def async_step_user(self, user_input=None):
         """Ask for the stop and pole to add to the line, check them with the line's key, and add them as a subentry."""
         entry = self._get_entry()
@@ -387,7 +401,14 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="unknown")
         errors = {}
         if user_input is not None:
-            stop_id, stop_nr = user_input[CONF_BUSSTOP_ID], user_input[CONF_BUSSTOP_NR].strip()  # the stop id is an int
+            stop_id, stop_nr = _stop_id_of(user_input[CONF_BUSSTOP_ID]), user_input[CONF_BUSSTOP_NR].strip()
+            if stop_id is None:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=self._schema(),
+                    errors={"base": "invalid_stop_id"},
+                    description_placeholders={"line": line},
+                )
             if any((str(stop_id), stop_nr, line) in stop_keys(e) for e in self.hass.config_entries.async_entries(DOMAIN)):
                 return self.async_abort(reason="already_configured")
             error, _ = await error_for(
@@ -404,7 +425,7 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
             errors["base"] = error
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_BUSSTOP_ID): vol.Coerce(int), vol.Required(CONF_BUSSTOP_NR): str}),
+            data_schema=self._schema(),
             errors=errors,
             description_placeholders={"line": line or ""},
         )

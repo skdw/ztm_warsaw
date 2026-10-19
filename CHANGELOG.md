@@ -24,7 +24,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Change your key any time**: **Configure** on an entry swaps the key or token, so there is nothing to remove and add again.
 - **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
 - **The stop on the map**: the sensor has `latitude` and `longitude`, so it shows as a pin on the map card.
-- **A badge with the line number**: on the map card the pin shows the line (colour by kind of line) instead of odd initials like "L1M", and the same badge replaces the bus or tram icon in your cards.
+- **A badge with the line number**: on the map card the pin shows the line instead of odd initials like "L1M", in the colours of ZTM's own signs: ordinary lines light with a purple ring, fast ones red, night ones blue, trams light yellow. The same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
@@ -42,6 +42,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Fixed
 
+- **An empty stop ID field**: the stop ID in the setup and in *Add stop* starts empty instead of with 0, and anything that is not a number is refused with a clear message.
 - **Night lines and midnight**: times after midnight follow the City's own timetable day, so no more "No service" gaps or yesterday's times.
 - **Errors look like errors**: a rejected key or an unreadable answer shows as `unavailable`, not as a misleading "No service".
 - **Slow start-up**: if the City does not answer when Home Assistant starts, the integration tries again instead of waiting an hour.

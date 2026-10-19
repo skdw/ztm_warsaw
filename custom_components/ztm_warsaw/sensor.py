@@ -254,6 +254,11 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._update_departure_info(future_departures, now)
         self._schedule_wakeup(future_departures[0].dt - walk, now)  # it cannot be caught any more `walk` before it leaves
 
+    def _add_walking_time(self):
+        """Show the walking time of the stop in the attributes, when one is set (a sensor without one has no such attribute)."""
+        if self.coordinator.walking_minutes:
+            self._attributes["Walking time, Minutes"] = self.coordinator.walking_minutes
+
     def _update_stop_name(self):
         """Update friendly name if stop info is now available."""
         stop_info = self._get_stop_info()
@@ -274,8 +279,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._attributes.update(_stop_attributes(self._get_stop_info()))
         self._attributes["Stop, Timezone"] = TIMEZONE
         self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
-        if self.coordinator.walking_minutes:
-            self._attributes["Walking time, Minutes"] = self.coordinator.walking_minutes
+        self._add_walking_time()
         self._attributes.update(_departure_attrs("Upcoming", current, _friendly_day(current.dt, now)))
 
         # Add information about next departures
@@ -312,6 +316,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._attributes.update(self._no_service_attrs)
         self._attributes["Note"] = "No upcoming schedule available. Please verify on wtp.waw.pl or call 19115."
         self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
+        self._add_walking_time()  # also when every departure left is sooner than the walking time
         self._next_departure = None
 
     async def async_will_remove_from_hass(self):

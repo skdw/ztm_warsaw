@@ -98,3 +98,14 @@ async def test_e2e_35_a_new_walking_time_reloads_the_entry_once_and_keeps_the_re
     assert dict(entry.subentries[subentry_id].data) == {**before, "walking_time": WALK}
     await _set_walking_time(env, entry, 0)
     assert "Walking time, Minutes" not in env.state(LINE).attributes, "0 is no walking time"
+
+
+async def test_e2e_35_the_walking_time_stays_in_the_attributes_when_no_departure_can_be_caught(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    last = _coordinator(env, entry).known()[-1].dt
+    await env.run_to(last - timedelta(minutes=30))
+    await _set_walking_time(env, entry, 60)  # every departure left is sooner than that
+    state = env.state(LINE)
+    assert state.state == "unknown"
+    assert state.attributes["Upcoming, Headsign"] == "No service"
+    assert state.attributes["Walking time, Minutes"] == 60
