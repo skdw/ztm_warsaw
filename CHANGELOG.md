@@ -1,47 +1,56 @@
 # Changelog
 
-All notable changes to this integration are documented here, grouped under `### Added`, `### Changed`, `### Fixed` and `### Removed`, following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Notable changes to this integration, grouped under `### Added`, `### Changed`, `### Fixed` and `### Removed` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)).
 
-This file is the source of the GitHub Release notes. A GitHub Release is also what makes HACS offer an update. Notes for a beta (`X.Y.ZbN`) are taken from `[Unreleased]`.
+Each entry is one line that starts with a verb and links to the pull request with the details. This file is the source of the GitHub Release notes, and a published Release is what makes HACS offer an update. A beta (`X.Y.ZbN`) takes its notes from `[Unreleased]`.
 
-A version that needs something from users has an `### Adopter action` list at the top of its section, written for someone who has not read the rest of the entry. Omit it when nothing is required.
+A version that needs something from users starts with an `### Adopter action` list. Omit it when nothing is required.
 
 Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/solarssk/ztm_warsaw/releases) page.
 
 ## [Unreleased]
 
+Upgrading from 1.1.4: update through HACS and restart Home Assistant. This is a beta: please report what you see in the [issues](https://github.com/solarssk/ztm_warsaw/issues).
+
+### Adopter action
+
+- Replace an old API key by a token in **Configure** on each entry; the old key still works, but its end has no date, and a notice in Repairs says so ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
+- Expect extra attributes if you listed fewer than three departures: every sensor now lists `Next 1` to `Next 3` ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
+- Remove one of two entries for the same stop, pole and line, as the notice in Repairs asks; the later one never had a sensor ([#65](https://github.com/solarssk/ztm_warsaw/pull/65))
+
 ### Added
 
-- The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. The setup screen accepts either kind of key.
-- A Polish translation of the setup screen.
-- Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
-- Re-authentication: when the City's old API answers "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again), Home Assistant shows the usual "re-authentication needed" notice and asks for a new key or token. The stop and the line of the entry stay, and the new key is judged by the key alone, so it is accepted even if the line does not run today. A single bad answer or an outage never starts it. The new API cannot tell a rejected token from an outage, so there a revoked token is not noticed at once: the sensor keeps the cached timetable until its service day ends and then becomes unavailable, without a prompt.
-- Diagnostics: the entry's *Download diagnostics* now works. It holds the entry (the API key or token is replaced by `**REDACTED**`) and the state of the timetable: the service day, how many departures, the first few labels, the last error's class, whether the City answered without a timetable and how many rejected keys came in a row. Attach it to a bug report; it never contains the key.
-- **Configure** on an entry now changes its API key or token (the stop and the line stay), so an entry can move from the City's old API to the new one without being removed and added again; a key that the City rejects is refused. An entry that still uses a key of the old API shows a dismissible notice in Repairs that says it can be changed there.
-- The sensor has the standard `latitude` and `longitude` attributes (the stop's position from the City's catalogue), so the stop can be shown as a pin on the map card.
-- A calendar entity for every sensor (`calendar.line_151_from_7009_01_timetable`, on the same device): each departure of the held timetable (today's service day and the one before it, past departures included) is a one-minute event with the headsign, the stop and the brigade. The calendar view shows the whole timetable, and Home Assistant's calendar trigger starts an automation at an event or at an offset from it ("eight minutes before a departure") without templates. The calendar is off by default (it holds every departure of the day): enable it in the entity settings of the entry. Existing entries get it, disabled, after the update; once enabled it follows the sensor's availability, and while the sensor is unavailable the calendar holds no events, so a timetable the sensor refuses to vouch for starts no automation. It uses only the timetable the integration already holds, so the City is asked no more often than before.
+- Support the City's new API with a token, and send each key only to its own host ([#56](https://github.com/solarssk/ztm_warsaw/pull/56), [#57](https://github.com/solarssk/ztm_warsaw/pull/57))
+- Add a Polish translation of the setup screen ([#57](https://github.com/solarssk/ztm_warsaw/pull/57))
+- Send a `User-Agent` with the integration's name, version and repository, and nothing about you ([#56](https://github.com/solarssk/ztm_warsaw/pull/56))
+- Ask for a new key when the old API rejects the key three times in a row ([#64](https://github.com/solarssk/ztm_warsaw/pull/64))
+- Add Download diagnostics, with the key or token redacted ([#66](https://github.com/solarssk/ztm_warsaw/pull/66))
+- Change the key or token of an entry in Configure, and show a notice for entries that use an old key ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
+- Publish the stop's position as `latitude` and `longitude`, so it shows as a pin on the map card ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
+- Add a calendar entity per sensor with every departure as an event, off by default ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))
 
 ### Changed
 
-- The number of departures is no longer asked, when you add a sensor or in Configure: the sensor always lists the next departure and the three after it (`Next 1` ... `Next 3`). An entry that was set to fewer gets the additional attributes; nothing is removed, and the stored setting is ignored.
-- The user manual is the project's [wiki](https://github.com/solarssk/ztm_warsaw/wiki), rewritten for this version (key or token, re-authentication, diagnostics, the service day, troubleshooting) and published from `docs/wiki/` in the repository, so it no longer drifts from the code. The README has a Documentation section and the badges of the project's checks (CI, OpenSSF Scorecard, coverage, quality gate); a code of conduct is added.
-- The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw (Miasto Stołeczne Warszawa), the Zarząd Transportu Miejskiego (ZTM) and the licence (CC BY) instead of a host name.
+- Stop asking for the number of departures: every sensor lists the next departure and `Next 1` to `Next 3` ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
+- Publish the user manual as the project wiki from `docs/wiki/`, and add the project badges and a code of conduct ([#68](https://github.com/solarssk/ztm_warsaw/pull/68))
+- Rewrite the README: scheduled data, two kinds of key, what each state means ([#61](https://github.com/solarssk/ztm_warsaw/pull/61))
+- Name the City of Warsaw, ZTM and the licence (CC BY) in the sensor's `attribution` attribute, instead of a host name ([#61](https://github.com/solarssk/ztm_warsaw/pull/61))
+- Give each entry its own device on Home Assistant 2026.10 and newer, where a device belongs to one entry ([#65](https://github.com/solarssk/ztm_warsaw/pull/65))
 
 ### Fixed
 
-- The stops catalogue (1.6 MB, used for the stop's name) is downloaded once for all your entries and kept for a day, not once per entry and again on every reload or restart of an entry. A City that is down is asked once, not once per entry, and the failure is remembered for a minute. A catalogue larger than the 2 MB limit of the timetables (it is at 82% of it and grows) no longer makes every stop name disappear: it has its own limit of 8 MB.
-- The same stop, pole and line can no longer be added twice: the setup refuses it ("already configured", compared after trimming spaces, before anything is sent to the City). Before, the second entry silently had no sensor. If you already have such a pair, Home Assistant shows a notice in Repairs for the later entry; remove one of the two entries, nothing is changed or deleted for you.
-- On Home Assistant 2026.10 and newer a device belongs to one config entry, so the same line at two poles of different stops (or two poles of one stop) has one device per entry there, not one shared device per line; older versions keep sharing it. Entity IDs, unique IDs and attributes are not affected.
-- Renaming an entry (or any change that leaves its data and options as they were) no longer reloads it and no longer asks the City for the timetable again.
-- Requests that carry the API key no longer follow redirects (a redirect is an error now), and a network error is logged by its class only. The API key can no longer reach the log through a redirect loop or an error text.
-- The setup screen strips pasted spaces and newlines from every field, and refuses a key that is neither an API key (a UUID) nor a token before anything is sent. A crafted key can no longer add parameters to the request.
-- The setup screen uses the same client as the sensor, so it also stops following redirects and keeps the key out of its log. An unknown stop or line is reported as "line not found" (the old message had no text and showed a raw error name).
-- A rejected API key, a stop, pole and line that the City of Warsaw API does not know, and an answer the integration does not understand no longer show as "No service". The sensor becomes unavailable, one error is logged (it never contains the API key), and the sensor recovers by itself when the API answers properly again. A line that really does not run today still shows "No service". If a sensor of yours turns unavailable after this update, check the API key and the stop, pole and line in the integration's settings.
-- The sensor writes its state when it becomes unavailable or available again, also when the departure it shows has not changed.
-- Departure times around midnight and at night are now computed from the City of Warsaw's service day. A label such as `24:10` or `29:20` is the night after the service date. The City replaces its timetables from 02:10 (its letter CRWIP/3980/25; the change was measured complete by about 03:00): the sensor does not ask the City between 02:10 and 03:05, keeps the timetable it has, asks again at 03:06 and shows the new day's times from then on. The tail of the previous night (the late night-bus departures that the new answer no longer contains) is kept until its departures pass, and it survives a Home Assistant restart because the last answers are stored. Before, a day line could show "No service" for up to an hour after 02:30, and the sensor could show yesterday's morning times from 02:35 to 03:35. A timetable that is no longer valid makes the sensor unavailable instead of replaying yesterday's times, and a row without a departure time no longer produces a phantom 00:00 departure. On the two nights when the clocks change, the labels are read as wall-clock times.
-- When the City of Warsaw does not answer (or does not answer properly) while Home Assistant starts, the integration is now shown as "retrying setup" and Home Assistant retries by itself, so the sensor appears as soon as the API works. Before, the sensor stayed unavailable for up to an hour, until the next hourly refresh. Setup never waits longer than 30 seconds for the first answer (a hanging API used to block it for about 80 seconds). A sensor that cannot be set up because the API key is rejected is also shown as "retrying setup", with the reason in the log, instead of as an unavailable sensor. While an entry is retrying it has no sensor at all, so an automation that waits for the sensor to be unavailable should also handle it being absent.
-- `manifest.json` no longer lists `aiohttp` under `requirements`. Home Assistant provides it and hassfest rejects the entry. Behavior does not change.
-- The integration no longer imports `async_timeout`. Home Assistant 2026.10 does not install that package any more, so on an installation where nothing else provides it the integration failed to load with `ModuleNotFoundError: No module named 'async_timeout'`. The request timeout now uses `asyncio.timeout` from the standard library, which every supported Home Assistant version has (Python 3.11 or later). Behavior does not change.
+- Compute departures from the City's service day, so times after midnight and the night tail stay right ([#62](https://github.com/solarssk/ztm_warsaw/pull/62))
+- Retry the setup when the City does not answer, with a 30 s deadline, instead of waiting an hour ([#63](https://github.com/solarssk/ztm_warsaw/pull/63))
+- Show a rejected key, an unknown stop or an unreadable answer as `unavailable`, not as "No service" ([#55](https://github.com/solarssk/ztm_warsaw/pull/55))
+- Download the stops catalogue once for all entries, and accept it growing past 2 MB ([#67](https://github.com/solarssk/ztm_warsaw/pull/67))
+- Refuse a second entry for the same stop, pole and line, and show a notice for existing pairs ([#65](https://github.com/solarssk/ztm_warsaw/pull/65))
+- Stop reloading an entry when it is renamed ([#64](https://github.com/solarssk/ztm_warsaw/pull/64))
+- Stop following redirects on requests that carry the key, and keep the key out of the log ([#56](https://github.com/solarssk/ztm_warsaw/pull/56))
+- Strip pasted spaces from the setup fields, and refuse a key that is neither a UUID nor a token ([#57](https://github.com/solarssk/ztm_warsaw/pull/57))
+- Use the sensor's client in the setup screen, so it says "line not found" instead of a raw error ([#57](https://github.com/solarssk/ztm_warsaw/pull/57))
+- Write the sensor's state when it becomes unavailable or available again ([#55](https://github.com/solarssk/ztm_warsaw/pull/55))
+- Remove `aiohttp` from `requirements`, which Home Assistant provides ([#39](https://github.com/solarssk/ztm_warsaw/pull/39))
+- Use `asyncio.timeout`, so the integration loads on Home Assistant 2026.10 ([#50](https://github.com/solarssk/ztm_warsaw/pull/50))
 
 ## [1.1.4] - 2026-05-19
 

@@ -67,6 +67,9 @@ pytest
   yourself: `python scripts/release_check.py` (the `manifest.json` version has notes in
   `CHANGELOG.md`). The Documentation impact declaration is checked only in CI, against the
   description of your pull request (see below).
+- A user-visible change gets a `CHANGELOG.md` entry under `[Unreleased]`: one short line that starts with a verb
+  and links your pull request, for example `- Add a calendar entity per sensor (... [#70](...))`. Keep the details in the
+  pull request; `tests/test_changelog_style.py` checks the length.
 
 ## Making a change
 
