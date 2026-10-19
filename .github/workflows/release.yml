@@ -18,6 +18,10 @@ name: Release
 #          scripts/release_preflight.py succeeded on it in the push run of ci.yml on
 #          main (checks of its pull request do not count), among them HACS
 #          validation, which is not required to merge.
+#      The draft carries the integration as ztm_warsaw.zip and its Sigstore signature
+#      bundle ztm_warsaw.zip.sigstore.json (keyless, signed by this workflow), so a
+#      download can be verified with `cosign verify-blob`. HACS installs from the tag,
+#      not from the zip: the zip is for people who want to check what they get.
 #   4. Read the draft, then publish it (a beta is published as a pre-release).
 #
 # If a check was still running when the tag was pushed, re-run this workflow
@@ -49,6 +53,7 @@ jobs:
       contents: write # create the draft Release
       checks: read # read the check runs of the tagged commit
       actions: read # and the ci.yml runs they belong to
+      id-token: write # keyless signing of the zip with Sigstore (no key is stored anywhere)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -80,15 +85,27 @@ jobs:
       - name: Require a mainline commit whose CI checks succeeded
         run: python3 scripts/release_preflight.py "${RUNNER_TEMP}/check-runs.jsonl" "${RUNNER_TEMP}/workflow-runs.jsonl" "${RUNNER_TEMP}/mainline.txt" "$GITHUB_SHA"
 
+      - name: Pack the integration
+        run: |
+          set -euo pipefail
+          cd custom_components/ztm_warsaw
+          zip -qr -X "${RUNNER_TEMP}/ztm_warsaw.zip" . -x '__pycache__/*' '*.pyc'
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
+      - name: Sign the zip (keyless)
+        run: cosign sign-blob --yes --bundle "${RUNNER_TEMP}/ztm_warsaw.zip.sigstore.json" "${RUNNER_TEMP}/ztm_warsaw.zip"
+
       - name: Create the draft Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
           NOTES_FILE: ${{ runner.temp }}/release-notes.md
+          ZIP: ${{ runner.temp }}/ztm_warsaw.zip
         run: |
           set -euo pipefail
           if [[ "$TAG" == *b[0-9]* ]]; then
-            gh release create "$TAG" --draft --prerelease --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+            gh release create "$TAG" --draft --prerelease --verify-tag --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
           else
-            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$NOTES_FILE"
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
           fi
