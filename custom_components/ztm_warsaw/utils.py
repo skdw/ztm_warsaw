@@ -24,9 +24,13 @@ LINE_TYPE_MAP = {
     "S": "Urban rail",
 }
 
+# A tram line is a one or two digit number; the buses have three digits (or letters), so this tells them apart everywhere.
+TRAM_LINE = re.compile(r"[1-9]\d?")
+
+
 def get_line_type(line: str) -> str:
     """Return human-friendly type of a Warsaw transport line."""
-    if re.fullmatch(r"[1-9]\d?", line):
+    if TRAM_LINE.fullmatch(line):
         return "Tram line"
     if re.fullmatch(r"M\d", line, re.IGNORECASE):
         return "Metro line"
@@ -36,7 +40,7 @@ def get_line_type(line: str) -> str:
 
 def get_line_icon(line: str) -> str:
     """Return appropriate MDI icon name for given line type (a bus unless it is a tram, a train or a metro)."""
-    if re.fullmatch(r"[1-9]\d?", line):
+    if TRAM_LINE.fullmatch(line):
         return "mdi:tram"
     if re.match(r"^S\d{1,2}$", line):
         return "mdi:train"
@@ -88,7 +92,7 @@ def get_line_class(line: str) -> str:
         return "metro"
     if re.fullmatch(r"S\d{1,2}", code):
         return "rail"
-    if re.fullmatch(r"[1-9]\d?", code):
+    if TRAM_LINE.fullmatch(code):
         return "tram"
     return _LETTERS.get(code[:1]) or _SERIES.get(code[:1], "ordinary")
 
