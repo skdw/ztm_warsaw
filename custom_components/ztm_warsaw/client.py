@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import time
 import logging
 from typing import Optional
 import json
@@ -52,19 +53,57 @@ def _stop_fields(row) -> dict:
     return {v["key"]: v["value"] for v in values if isinstance(v, dict) and "key" in v and "value" in v}
 
 
-def _match_stop(rows, stop_id: str, stop_nr: str) -> dict | None:
-    """What the catalogue says about the pole, without the ids; the first record of the stop when the pole is not
-    listed. None when the stop is not there at all."""
-    fallback = None
+_MAX_BYTES = 2_000_000  # the largest timetable or list of lines accepted
+_MAX_CATALOGUE_BYTES = 8_000_000  # the stops catalogue is bigger (1.6 MB of 2 MB in 2026) and grows
+
+
+def _index_stops(rows) -> dict[str, dict[str, dict]]:
+    """The catalogue as ``{stop: {pole: what it says about the pole, without the ids}}``, in the order of the records."""
+    index: dict[str, dict[str, dict]] = {}
     for row in rows:
         fields = _stop_fields(row)
-        if str(fields.get("zespol")) != stop_id:
-            continue
-        info = {k: v for k, v in fields.items() if k not in ("zespol", "slupek")}
-        if str(fields.get("slupek")) == stop_nr:
-            return info
-        fallback = fallback or info
-    return fallback
+        if "zespol" in fields:
+            info = {k: v for k, v in fields.items() if k not in ("zespol", "slupek")}
+            index.setdefault(str(fields["zespol"]), {}).setdefault(str(fields.get("slupek")), info)
+    return index
+
+
+class StopCatalogue:
+    """The stops catalogue (1.6 MB) is the same for every entry: one download serves all of them, and a reload does
+    not repeat it. Only a small index is kept (not the records), for ``ttl`` seconds; a failure is not retried for
+    ``retry_after`` seconds, so a City that is down is asked once, not once per entry."""
+
+    def __init__(self, ttl: float = 86400, retry_after: float = 60):
+        self._ttl = ttl
+        self._retry_after = retry_after
+        self._locks: dict[bool, asyncio.Lock] = {}  # one per kind of host: a slow host does not hold up the other
+        self._index: dict[bool, tuple[float, dict]] = {}  # per host kind (token or not): (when, index)
+        self._failed: dict[bool, float] = {}
+
+    async def find(self, client: "ZTMStopClient", stop_id: str, stop_nr: str) -> tuple[bool | None, dict | None]:
+        """``(readable, info)``: whether the catalogue could be read (None: not asked, a failure is still fresh), and what
+        it says about the pole (the first pole of the stop when this one is not listed; None when the stop is not there)."""
+        key = client.uses_token
+        async with self._locks.setdefault(key, asyncio.Lock()):
+            cached = self._index.get(key)
+            if cached is None or time.monotonic() - cached[0] >= self._ttl:
+                failed = self._failed.get(key)
+                if failed is not None and time.monotonic() - failed < self._retry_after:
+                    return None, None
+                rows = await client._stop_info_rows()
+                index = _index_stops(rows) if rows else {}
+                if not index:  # nothing readable (an empty or foreign answer) is not worth keeping for a day
+                    self._failed[key] = time.monotonic()  # from the end of the download, not from its start
+                    return False, None
+                self._failed.pop(key, None)
+                cached = (time.monotonic(), index)
+                if self._ttl > 0:
+                    self._index[key] = cached
+        poles = cached[1].get(stop_id)
+        if not poles:
+            return True, None
+        info = poles[stop_nr] if stop_nr in poles else next(iter(poles.values()))
+        return True, dict(info)
 
 
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).
@@ -159,9 +198,11 @@ class ZTMStopClient:
         line: str,
         timeout: int | None = None,
         user_agent: str | None = None,
+        catalogue: StopCatalogue | None = None,
     ):
         api_key = api_key.strip()
         self._user_agent = user_agent
+        self._catalogue = catalogue or StopCatalogue(ttl=0)  # alone: nothing is kept
         self._legacy = bool(_LEGACY_KEY.match(api_key))
         # Endpoint to fetch the timetable for a given stop, line, and post number
         self._endpoint = "https://api.um.warszawa.pl/api/action/dbtimetable_get/"
@@ -187,24 +228,24 @@ class ZTMStopClient:
             "line": line,
         }
         self._stop_name: dict | None = None
-        self._stop_info_cache: dict[tuple[str, str], dict] = {}
 
     async def _call(self, kind: str):
         """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
         that matches its key. The answer has the legacy shape ``{"result": ...}`` whichever host sent it.
         """
         params = self._params
+        limit = _MAX_CATALOGUE_BYTES if kind == "stops" else _MAX_BYTES
         if self._legacy:
             if kind == "stops":
                 params = {"id": self._stop_info_data_id, "apikey": params["apikey"]}
             elif kind == "lines":
                 params = {**{k: params[k] for k in ("apikey", "busstopId", "busstopNr")}, "id": _LEGACY_LINES_ID}
-            return await self._get_with_retry(self._endpoint, params)
+            return await self._get_with_retry(self._endpoint, params, limit=limit)
         keys = {"timetable": ("busstopId", "busstopNr", "line"), "lines": ("busstopId", "busstopNr"), "stops": ()}[kind]
         action = {"timetable": _NEW_TIMETABLE, "lines": _NEW_LINES, "stops": _NEW_STOPS}[kind]
         return await self._get_with_retry(
             _NEW_API + action, None, method="POST", json_body={k: str(params[k]) for k in keys} if keys else None,
-            headers={"Authorization": params["apikey"]}, wrap=True,
+            headers={"Authorization": params["apikey"]}, wrap=True, limit=limit,
         )
 
     @property
@@ -240,7 +281,7 @@ class ZTMStopClient:
 
     async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
                               method: str = "GET", json_body: dict | None = None,
-                              headers: dict | None = None, wrap: bool = False):
+                              headers: dict | None = None, wrap: bool = False, limit: int = _MAX_BYTES):
         """Send the request with a timeout and a small retry on timeout, network error and 5xx.
 
         Redirects are never followed: the request carries the key, and a 3xx is an error. ``wrap`` puts a bare
@@ -251,7 +292,7 @@ class ZTMStopClient:
         while True:
             reason = None
             try:
-                result = await self._attempt(url, params, expect_json, method, json_body, headers, wrap, attempt)
+                result = await self._attempt(url, params, expect_json, method, json_body, headers, wrap, attempt, limit)
             except asyncio.TimeoutError:
                 reason = f"timeout after {self._timeout}s"
             except aiohttp.ClientError as err:
@@ -268,7 +309,7 @@ class ZTMStopClient:
             attempt += 1
             await asyncio.sleep(self._retry_backoff * attempt)
 
-    async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt):
+    async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt, limit):
         """One request. The answer, None for a failure that is final, or _RETRY for a 5xx worth another try."""
         if self._user_agent:  # says which software asks (name, version, repository), never who
             headers = {**(headers or {}), "User-Agent": self._user_agent}
@@ -282,8 +323,8 @@ class ZTMStopClient:
             total = 0
             async for chunk in resp.content.iter_chunked(65536):
                 total += len(chunk)
-                if total > 2_000_000:
-                    _LOGGER.error("Response too large (>2 MB) from %s; skipping", url)
+                if total > limit:
+                    _LOGGER.error("Response too large (>%d MB) from %s; skipping", limit // 1_000_000, url)
                     return None
                 chunks.append(chunk)
             text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
@@ -314,20 +355,18 @@ class ZTMStopClient:
         if self._stop_info_next_retry and dt_util.utcnow().timestamp() < self._stop_info_next_retry:
             _LOGGER.debug("Stop-info fetch skipped until %s (backoff) for %s", dt_util.utc_from_timestamp(self._stop_info_next_retry), where)
             return None
-        cache_key = (self._params["busstopId"], self._params["busstopNr"])
-        if cache_key not in self._stop_info_cache:
-            rows = await self._stop_info_rows()
-            info = _match_stop(rows, str(cache_key[0]), str(cache_key[1])) if rows is not None else None
-            if info is None:
-                if rows is not None:
-                    _LOGGER.warning("Stop name not found in stop info for %s", where)
-                self._stop_info_failed(where)
-                return None
-            if "nazwa_zespolu" in info and "stop_name" not in info:
-                info["stop_name"] = info["nazwa_zespolu"]  # a stable alias for the sensors
-            self._stop_info_cache[cache_key] = info
-            self._stop_info_attempts, self._stop_info_next_retry, self._stop_info_permanent_missing = 0, None, False
-        self._stop_name = self._stop_info_cache[cache_key]
+        readable, info = await self._catalogue.find(self, str(self._params["busstopId"]), str(self._params["busstopNr"]))
+        if readable is None:  # another entry's request failed a moment ago: not asked, not a failed attempt of ours
+            return None
+        if info is None:
+            if readable:
+                _LOGGER.warning("Stop name not found in stop info for %s", where)
+            self._stop_info_failed(where)
+            return None
+        if "nazwa_zespolu" in info and "stop_name" not in info:
+            info["stop_name"] = info["nazwa_zespolu"]  # a stable alias for the sensors
+        self._stop_info_attempts, self._stop_info_next_retry, self._stop_info_permanent_missing = 0, None, False
+        self._stop_name = info
         return self._stop_name
 
     async def _stop_info_rows(self) -> list | None:

@@ -24,6 +24,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Fixed
 
+- The stops catalogue (1.6 MB, used for the stop's name) is downloaded once for all your entries and kept for a day, not once per entry and again on every reload or restart of an entry. A City that is down is asked once, not once per entry, and the failure is remembered for a minute. A catalogue larger than the 2 MB limit of the timetables (it is at 82% of it and grows) no longer makes every stop name disappear: it has its own limit of 8 MB.
 - The same stop, pole and line can no longer be added twice: the setup refuses it ("already configured", compared after trimming spaces, before anything is sent to the City). Before, the second entry silently had no sensor. If you already have such a pair, Home Assistant shows a notice in Repairs for the later entry; remove one of the two entries, nothing is changed or deleted for you.
 - On Home Assistant 2026.10 and newer a device belongs to one config entry, so the same line at two poles of different stops (or two poles of one stop) has one device per entry there, not one shared device per line; older versions keep sharing it. Entity IDs, unique IDs and attributes are not affected.
 - Renaming an entry (or any change that leaves its data and options as they were) no longer reloads it and no longer asks the City for the timetable again.

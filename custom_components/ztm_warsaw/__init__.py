@@ -10,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from collections.abc import Mapping
 
 from .const import DOMAIN, PLATFORMS
-from .client import ZTMStopClient, user_agent
+from .client import StopCatalogue, ZTMStopClient, user_agent
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
@@ -77,6 +77,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client = ZTMStopClient(
         session=session,
         user_agent=await user_agent(hass),
+        catalogue=hass.data.setdefault(f"{DOMAIN}_catalogue", StopCatalogue()),  # one for all the entries
         api_key=api_key,
         stop_id=stop_id,
         stop_number=stop_nr,

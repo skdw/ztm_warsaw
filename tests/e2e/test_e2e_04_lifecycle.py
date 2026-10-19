@@ -14,7 +14,7 @@ from homeassistant.util.async_ import get_scheduled_timer_handles
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import FULL_CATALOGUE, OVER_CAP_CATALOGUE, Http, ParamError, Respond, stop_name_for
-from .helpers import find_devices, known_bug, owners_of
+from .helpers import find_devices, owners_of
 
 pytestmark = pytest.mark.e2e
 
@@ -121,7 +121,6 @@ async def test_e2e_23_hourly_load_is_one_request_per_entry_and_never_the_catalog
 
 
 @pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
-@known_bug("stops-catalogue-redownloaded", "the 1.6 MB stops catalogue is downloaded once PER ENTRY (and again on every reload)")
 async def test_e2e_23_the_stop_catalogue_is_downloaded_once_for_five_entries_on_one_stop(env):
     entries = await _five_entries(env)
     assert [e.state for e in entries] == [ConfigEntryState.LOADED] * 5, "precondition: all five entries loaded"
@@ -239,10 +238,6 @@ async def test_e2e_27_stop_metadata_comes_from_the_full_size_catalogue(env):
 
 
 @pytest.mark.city(catalogue_bytes=OVER_CAP_CATALOGUE)
-@known_bug(
-    "catalogue-over-two-megabyte-cap",
-    "the 2 MB cap also applies to the whole stops catalogue: once it grows, every stop name vanishes",
-)
 async def test_e2e_27_stop_names_survive_a_catalogue_larger_than_two_megabytes(env):
     await env.add_entry()
     assert env.state().attributes["Stop, Name"] == stop_name_for("7009")
@@ -282,3 +277,33 @@ async def test_e2e_27_a_text_answer_for_the_catalogue_is_retried_once_shortly_af
     assert env.sleeps.requested == [0.8]
     assert env.state().attributes["Stop, Name"] == stop_name_for("7009")
     assert env.city.count("stops") == 2
+
+
+@pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
+async def test_e2e_27_the_catalogue_is_asked_again_only_after_a_day(env):
+    await env.add_entry(line="151")
+    assert env.city.count("stops") == 1
+    await env.advance(hours=23)
+    await env.add_entry(line="N25")
+    assert env.city.count("stops") == 1, "the index of the first download is still good"
+    await env.advance(hours=2)
+    await env.add_entry(line="520")
+    assert env.city.count("stops") == 2, "a day later the next entry asks again"
+
+
+async def test_e2e_27_a_city_that_is_down_is_asked_once_for_the_catalogue_not_once_per_entry(env):
+    env.city.always("stops", Http(500))
+    for line in ("151", "N25", "520"):
+        await env.add_entry(line=line)
+    assert env.city.count("stops") == 2, "one request and its retry, then the failure is remembered for a minute"
+    await env.advance(minutes=2)
+    env.city.heal()
+    await env.add_entry(line="411")
+    assert env.state("411").attributes["Stop, Name"] == stop_name_for("7009")
+
+
+@pytest.mark.city(catalogue_bytes=9_000_000)
+async def test_e2e_27_a_catalogue_over_the_cap_is_refused_and_the_departures_stay(env):
+    await env.add_entry()
+    assert env.state().attributes["Stop, Name"] == "Not available"
+    assert env.state().state not in ("unknown", "unavailable")
