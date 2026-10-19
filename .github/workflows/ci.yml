@@ -46,11 +46,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install ruff (the version pinned in requirements_test.txt)
+      - name: Install ruff (hash-locked in .github/locks)
         run: |
           set -euo pipefail
-          grep -E '^ruff==' requirements_test.txt > "$RUNNER_TEMP/ruff-requirement.txt"
-          python -m pip install -r "$RUNNER_TEMP/ruff-requirement.txt"
+          python -m pip install --require-hashes -r .github/locks/ruff.txt
       # The rules are listed in pyproject.toml, so a ruff upgrade cannot add rules.
       - name: ruff check
         run: ruff check .
@@ -70,11 +69,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements_test.txt
+          cache-dependency-path: .github/locks/test.txt
       # Home Assistant comes with the pytest plugin; without it every Home
       # Assistant import is `Any` and mypy checks nothing.
-      - name: Install requirements_test.txt
-        run: python -m pip install -r requirements_test.txt
+      - name: Install the hash-locked test requirements
+        run: python -m pip install --require-hashes -r .github/locks/test.txt
       # An exact baseline, not a count: .github/mypy-baseline.txt lists the known
       # diagnostics, and scripts/check_mypy_baseline.py fails on a new one, on an entry
       # mypy no longer reports, and when mypy cannot run. Contributors run the same
@@ -96,9 +95,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: requirements_test.txt
-      - name: Install requirements_test.txt
-        run: python -m pip install -r requirements_test.txt
+          cache-dependency-path: .github/locks/test.txt
+      - name: Install the hash-locked test requirements
+        run: python -m pip install --require-hashes -r .github/locks/test.txt
       # pytest-socket (part of the plugin) blocks real network access, so the suite
       # cannot reach the City of Warsaw API or leak a key.
       - name: pytest
@@ -213,7 +212,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install the oldest supported Home Assistant and its test plugin
-        run: python -m pip install -r .github/compat/min-ha.txt
+        run: python -m pip install --require-hashes -r .github/locks/min-ha.txt
       - name: Run the tests on the oldest supported Home Assistant
         run: python -m pytest tests -p no:cacheprovider
 
@@ -228,11 +227,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install pip-audit (the version pinned in requirements_test.txt)
+      - name: Install pip-audit (hash-locked in .github/locks)
         run: |
           set -euo pipefail
-          grep -E '^pip-audit==' requirements_test.txt > "$RUNNER_TEMP/pip-audit-requirement.txt"
-          python -m pip install -r "$RUNNER_TEMP/pip-audit-requirement.txt"
+          python -m pip install --require-hashes -r .github/locks/pip-audit.txt
       # Audits the exact pins of the test tooling. Home Assistant's own transitive
       # dependencies are deliberately not gated: they are pinned by the plugin, a
       # vulnerable one cannot be fixed from this repository, and gating on them

@@ -29,8 +29,11 @@ pinned by `pytest-homeassistant-custom-component` in `requirements_test.txt`.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements_test.txt
+python -m pip install --require-hashes -r .github/locks/test.txt
 ```
+
+CI installs from the hash-locked files in `.github/locks/` (Scorecard's Pinned-Dependencies check, and a changed package on PyPI cannot slip in). `requirements_test.txt` and `.github/compat/min-ha.txt` stay the files you edit; after changing a pin, copy it to the matching `.in` file and regenerate the lock, for example
+`uv pip compile --generate-hashes --python-platform linux --python-version 3.14.2 .github/locks/test.in -o .github/locks/test.txt` (the minimum-Home-Assistant lock uses `--python-version 3.13.2`). `tests/test_locks.py` fails when they disagree.
 
 The integration itself must stay valid for Home Assistant 2026.1 and Python 3.13, even though CI
 runs newer versions.
