@@ -1,11 +1,12 @@
 # 🚍 ZTM Warsaw Integration for Home Assistant
 
-[![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-%F0%9F%A7%A1-blue)](https://www.home-assistant.io)
-[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
 [![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
-[![custom_component](https://img.shields.io/badge/type-custom_component-red.svg)](https://github.com/solarssk/ztm_warsaw)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/solarssk/ztm_warsaw/badge)](https://securityscorecards.dev/viewer/?uri=github.com/solarssk/ztm_warsaw)
+[![codecov](https://codecov.io/gh/solarssk/ztm_warsaw/graph/badge.svg)](https://codecov.io/gh/solarssk/ztm_warsaw)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=solarssk_ztm_warsaw&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=solarssk_ztm_warsaw)
+[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
 
 Shows the next **scheduled** departures of one Warsaw public-transport line (bus, tram, metro, rail or night line) at one stop pole as a sensor in Home Assistant, from the City of Warsaw's open data. Use it for dashboards and automations such as "leave in eight minutes" without opening a timetable app.
 
@@ -99,7 +100,7 @@ The entity is named after the stop and the line, for example `sensor.line_151_fr
 
 ## 🩺 Troubleshooting
 
-- **The state is empty and the attribute says "No service".** The line does not run today, or its last departure has passed. This is not an error: check [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
+- **The state is `unknown` and the attribute says "No service".** The line does not run today, or its last departure has passed. This is not an error: check [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
 - **The sensor is `unavailable`.** The City's API answered, but not with a timetable: the key or token was rejected, the stop, pole and line are not known to the API, or the answer was in a format the integration does not understand. If the very first load fails (not because of a rejected key, see below), the integration is shown as *retrying setup* and Home Assistant retries by itself. The error is in the Home Assistant log (the key is never logged), and the sensor recovers by itself when the API answers properly again; if it does not, check the key and the stop, pole and line in the settings.
 - **Home Assistant asks for a new key (re-authentication).** The old API answered "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again). Enter a new key or token in the prompt; the stop and the line stay as they are, and a key is accepted even if the line does not run today. Until you do, the sensor stays `unavailable`. The new API answers every rejected request alike, so a rejected token cannot be told from an outage there: the sensor keeps the cached timetable until its service day ends, then becomes `unavailable`, and no prompt appears; if you revoked the token, remove the entry and add it again with a new one.
 - **Reporting a problem.** Open the integration's entry, use *Download diagnostics* and attach the file to the issue: it shows the entry and the state of the timetable, with the key or token replaced by `**REDACTED**`.
@@ -107,6 +108,12 @@ The entity is named after the stop and the line, for example `sensor.line_151_fr
 - **Setup says the line was not found.** The API lists only the lines that run today. A line that does not run today (for example a weekday-only line on a Sunday) cannot be added until the day it runs.
 - **A line on wtp.waw.pl is missing here.** The journey planner has more data than the public API. That cannot be fixed in the integration.
 - **Night lines** (`N01`, `N44` ...): the City counts the whole night as part of the previous service day, so a bus at `24:50` or `26:20` is still in that day's timetable. The integration reads these hours correctly, so a departure at `02:15` (`26:15` in the API) is shown at 02:00 as in 15 minutes.
+
+---
+
+## 📚 Documentation
+
+The [wiki](https://github.com/solarssk/ztm_warsaw/wiki) is the user manual: installation, configuration, how the timetable and the service day work, and troubleshooting. It is published from [`docs/wiki/`](docs/wiki) in this repository.
 
 ---
 

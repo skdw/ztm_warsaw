@@ -1,0 +1,61 @@
+name: Publish Wiki
+
+# The GitHub Wiki is a build output, not a source: its pages live in docs/wiki/ and are copied to the wiki
+# when a change to them lands on main (playbook docs/ci-cookbook.md #12a). A page edited in the wiki's own web
+# interface is overwritten by the next publish. The source is checked first (scripts/check_wiki_docs.py: every
+# page exists, every link resolves, no e-mail address), and the same check runs in every pytest run.
+#
+# The wiki must already have a first page (it has), or the clone fails. Pages that are not in docs/wiki/
+# (a _Sidebar.md edited in the web interface, say) are deleted by the copy; the wiki's own git history keeps them.
+# Pushing to the repository's own wiki needs only `contents: write` on the repository, so the default token is
+# enough and no secret has to be created or rotated.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - "scripts/check_wiki_docs.py"
+      - ".github/workflows/publish-wiki.yml"
+  workflow_dispatch:
+
+# Never cancel a publish mid-flight: queue behind the one that runs.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish the wiki
+    if: github.ref == 'refs/heads/main' # a manual run from another branch must not publish unreviewed pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push to <repository>.wiki.git
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the wiki source
+        run: python3 scripts/check_wiki_docs.py docs/wiki
+
+      - name: Copy the pages to the wiki
+        env:
+          WIKI_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git
+        run: |
+          set -euo pipefail
+          wiki_dir=$(mktemp -d)
+          trap 'rm -rf "$wiki_dir"' EXIT
+          git clone --depth 1 "$WIKI_REMOTE" "$wiki_dir"
+          rsync -rt --delete --exclude=.git docs/wiki/ "$wiki_dir/"  # no -a: no links, no permissions
+          git -C "$wiki_dir" add --all
+          if git -C "$wiki_dir" diff --cached --quiet; then
+            echo "The wiki is already current."
+            exit 0
+          fi
+          git -C "$wiki_dir" config user.name "github-actions[bot]"
+          git -C "$wiki_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$wiki_dir" commit -m "docs(wiki): publish ${GITHUB_SHA}"
+          git -C "$wiki_dir" push origin HEAD  # the branch the clone checked out, whatever the wiki's default is
