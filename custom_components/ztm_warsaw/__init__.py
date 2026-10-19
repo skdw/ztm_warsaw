@@ -118,11 +118,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _use_stop_name_in_title(hass, entry)
 
     _show_stop_names()
-    waiting = {sid for sid in built if _stop_name_of(hass, entry, sid) is None}
+    waiting = {sid for sid in built if _stop_name_of(entry, sid) is None}
 
     def _on_update() -> None:
         """A name can arrive after the setup (the catalogue failed once and a later refresh got it): show it then."""
-        arrived = {sid for sid in waiting if _stop_name_of(hass, entry, sid) is not None}
+        arrived = {sid for sid in waiting if _stop_name_of(entry, sid) is not None}
         if arrived:
             waiting.difference_update(arrived)
             _show_stop_names()
@@ -150,7 +150,7 @@ def _snapshot(entry: ConfigEntry) -> tuple:
     return dict(entry.data), dict(entry.options), {sid: dict(sub.data) for sid, sub in entry.subentries.items()}
 
 
-def _stop_name_of(hass: HomeAssistant, entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
+def _stop_name_of(entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
     """The stop's name, once the entry has loaded and the City has given it (the coordinator holds it)."""
     coordinator = runtimes(entry).get(subentry_id, {}).get("coordinator")
     info = getattr(getattr(coordinator, "data", None), "stop_info", None)
@@ -175,7 +175,7 @@ def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Title a stop "Line 176 from Marcelin 15" instead of "Line 176 from 1085/15" (a version 1 entry), or "Marcelin 15"
     instead of "1085/15" (the subentry of a line), unless the user gave it their own."""
     for unit in stop_units(entry):
-        name = _stop_name_of(hass, entry, unit.subentry_id)
+        name = _stop_name_of(entry, unit.subentry_id)
         if not name:
             continue
         if unit.subentry_id is None:
@@ -218,7 +218,7 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="duplicate_entry",
-            translation_placeholders={"line": key[2], "stop": _stop_text(key[0], key[1], _stop_name_of(hass, entry))},
+            translation_placeholders={"line": key[2], "stop": _stop_text(key[0], key[1], _stop_name_of(entry))},
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
@@ -256,7 +256,7 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
         translation_key="legacy_key",
         translation_placeholders={
             "line": unit.line,
-            "stop": _stop_text(unit.stop_id, unit.stop_nr, _stop_name_of(hass, entry)),
+            "stop": _stop_text(unit.stop_id, unit.stop_nr, _stop_name_of(entry)),
             "portal": KEY_PORTAL_URL,  # hassfest wants no URL inside a translated text
         },
     )
@@ -275,7 +275,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return unload_ok
 
-async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry) -> bool:
+# Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
+async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry) -> bool:  # NOSONAR
     """Let the user delete a device of a stop that the entry no longer has; refuse one that is still in use.
 
     A device of a line entry belongs to one of its stops (``line_<line>_<id>_<nr>``), the device of a 1.1.x entry to its line

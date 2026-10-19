@@ -501,7 +501,8 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+# Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
+async def async_setup_entry(hass, config_entry, async_add_entities):  # NOSONAR
     """Set up the ZTM sensors of a config entry: two for every stop it runs."""
     try:
         for subentry_id, runtime in runtimes(config_entry).items():
