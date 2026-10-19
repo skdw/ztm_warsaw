@@ -592,6 +592,23 @@ async def test_e2e_26_a_title_the_user_chose_is_kept_and_a_default_one_gets_the_
     assert entry.title == default
 
 
+async def test_e2e_26_a_stop_name_that_arrives_after_the_setup_is_shown_then(env):
+    with patch.object(ZTMStopClient, "get_stop_name", AsyncMock(return_value=None)):
+        entry = await env.add_entry(line="151")
+    issues = ir.async_get(env.hass)
+    notice = issues.async_get_issue(DOMAIN, f"legacy_key_{entry.entry_id}")
+    assert entry.title == "Line 151 from 7009/01"
+    assert notice is not None
+    assert notice.translation_placeholders["stop"] == "7009/01"
+    coordinator = env.hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    await coordinator.async_refresh()  # the catalogue answers now
+    await env.hass.async_block_till_done()
+    assert entry.title == f"Line 151 from {stop_name_for('7009')} 01"
+    notice = issues.async_get_issue(DOMAIN, f"legacy_key_{entry.entry_id}")
+    assert notice is not None
+    assert notice.translation_placeholders["stop"] == f"{stop_name_for('7009')} 01 (7009/01)"
+
+
 async def test_e2e_05_the_notice_goes_when_the_key_becomes_a_token_or_the_entry_is_removed(env):
     entry = await env.add_entry()
     issues = ir.async_get(env.hass)

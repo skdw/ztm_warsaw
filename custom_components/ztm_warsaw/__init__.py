@@ -105,9 +105,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "client": client,
     }
 
-    _update_duplicate_issue(hass, entry)
-    _update_legacy_issue(hass, entry)  # again, now that the stop's name is known
-    _use_stop_name_in_title(hass, entry, values)
+    def _show_stop_name() -> None:
+        _update_duplicate_issue(hass, entry)
+        _update_legacy_issue(hass, entry)  # again, now that the stop's name is known
+        _use_stop_name_in_title(hass, entry, values)
+
+    _show_stop_name()
+    named = _stop_name_of(hass, entry) is not None
+
+    def _on_update() -> None:
+        """The name can arrive after the setup (the catalogue failed once and a later refresh got it): show it then."""
+        nonlocal named
+        if not named and _stop_name_of(hass, entry) is not None:
+            named = True
+            _show_stop_name()
+
+    if not named:
+        entry.async_on_unload(coordinator.async_add_listener(_on_update))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     seen = (dict(entry.data), dict(entry.options))
 
@@ -138,7 +152,7 @@ def _stop_text(stop_id: str, pole: str, name: str | None) -> str:
         return f"{stop_id}/{pole}"
     # The name comes from the City and goes into a Markdown text: keep letters, digits, spaces, hyphens, commas and
     # apostrophes, and a dot only before a space, so nothing in it can format a line or become a link.
-    plain = re.sub(r"\.(?=\S)", "", re.sub(r"[^\w\s.,'-]|_", "", " ".join(name.split()))).strip()
+    plain = re.sub(r"\.(?=\S)", "", re.sub(r"[^\w\s.,'-]", "", " ".join(name.split()).replace("_", ""))).strip()
     return f"{plain} {pole} ({stop_id}/{pole})" if plain else f"{stop_id}/{pole}"
 
 
