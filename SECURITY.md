@@ -87,6 +87,7 @@ Automated checks that actually run in this repository. The table is kept honest 
 | Dependabot | Updates of GitHub Actions (weekly) and Python tooling (monthly), with a 7-day cooldown; security updates | Scheduled | `.github/dependabot.yml` and a repository setting |
 | Branch protection | A pull request and the required status checks (listed in [CONTRIBUTING.md](CONTRIBUTING.md#opening-a-pull-request)) before a change is merged to `main`; not enforced for the repository administrator | Every merge | Repository setting |
 | OpenSSF Scorecard | Independent score of the repository's security practices, report only | Push to `main`, weekly | `.github/workflows/scorecard.yml` |
+| Sigstore signature of releases | Each Release has `ztm_warsaw.zip` and its keyless signature bundle `ztm_warsaw.zip.sigstore.json`, made by the release workflow. Verify with `cosign verify-blob --bundle ztm_warsaw.zip.sigstore.json --certificate-identity-regexp 'https://github.com/solarssk/ztm_warsaw/.github/workflows/release.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com ztm_warsaw.zip` | Every tag | `.github/workflows/release.yml` |
 | SonarCloud | Code quality and security hotspots, report only | Every pull request that can read secrets (not forks or Dependabot) and every push to `main` | `.github/workflows/ci.yml`, job *Coverage signals (Codecov, SonarCloud)* |
 
 ---
