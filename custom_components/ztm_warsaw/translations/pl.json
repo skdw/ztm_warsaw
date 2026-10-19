@@ -75,7 +75,7 @@
     },
     "legacy_key": {
       "title": "Stary klucz API: linia {line}, {stop}",
-      "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+      "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
     }
   }
 }

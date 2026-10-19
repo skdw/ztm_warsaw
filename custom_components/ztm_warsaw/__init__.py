@@ -19,6 +19,7 @@ from .coordinator import ZTMStopCoordinator, store_key
 
 _LOGGER = logging.getLogger(__name__)
 _NAME_LENGTH = 60
+KEY_PORTAL_URL = "https://dane.um.warszawa.pl/pl/key-api"
 
 
 def _first_nonempty(merged: Mapping[str, Any], *keys: str) -> str | None:
@@ -197,7 +198,11 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="legacy_key",
-            translation_placeholders={"line": values[3], "stop": _stop_text(values[1], values[2], _stop_name_of(hass, entry))},
+            translation_placeholders={
+                "line": values[3],
+                "stop": _stop_text(values[1], values[2], _stop_name_of(hass, entry)),
+                "portal": KEY_PORTAL_URL,  # hassfest wants no URL inside a translated text
+            },
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, issue_id)

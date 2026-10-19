@@ -563,7 +563,7 @@ async def test_e2e_05_an_old_key_gets_a_notice_and_a_token_does_not(env):
     notice = issues.async_get_issue(DOMAIN, f"legacy_key_{old.entry_id}")
     assert notice is not None
     assert (notice.is_fixable, notice.translation_key) == (False, "legacy_key")
-    assert notice.translation_placeholders == {"line": "151", "stop": f"{stop_name_for('7009')} 01 (7009/01)"}
+    assert notice.translation_placeholders == {"line": "151", "stop": f"{stop_name_for('7009')} 01 (7009/01)", "portal": "https://dane.um.warszawa.pl/pl/key-api"}
     assert issues.async_get_issue(DOMAIN, f"legacy_key_{token.entry_id}") is None
 
 

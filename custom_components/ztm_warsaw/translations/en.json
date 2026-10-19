@@ -75,7 +75,7 @@
     },
     "legacy_key": {
       "title": "Old API key: line {line}, {stop}",
-      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
     }
   }
 }
