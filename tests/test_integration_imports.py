@@ -44,6 +44,7 @@ builtins.__import__ = guarded
 
 
 def run(code: str) -> subprocess.CompletedProcess[str]:
+    """Run `code` in a fresh Python process with the import guard installed first; the caller checks the result."""
     return subprocess.run([sys.executable, "-c", GUARD + code], cwd=ROOT, capture_output=True, text=True, check=False)
 
 

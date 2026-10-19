@@ -23,6 +23,7 @@ RESPONSE_CAP_BYTES = 2_000_000  # the integration's own limit
 
 
 def is_legacy_key(key: str) -> bool:
+    """Whether a key looks like one of the legacy API's (see LEGACY_KEY_RE); surrounding whitespace is ignored."""
     return bool(LEGACY_KEY_RE.match(key.strip()))
 
 
@@ -79,6 +80,7 @@ def kv(row: Any) -> dict[str, Any]:
 
 
 def czas_to_minutes(czas: str) -> int:
+    """A `czas` (HH:MM:SS, the hour may pass 24) as minutes since the start of the service day; asserts that it is well formed and inside the service-day window."""
     m = CZAS_RE.match(czas)
     assert m, f"czas {czas!r} is not HH:MM:SS"
     hours, minutes, seconds = (int(x) for x in m.groups())

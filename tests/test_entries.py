@@ -23,12 +23,14 @@ KEY = "11111111-2222-3333-4444-555555555555"  # gitleaks:allow  (synthetic)
 
 
 def _entry(*, version=1, data=None, options=None, subentries=None):
+    """A stand-in config entry with only the attributes the code under test reads."""
     return SimpleNamespace(
         entry_id="entry-1", version=version, data=data or {}, options=options or {}, subentries=subentries or {}
     )
 
 
 def _stop(subentry_type="stop", **data):
+    """A stand-in subentry (a stop of a line) holding the given data."""
     return SimpleNamespace(subentry_type=subentry_type, data=data)
 
 

@@ -24,6 +24,7 @@ EVENT_LENGTH = timedelta(minutes=1)
 
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:  # NOSONAR
+    """Add the timetable calendar of every stop the entry runs (disabled by default, see the class)."""
     for subentry_id, runtime in runtimes(hass, config_entry).items():
         async_add_entities([ZTMCalendar(runtime["coordinator"])], config_subentry_id=subentry_id)
 
@@ -35,6 +36,7 @@ class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: ZTMStopCoordinator):
+        """Name the calendar after its stop and put it on the device of that stop, as the sensors are."""
         super().__init__(coordinator)
         line, stop_id, stop_nr = coordinator.line, coordinator.stop_id, coordinator.stop_nr
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_calendar"
@@ -42,6 +44,7 @@ class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
         self._attr_device_info = _device_info(line, coordinator)
 
     def _event_of(self, departure) -> CalendarEvent:
+        """One departure as a calendar event of ``EVENT_LENGTH``: ``<line> → <headsign>``, the brigade as the description, the stop's name as the place."""
         headsign = departure.kierunek if departure.kierunek not in (None, "", "unknown") else None
         stop_name = _stop_info_of(self.coordinator).get("nazwa_zespolu")
         return CalendarEvent(
@@ -54,6 +57,7 @@ class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
 
     @property
     def available(self) -> bool:
+        """The calendar is available while the coordinator holds a timetable that may be shown (see ``is_usable``)."""
         return self.coordinator.is_usable(dt_util.utcnow())
 
     @property

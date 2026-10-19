@@ -23,6 +23,7 @@ class Behavior:
     name = "behavior"
 
     async def respond(self, fake: Any, call: Any, request: web.Request) -> web.StreamResponse | None:
+        """Produce this behavior's response for ``request``, or ``None`` to let the normal handler answer."""
         raise NotImplementedError
 
     def __repr__(self) -> str:
@@ -41,6 +42,7 @@ class Respond(Behavior):
         headers: dict[str, str] | None = None,
         name: str | None = None,
     ) -> None:
+        """``name`` labels the call in ``Call.behavior``; the rest is the status, body and headers to send."""
         self.status = status
         self.body = body
         self.content_type = content_type
@@ -49,6 +51,7 @@ class Respond(Behavior):
             self.name = name
 
     async def respond(self, fake, call, request):
+        """Send the fixed answer; ``bytes`` and ``str`` bodies go out as they are, anything else as JSON."""
         if isinstance(self.body, bytes):
             data = self.body
         elif isinstance(self.body, str):
@@ -80,18 +83,22 @@ def NullResult() -> Behavior:
 
 
 def EmptyList() -> Behavior:
+    """Legacy answer with an empty result list (a line with nothing to list)."""
     return Respond(200, {"result": []}, name="result_empty_list")
 
 
 def Http(status: int, body: Any = None) -> Behavior:
+    """A plain HTTP error ``status``; the body defaults to the host's "Service unavailable" message."""
     return Respond(status, body if body is not None else {"message": "Service unavailable"}, name=f"http_{status}")
 
 
 def InvalidJson() -> Behavior:
+    """HTTP 200 whose body is JSON cut off mid-value, so the client cannot decode it."""
     return Respond(200, '{"result": [[{"key": "czas", "value": "12:0', name="invalid_json")
 
 
 def Html() -> Behavior:
+    """HTTP 200 with an HTML maintenance page instead of JSON."""
     return Respond(
         200,
         "<html><head><title>Maintenance</title></head><body><h1>Serwis niedostępny</h1></body></html>",
@@ -107,6 +114,7 @@ def Oversize(total_bytes: int = 2_500_000) -> Behavior:
 
 
 def Redirect(location: str, status: int = 302) -> Behavior:
+    """An empty redirect with ``status`` to ``location``, for redirects that point at another host."""
     return Respond(status, b"", headers={"Location": location}, name=f"redirect_{status}")
 
 
@@ -116,6 +124,7 @@ class RedirectSelf(Behavior):
     name = "redirect_loop"
 
     async def respond(self, fake, call, request):
+        """Redirect to the requested URL itself, every time."""
         return web.Response(status=302, headers={"Location": str(request.rel_url)})
 
 
@@ -125,9 +134,11 @@ class RedirectOnce(Behavior):
     name = "redirect_once"
 
     def __init__(self) -> None:
+        """Start with the redirect still to be sent."""
         self._done = False
 
     async def respond(self, fake, call, request):
+        """Redirect on the first request only; later requests return ``None`` and are answered normally."""
         if self._done:
             return None
         self._done = True
@@ -140,6 +151,7 @@ class Reset(Behavior):
     name = "connection_reset"
 
     async def respond(self, fake, call, request):
+        """Abort the connection with SO_LINGER 0 so the client sees a reset, not a clean close."""
         transport = request.transport
         if transport is not None:
             sock = transport.get_extra_info("socket")
@@ -155,6 +167,7 @@ class Truncated(Behavior):
     name = "truncated_body"
 
     async def respond(self, fake, call, request):
+        """Send the headers and a fragment of the body, then abort the connection."""
         resp = web.StreamResponse(status=200, headers={"Content-Type": "application/json"})
         resp.content_length = 5000
         await resp.prepare(request)
@@ -170,6 +183,7 @@ class Hang(Behavior):
     name = "hang"
 
     async def respond(self, fake, call, request):
+        """Mark the call as hanging and wait on the server's gate; once released, answer a plain 200."""
         call.hanging = True
         fake._hanging += 1
         fake._hang_started()
@@ -184,10 +198,12 @@ class Mutate(Behavior):
     """Run the normal handler, then let ``fn(payload)`` edit the decoded JSON before it is sent."""
 
     def __init__(self, fn: Callable[[Any], Any], name: str = "mutate") -> None:
+        """``fn`` takes the decoded JSON payload and returns the payload to send."""
         self.fn = fn
         self.name = name
 
     async def respond(self, fake, call, request):
+        """Register the mutator on the call and return ``None``; the normal handler then answers and applies it."""
         call.mutator = self.fn
         return None
 

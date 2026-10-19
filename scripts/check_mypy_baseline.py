@@ -79,15 +79,18 @@ def baseline_header(text: str) -> str:
 
 
 def render_baseline(header: str, entries: Sequence[str]) -> str:
+    """The text of a baseline file: its header, then one diagnostic per line."""
     return header + "".join(f"{entry}\n" for entry in entries)
 
 
 def error(message: str) -> None:
+    """Print an error to stderr, as a GitHub Actions annotation when it runs in Actions."""
     prefix = "::error::" if os.environ.get("GITHUB_ACTIONS") == "true" else "error: "
     print(f"{prefix}{message}", file=sys.stderr)
 
 
 def main(argv: Sequence[str] | None = None, runner: Runner = run_mypy, baseline_path: Path = BASELINE) -> int:
+    """Compare mypy's diagnostics with the baseline (or rewrite it with --update); the exit status is 0 if they agree, 1 if not or if mypy did not run, 2 for a wrong usage. The mypy runner and the baseline path are parameters so that tests can replace them."""
     args = list(sys.argv[1:] if argv is None else argv)
     if args not in ([], ["--update"]):
         print("usage: check_mypy_baseline.py [--update]", file=sys.stderr)

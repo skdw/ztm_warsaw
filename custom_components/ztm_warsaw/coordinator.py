@@ -1,3 +1,12 @@
+"""The coordinator: one per stop, it asks the City for the timetable and holds the answer for the sensors and the calendar.
+
+It is the one place that knows when to ask (hourly, again at 03:06 once the City's swap is over and the service day has
+changed at 03:05, never while the City swaps
+its data between 02:10 and 03:05), what to do when the City fails or rejects the key (keep the cached timetable,
+but never make a rejected key look healthy; after three rejections the user is asked for a new key), and what to
+keep on disk (the last two answers, so that a restart does not lose the night tail of a night line).
+"""
+
 import asyncio
 import logging
 from dataclasses import asdict
@@ -24,7 +33,10 @@ def store_key(entry_id: str) -> str:
 
 
 class ZTMStopCoordinator(DataUpdateCoordinator):
+    """Holds the timetable of one line at one pole and refreshes it; the sensors and the calendar read it from here."""
+
     def __init__(self, hass, stop_id: str, stop_nr: str, line: str, client: ZTMStopClient, entry_id: str):
+        """Set up the refresh of the stop (hourly); ``entry_id`` names the answers kept on disk, which the first refresh loads."""
         super().__init__(
             hass,
             _LOGGER,
@@ -129,6 +141,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self.data, self._previous = self._previous, None
 
     def _payload(self) -> dict:
+        """What is saved on disk: the last two answers (the earlier day's keeps its night tail), the failure marker and the count of rejections."""
         return {
             "answers": [
                 {
@@ -144,6 +157,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         }
 
     def _save(self):
+        """Write the payload to disk a little later (30 s, one write for a burst of changes), unless the coordinator has been shut down."""
         # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
         if self._ztm_shutdown_done:  # a refresh that was still running must not write the store of an unloaded entry
             return
@@ -156,6 +170,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
 
     @callback
     def _flip_refresh(self, _now):
+        """Ask again after the City's update is over, and arrange the next one (the timer of 03:06 repeats itself every day)."""
         self._flip_unsub = None
         self._schedule_flip_refresh()
         self.hass.async_create_task(self.async_refresh())
@@ -258,6 +273,10 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self._save()
 
     async def _fetch(self) -> ZTMDepartureData:
+        """One refresh: the City's answer, or the cached timetable while the City swaps its data (02:10-03:05) or when the request failed and no API error is pending.
+
+        A rejected key and an answer that is not a timetable are kept apart from a network error: they raise ``ConfigEntryAuthFailed`` or ``UpdateFailed`` instead of bringing the cached timetable back, so that a failure is never shown as an empty or healthy timetable.
+        """
         if in_swap_window(dt_util.utcnow()):
             return self._hold_during_swap()
         _LOGGER.debug("ZTM Coordinator [%s] — fetching new schedule data", self.name)

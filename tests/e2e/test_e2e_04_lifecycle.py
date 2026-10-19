@@ -93,6 +93,7 @@ FIVE_LINES = ["151", "143", "182", "525", "520"]  # five real lines at stop 7009
 
 
 async def _five_entries(env):
+    """Add one entry per line in ``FIVE_LINES`` without setting them up, then set the first one up; Home Assistant sets up the rest. Returns the entries."""
     entries = [await env.add_entry(line=line, setup=False) for line in FIVE_LINES]
     await env.hass.config_entries.async_setup(entries[0].entry_id)
     await env.settle()
@@ -166,6 +167,7 @@ async def test_e2e_25_two_entries_of_one_line_share_one_device_where_home_assist
 
 # ===================================================================== E2E-26
 async def _entry_with_diagnostic_enabled(env, **kwargs):
+    """Add an entry whose diagnostic sensor is already enabled in the registry, and set it up."""
     entry = await env.add_entry(setup=False, **kwargs)
     line = kwargs.get("line", "151")
     # Enabling it in the UI is the same registry write; doing it up front avoids the 30 s reload-after-enable delay.

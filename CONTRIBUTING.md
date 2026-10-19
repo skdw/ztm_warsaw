@@ -99,6 +99,10 @@ pytest
 
 5. Match the style of the file you are editing, and keep the diff to what the change needs.
 
+6. **Every module, class and function has a docstring** (private and nested ones too; `test_*` functions are the
+   exception) that says what it is for and what it promises. Someone returns to this code after months and has none
+   of today's context. `python scripts/check_docstrings.py` (also run by pytest) tells you what is missing.
+
 ## Using AI coding tools
 
 AI-assisted contributions are welcome. The same bar applies as to any other contribution: you are

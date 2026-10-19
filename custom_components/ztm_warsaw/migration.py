@@ -34,6 +34,7 @@ _MOVED_FIELDS = frozenset(
 
 
 def merged_keys_issue_id(entry_id: str) -> str:
+    """The ID of the Repairs notice that says the stops of a line had different keys when they were grouped."""
     return f"merged_keys_{entry_id}"
 
 
@@ -78,6 +79,11 @@ def _chosen_key(candidates: list[str]) -> str:
 
 
 async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry], entries: list[ConfigEntry]) -> None:
+    """Group the entries of one line into the line: its stops, the entities, devices and stored answers of the stops, then the entry itself.
+
+    The steps run in an order that is safe to interrupt (what can fail on disk comes first), and each looks at what is
+    there, so a run that was cut short is finished by the next one.
+    """
     existing = next((e for e in entries if is_line_entry(e) and line_of(e) == line), None)
     if existing is not None and existing.disabled_by is not None:
         return  # its entities would be switched off with it: the stops stay as they are until the user switches it on
@@ -110,6 +116,7 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
 
 
 def _add_stops(hass: HomeAssistant, parent: ConfigEntry, members: list[ConfigEntry]):
+    """A subentry for the stop of every member, reusing the ones the line has already; returns the subentry of each member and its stop."""
     stops: dict[str, str] = {}  # the entry id of a member -> the id of the subentry of its stop
     units: dict[str, StopUnit] = {}
     for member in members:
@@ -180,6 +187,10 @@ def _int_if_number(value: str) -> Any:
 
 
 def _move_entities_and_devices(hass, parent, line, members, stops, units) -> set[str]:
+    """Move the entities of the members to the line and to the device of their stop, creating that device and carrying over what the user set on the old one.
+
+    Returns the old devices, for the clean-up once nothing uses them.
+    """
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
     new_devices: dict[str, str] = {}  # the subentry id -> the id of the device of its stop

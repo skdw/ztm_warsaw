@@ -76,6 +76,7 @@ def reference_next(czas_values: list[str], service_date: date, now: datetime) ->
 
 
 def local(dt: datetime | None) -> str | None:
+    """A moment as 'YYYY-MM-DD HH:MM' Warsaw wall-clock, or None for None."""
     return dt.astimezone(WARSAW).strftime("%Y-%m-%d %H:%M") if dt else None
 
 
@@ -95,6 +96,7 @@ def log_blob(caplog) -> str:
 
 
 def dumps(obj) -> str:
+    """``obj`` as JSON text; values JSON cannot represent are written with ``str()``, so it never raises on them."""
     return json.dumps(obj, default=str, ensure_ascii=False)
 
 

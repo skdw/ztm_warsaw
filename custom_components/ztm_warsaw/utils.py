@@ -1,3 +1,5 @@
+"""Small helpers about lines: their kind, their icon and the badge that is the pin of a line on the map."""
+
 import base64
 import re
 

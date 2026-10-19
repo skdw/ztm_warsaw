@@ -1,3 +1,5 @@
+"""The names and constants shared by the whole integration: the domain, the keys of the entry's data, the platforms."""
+
 from homeassistant.const import Platform
 
 DOMAIN = "ztm_warsaw"

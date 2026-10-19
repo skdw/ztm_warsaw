@@ -23,6 +23,7 @@ SENSOR = "sensor.line_151_from_7009_01"
 
 @pytest.fixture
 async def city(socket_enabled):
+    """The fake City of Warsaw on a loopback port, with the integration's HTTP routed to it; fails the test if the code under test tried to leave the sandbox."""
     fake = FakeCity()
     await fake.start()
     try:

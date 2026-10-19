@@ -35,14 +35,17 @@ Row = list[dict]  # [{"key": "czas", "value": "23:24:00"}, ...] in the API's key
 
 
 def _load(name: str):
+    """Read and decode one JSON file of ``data/``."""
     return json.loads((DATA_DIR / name).read_text(encoding="utf-8"))
 
 
 def czas_of(row: Row) -> str:
+    """The ``czas`` (departure time, ``HH:MM:SS``) value of a timetable row."""
     return next(e["value"] for e in row if e["key"] == "czas")
 
 
 def make_row(czas: str, kierunek: str, trasa: str, brygada: str) -> Row:
+    """Build one timetable row with the six keys of the live API, in its key order."""
     # Key order as captured from the live API.
     return [
         {"key": "symbol_2", "value": None},
@@ -55,11 +58,13 @@ def make_row(czas: str, kierunek: str, trasa: str, brygada: str) -> Row:
 
 
 def _hms_to_min(hms: str) -> int:
+    """``HH:MM:SS`` to minutes since midnight (seconds are dropped)."""
     h, m, _ = hms.split(":")
     return int(h) * 60 + int(m)
 
 
 def _min_to_hms(minutes: int) -> str:
+    """Minutes since midnight to ``HH:MM:00``; the inverse of ``_hms_to_min``."""
     return f"{minutes // 60:02d}:{minutes % 60:02d}:00"
 
 
@@ -92,6 +97,7 @@ class DaySet:
 
 
 def _split_key(key: str) -> StopKey:
+    """Turn a ``"7009/01"`` key of the summary files into a ``(stop id, pole)`` pair."""
     stop_id, nr = key.split("/")
     return stop_id, nr
 
@@ -146,11 +152,13 @@ def _add_survey(ds: DaySet) -> None:
 
 
 def all_known_pairs() -> set[tuple[StopKey, str]]:
+    """Every ``(stop pole, line)`` that has a timetable on at least one day set."""
     sets = day_sets()
     return {pair for ds in sets.values() for pair in ds.timetables}
 
 
 def all_known_stops() -> set[StopKey]:
+    """Every stop pole that has lines on at least one day set; the only ones the fake city accepts."""
     sets = day_sets()
     return {stop for ds in sets.values() for stop in ds.lines}
 
@@ -188,6 +196,7 @@ _DIRECTIONS = ["Centrum", "Metro Testowe", "Pętla Testowa", "Rondo Syntetyczne"
 def _stop_record(
     stop_id: str, nr: str, name: str, street: str, lat: str, lon: str, direction: str, *, legacy: bool = True
 ) -> dict:
+    """One stop pole record of the catalogue; ``legacy=False`` leaves out the two extra keys the new host does not send."""
     values = [
         {"value": stop_id, "key": "zespol"},
         {"value": nr, "key": "slupek"},
@@ -236,6 +245,7 @@ def stops_catalogue_bytes(
     ]
 
     def new_filler() -> dict:
+        """A record for a made-up stop that is not one of the core poles and not already used."""
         while True:
             sid = str(rng.randint(1000, 9999))
             nr = f"{rng.randint(1, 8):02d}"
@@ -255,14 +265,17 @@ def stops_catalogue_bytes(
         )
 
     def dump(obj) -> str:
+        """Serialize as the host does: compact separators for the new host, Python's defaults for the legacy one."""
         if new_host:
             return json.dumps(obj, ensure_ascii=ensure_ascii, separators=(",", ":"))
         return json.dumps(obj, ensure_ascii=ensure_ascii)
 
     def serialize(records: list[dict]) -> bytes:
+        """The response body for ``records``: a bare list (new host) or wrapped in ``result`` (legacy)."""
         return dump(records if new_host else {"result": records}).encode("utf-8")
 
     def size(records: list[dict]) -> int:
+        """Length in bytes of the body ``serialize`` would produce."""
         return len(serialize(records))
 
     filler: list[dict] = []

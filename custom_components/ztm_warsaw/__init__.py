@@ -110,6 +110,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"units": built} if is_line_entry(entry) else built[None]
 
     def _show_stop_names() -> None:
+        """Show everything that depends on a stop's name: the notices, and the titles of the entry and of its stops.
+
+        Called once after the setup, and again when a name arrives later (the catalogue failed once and a later refresh got it).
+        """
         _update_duplicate_issue(hass, entry)
         _update_legacy_issue(hass, entry)  # again, now that the stop's name is known
         _use_stop_name_in_title(hass, entry)
@@ -191,6 +195,7 @@ def stop_key(entry: ConfigEntry) -> tuple[str, str, str] | None:
 
 
 def _duplicate_issue_id(entry: ConfigEntry) -> str:
+    """The ID of the Repairs notice that says an entry is the second one of a pair for the same stop, pole and line."""
     return f"duplicate_{entry.entry_id}"
 
 

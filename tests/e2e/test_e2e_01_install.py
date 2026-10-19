@@ -304,6 +304,7 @@ async def test_e2e_03_restored_1_1_4_entries_load_and_call_the_city_unchanged(en
 
 # ===================================================================== E2E-04
 def _saturday(env):
+    """Move the clock to a Saturday midday."""
     env.move_to("2026-10-17 12:00")
 
 

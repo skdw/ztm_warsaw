@@ -19,10 +19,12 @@ FRI = date(2026, 10, 16)
 
 
 def local(moment):
+    """A moment as 'YYYY-MM-DD HH:MM' on the Warsaw clock."""
     return moment.astimezone(WARSAW).strftime("%Y-%m-%d %H:%M")
 
 
 def warsaw(text):
+    """A Warsaw-time moment from 'YYYY-MM-DD HH:MM'."""
     return datetime.strptime(text, "%Y-%m-%d %H:%M").replace(tzinfo=WARSAW)
 
 

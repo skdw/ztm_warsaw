@@ -19,6 +19,7 @@ RELEASE = ROOT / ".github" / "workflows" / "release.yml"
 
 @pytest.fixture(scope="module")
 def preflight() -> ModuleType:
+    """The script scripts/release_preflight.py loaded as a module (it is not a package)."""
     spec = importlib.util.spec_from_file_location("release_preflight", SCRIPT)
     assert spec is not None
     assert spec.loader is not None
@@ -35,10 +36,12 @@ PR_SUITE = 600  # the check suite of the same commit's pull request run
 def run(
     name: str, run_id: int, conclusion: str | None = "success", status: str = "completed", app: str = "github-actions", suite: int = SUITE
 ) -> dict:
+    """A check run as the GitHub API reports it, by default a finished, successful one of the push suite."""
     return {"id": run_id, "name": name, "status": status, "conclusion": conclusion, "app": app, "check_suite": suite}
 
 
 def all_green(preflight: ModuleType) -> list[dict]:
+    """One successful run for every required check."""
     return [run(name, i) for i, name in enumerate(preflight.REQUIRED, start=100)]
 
 
@@ -120,16 +123,19 @@ OTHER = "fedcba9876543210fedcba9876543210fedcba98"
 
 
 def write_lines(path: Path, runs: list[dict]) -> Path:
+    """Write the runs as a JSON-lines file, the form the workflow hands to the script, and return its path."""
     path.write_text("\n".join(json.dumps(r) for r in runs) + "\n", encoding="utf-8")
     return path
 
 
 def write_mainline(path: Path, commits: list[str]) -> Path:
+    """Write the mainline commits one per line, as the workflow does, and return the path."""
     path.write_text("\n".join(commits) + "\n", encoding="utf-8")
     return path
 
 
 def push_run(commit: str = COMMIT, suite: int = SUITE, event: str = "push", branch: str = "main") -> dict:
+    """A workflow run as the API reports it; by default the push run on main of the commit."""
     return {"id": 77, "check_suite_id": suite, "event": event, "head_branch": branch, "head_sha": commit}
 
 
@@ -141,6 +147,7 @@ def run_main(
     commit: str = COMMIT,
     workflow_runs: list[dict] | None = None,
 ) -> int:
+    """Write the inputs to files and run the script's `main` on them; returns its exit status. The mainline defaults to the commit alone and the workflow runs to a single push run."""
     runs_file = write_lines(tmp_path / "runs.jsonl", runs)
     workflow_file = write_lines(tmp_path / "workflow-runs.jsonl", [push_run()] if workflow_runs is None else workflow_runs)
     mainline_file = write_mainline(tmp_path / "mainline.txt", [OTHER, COMMIT] if mainline is None else mainline)
@@ -229,6 +236,7 @@ def test_on_mainline_does_not_match_a_prefix_or_a_substring(preflight: ModuleTyp
 
 
 def git(repo: Path, *args: str) -> str:
+    """Run the real git on `repo` with a fixed identity and a minimal environment, and return its stripped output; a failure raises."""
     env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid", "PATH": "/usr/bin:/bin"}
     out = subprocess.run(["/usr/bin/git", "-C", str(repo), *args], check=True, capture_output=True, text=True, env=env).stdout
     return out.strip()

@@ -1,3 +1,10 @@
+"""The sensors of a stop: the next departures of the line at the pole, and a diagnostic sensor for the last refresh.
+
+The state of ``ZTMSensor`` is the next departure (a timestamp), the attributes list the three after it and the stop
+(its name, position, direction ...). A sensor wakes up at the next departure instead of polling, and writes its
+state only when it changed. The names of the attributes are part of the public contract of the integration.
+"""
+
 import logging
 import math
 from datetime import datetime, timezone, timedelta
@@ -59,6 +66,7 @@ def _stop_info_of(coordinator):
 
 
 def _stop_attributes(stop_info):
+    """The attributes that describe the stop; its position (``latitude`` and ``longitude``) only when it is a real place, so it can be a pin on the map."""
     attrs = {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
     try:  # the standard names, so that the stop is a pin on Home Assistant's map card
         latitude, longitude = float(stop_info["szer_geo"]), float(stop_info["dlug_geo"])
@@ -111,6 +119,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     """Sensor for tracking ZTM departures."""
     
     def __init__(self, coordinator, entry_id, stop_id, stop_number, line, max_departures):
+        """Name the sensor after its line and pole (the stop's name replaces the numbers later, once the entity ID is fixed) and fix its unique ID."""
         super().__init__(coordinator)
         self._entry_id = entry_id
         self._line = line
@@ -150,6 +159,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._written_attributes: dict | None = None
 
     def _get_stop_info(self):
+        """The stop's record from the coordinator (its name, position, street ...) for the attributes and the entity name; an empty dict until the City has given it."""
         return _stop_info_of(self.coordinator)
 
     @property
@@ -216,6 +226,10 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             self.async_write_ha_state()
 
     def _apply_coordinator_data(self, has_new_data):
+        """Show what the coordinator holds: the next departure and the ones after it, or the state of a line with no service.
+
+        ``has_new_data`` is True when the coordinator got an answer since the last time, which restarts the wake-up of the sensor.
+        """
         data = self.coordinator.data if self.coordinator else None
         if not data:
             _LOGGER.warning("No timetable data available from coordinator for %s", self.entity_id)
@@ -323,6 +337,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
     """Sensor to expose the last successful update time from coordinator."""
 
     def __init__(self, coordinator, line, stop_id, stop_number):
+        """The diagnostic sensor of a stop (disabled by default): when its timetable was last fetched."""
         super().__init__(coordinator)
         self._attr_entity_registry_enabled_default = False
         self._line = line
@@ -335,6 +350,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Line {line} from {stop_id}/{stop_number} Last update"
 
     def _get_stop_info(self):
+        """The stop's record from the coordinator (its name, position, street ...) for the attributes and the entity name; an empty dict until the City has given it."""
         return _stop_info_of(self.coordinator)
 
     @property

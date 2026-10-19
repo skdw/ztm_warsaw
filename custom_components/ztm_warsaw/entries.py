@@ -72,6 +72,7 @@ def is_line_entry(entry: ConfigEntry) -> bool:
 
 
 def _merged(entry: ConfigEntry) -> dict[str, Any]:
+    """The data of the entry with its options on top (an option overrides the data), as the setup of 1.1.x read it."""
     merged: dict[str, Any] = {}
     if isinstance(entry.data, Mapping):
         merged.update(entry.data)

@@ -135,6 +135,7 @@ def read_runs(path: Path) -> list[dict[str, Any]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Check from the four files the workflow gives (check runs, workflow runs, the mainline commits, the commit being released) that the commit is on main and its required CI checks succeeded; 0 if so, 1 with the problems on stderr, 2 for a wrong usage."""
     args = sys.argv[1:] if argv is None else argv
     if len(args) != 4:
         print(

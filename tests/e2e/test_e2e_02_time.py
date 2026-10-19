@@ -440,6 +440,7 @@ async def test_e2e_15_an_answer_that_arrives_after_the_update_has_begun_is_not_t
     get = coordinator.client.get
 
     async def slow_get():
+        """A refresh whose answer takes 30 simulated seconds, long enough to cross the 02:10 window."""
         answer = await get()
         env.clock.tick(timedelta(seconds=30))
         return answer
@@ -483,6 +484,7 @@ async def test_e2e_15_a_first_answer_that_arrives_inside_the_window_is_not_trust
     get = ZTMStopClient.get
 
     async def slow_get(self):
+        """A request whose answer takes 30 simulated seconds, long enough to cross the 02:10 window."""
         answer = await get(self)
         env.clock.tick(timedelta(seconds=30))
         return answer
@@ -609,6 +611,7 @@ async def test_e2e_15_an_api_error_that_arrives_inside_the_window_is_not_a_failu
     env.move_to("2026-10-17 02:09:50")
 
     async def straddling_get():
+        """A request that fails with an API error 30 simulated seconds after it was sent, across the 02:10 window."""
         env.clock.tick(timedelta(seconds=30))
         raise ZTMApiError("the City answered with something else")
 

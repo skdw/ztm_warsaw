@@ -65,6 +65,7 @@ NEW = "https://dane.um.warszawa.pl/api/action/"
 
 
 async def legacy_get(session, dataset, key=DEFAULT_KEY, **params):
+    """GET the legacy API once; returns the status and the raw body."""
     async with session.get(LEGACY, params={"id": dataset, "apikey": key, **params}) as resp:
         return resp.status, await resp.read()
 
@@ -188,6 +189,7 @@ async def test_h03_scripted_answers(fake_city, behavior, status, check):
 
 
 def _is_json(body: bytes) -> bool:
+    """Whether ``body`` parses as JSON."""
     try:
         json.loads(body)
     except ValueError:
@@ -318,6 +320,7 @@ NEW_PAIR = {**NEW_STOP, "line": "151"}
 
 
 async def new_post(session, action, body=None, token=DEFAULT_TOKEN):
+    """POST to an action of the new API, with ``token`` as the Authorization header (none when None); returns the status, body and headers."""
     headers = {} if token is None else {"Authorization": token}
     async with session.post(NEW + action, json=body, headers=headers) as resp:
         return resp.status, await resp.read(), resp.headers
