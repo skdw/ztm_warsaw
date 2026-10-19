@@ -29,13 +29,17 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
 - **Next departures as their own entities** (off by default): switch on *Next 1*, *Next 2* or *Next 3* in the entity settings to get each following departure as a time you can use in a card or an automation.
+- **Its own logo in Home Assistant**: the integration carries its icon and logo, so Home Assistant 2026.3 and newer shows them without fetching anything.
 - **Delete a stop's old device**: when a stop is gone from a line, its leftover device now has a *Delete* button on its page, while a device that is still in use cannot be deleted by mistake.
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
+- **More languages**: setup, notices and dialogs now also in Ukrainian, Russian, German, Spanish, French and Italian, and the README in all eight languages, with a language switch at the top. The new languages are machine-translated, so corrections are welcome.
 - **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.
 
 ### Changed
+
+- **Clearer instructions in every language**: the README and setup messages now explain configuration, API keys and errors more naturally across all eight languages.
 
 - **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
