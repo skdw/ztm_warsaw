@@ -4,7 +4,8 @@
 The GitHub Wiki is a build output: its pages live in docs/wiki/ and .github/workflows/publish-wiki.yml copies
 them to the wiki. This catches the drift that a copy cannot: a page that is gone, a link that goes nowhere, a
 real e-mail address in an example, a folder or a link that rsync would copy into the wiki.
-Anchors (``Page#section``) are not checked, only the page. Every message is a constant text plus a file name; no page content is printed.
+Anchors (``Page#section``) are not checked, only the page. Inline links and reference-style definitions
+are both read; HTML ``<a>`` and ``<img>`` are not used in the wiki. Every message is a constant text plus a file name; no page content is printed.
 
 Usage: python3 scripts/check_wiki_docs.py [wiki-source-dir]
 """
@@ -29,6 +30,8 @@ EXPECTED = (
     "5.-Contributing",
 )
 
+# Reference-style links: the target is on a definition line, "[name]: target" (also "[name]: <target> "title"").
+DEFINITION = re.compile(r"^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?", re.MULTILINE)
 LINK = re.compile(r"\]\(\s*<?([^)\s>]+)>?(?:\s+\"[^\"]*\")?\s*\)")  # [text](target), [text](<target>), [text](target "title")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
@@ -55,7 +58,7 @@ def check(wiki_dir: Path) -> list[str]:
             problems.append(f"{name}.md does not start with a '# Title' line")
         if EMAIL.search(text):
             problems.append(f"{name}.md contains something that looks like an e-mail address")
-        for target in LINK.findall(text):
+        for target in [*LINK.findall(text), *DEFINITION.findall(text)]:
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
             page = target.split("#", 1)[0]

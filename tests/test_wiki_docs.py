@@ -69,6 +69,19 @@ def test_a_file_that_is_not_a_page_is_reported(tmp_path):
     assert checker.check(tmp_path) == ["not a page (the wiki takes Markdown only): notes.txt"]
 
 
+def test_a_reference_style_link_to_nowhere_is_reported(tmp_path):
+    text = "# Home\n\nSee [Concepts][c] and [other][o].\n\n[c]: Nowhere\n[o]: <Elsewhere> \"a title\"\n"
+    assert checker.check(make(tmp_path, Home=text)) == [
+        "Home.md links to a page that does not exist: Nowhere",
+        "Home.md links to a page that does not exist: Elsewhere",
+    ]
+
+
+def test_a_reference_style_link_that_resolves_is_fine(tmp_path):
+    text = "# Home\n\nSee [Concepts][c] and [web][w].\n\n[c]: 2.-Concepts#anchor\n[w]: https://example.org/page\n"
+    assert checker.check(make(tmp_path, Home=text)) == []
+
+
 def test_a_folder_is_reported_because_rsync_would_publish_it(tmp_path):
     make(tmp_path)
     (tmp_path / "images").mkdir()
