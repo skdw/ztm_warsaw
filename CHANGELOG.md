@@ -23,6 +23,8 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Fixed
 
+- The same stop, pole and line can no longer be added twice: the setup refuses it ("already configured", compared after trimming spaces, before anything is sent to the City). Before, the second entry silently had no sensor. If you already have such a pair, Home Assistant shows a notice in Repairs for the later entry; remove one of the two entries, nothing is changed or deleted for you.
+- On Home Assistant 2026.10 and newer a device belongs to one config entry, so the same line at two poles of different stops (or two poles of one stop) has one device per entry there, not one shared device per line; older versions keep sharing it. Entity IDs, unique IDs and attributes are not affected.
 - Renaming an entry (or any change that leaves its data and options as they were) no longer reloads it and no longer asks the City for the timetable again.
 - Requests that carry the API key no longer follow redirects (a redirect is an error now), and a network error is logged by its class only. The API key can no longer reach the log through a redirect loop or an error text.
 - The setup screen strips pasted spaces and newlines from every field, and refuses a key that is neither an API key (a UUID) nor a token before anything is sent. A crafted key can no longer add parameters to the request.

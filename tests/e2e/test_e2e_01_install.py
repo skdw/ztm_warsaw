@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs
 
 import pytest
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -436,7 +437,6 @@ async def test_e2e_05_renaming_an_entry_does_not_reload_it(env):
 
 
 # ===================================================================== E2E-24
-@known_bug("duplicate-entries-allowed", "the same stop+pole+line can be added twice; the second entry silently loses its sensor")
 async def test_e2e_24_adding_the_same_stop_pole_and_line_twice_is_refused(env):
     await env.add_entry_via_flow()
     second = await env.submit_flow()
@@ -453,3 +453,51 @@ async def test_e2e_24_existing_duplicates_keep_loading(env):
     assert first.state is ConfigEntryState.LOADED
     assert second.state is ConfigEntryState.LOADED
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
+
+
+async def test_e2e_24_the_refusal_ignores_spaces_but_not_a_different_pole(env):
+    await env.add_entry_via_flow(line="N25")
+    again = await env.submit_flow(line=" N25 ")
+    assert (again["type"], again["reason"]) == ("abort", "already_configured")
+    other_pole = await env.submit_flow(line="N25", stop_nr="02")
+    assert other_pole["type"] != "abort", "another pole of the same stop is another sensor"
+
+
+async def test_e2e_24_a_refused_duplicate_makes_no_request_to_the_city(env):
+    first = await env.add_entry()
+    assert first.state is ConfigEntryState.LOADED
+    before = env.city.count()
+    second = await env.submit_flow()
+    assert second["type"] == "abort"
+    assert env.city.count() == before
+
+
+async def test_e2e_24_existing_duplicates_get_a_repairs_notice_that_goes_with_the_twin(env):
+    first = await env.add_entry(setup=False)
+    second = await env.add_entry(setup=False)
+    await env.hass.config_entries.async_setup(first.entry_id)
+    await env.settle()
+    issues = ir.async_get(env.hass)
+    assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is not None
+    assert issues.async_get_issue(DOMAIN, f"duplicate_{first.entry_id}") is None, "the first one set up saw no twin yet"
+    await env.hass.config_entries.async_remove(first.entry_id)
+    await env.settle()
+    assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is None
+
+
+async def test_e2e_24_an_entry_with_broken_data_does_not_break_the_check(env):
+    await env.add_entry(data={"api_key": "x"}, setup=False)
+    again = await env.submit_flow()
+    assert again["type"] != "abort"
+
+
+async def test_e2e_24_the_notice_goes_even_when_the_removed_twin_is_still_listed(env):
+    """Home Assistant before 2026.10 calls async_remove_entry while the entry is still in the list (a review finding)."""
+    first = await env.add_entry(setup=False)
+    second = await env.add_entry(setup=False)
+    await env.hass.config_entries.async_setup(first.entry_id)
+    await env.settle()
+    issues = ir.async_get(env.hass)
+    assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is not None
+    await integration.async_remove_entry(env.hass, first)  # first is still in env.hass.config_entries here
+    assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is None

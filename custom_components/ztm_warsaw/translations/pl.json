@@ -33,7 +33,8 @@
     "abort": {
       "single_instance_allowed": "Dozwolona jest tylko jedna instancja.",
       "reauth_successful": "Klucz API został zaktualizowany, a wpis przeładowany.",
-      "unknown": "Wystąpił nieznany błąd."
+      "unknown": "Wystąpił nieznany błąd.",
+      "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane."
     }
   },
   "options": {
@@ -51,6 +52,12 @@
       "ztm_warsaw": {
         "name": "Linia ZTM"
       }
+    }
+  },
+  "issues": {
+    "duplicate_entry": {
+      "title": "Już skonfigurowane",
+      "description": "Linia {line} na przystanku {stop} jest skonfigurowana dwa razy. Home Assistant może pokazać dla niej tylko jeden czujnik, więc drugi wpis go nie ma. Usuń jeden z dwóch wpisów (Ustawienia > Urządzenia i usługi > Warsaw Public Transport)."
     }
   }
 }
