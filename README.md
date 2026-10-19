@@ -27,6 +27,7 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 - ✅ Set up entirely in the Home Assistant UI, in English or Polish.
 - ✅ Attributes with the stop (its name and position, so it shows as a pin on the map card), the direction, a timetable link and notes.
 - ✅ Change the API key or token of an entry at any time in **Configure**, for example from the City's old API to the new one.
+- ✅ A **calendar** entity per sensor (off by default: enable it in the entity settings) with every departure of the day as a one-minute event: see the whole timetable in Home Assistant's calendar view, and start automations with the calendar trigger ("8 minutes before a departure") without templates.
 
 ---
 

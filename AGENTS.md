@@ -62,7 +62,7 @@ Automations and dashboards depend on these, and the tests
   `busstop_id`, `busstop_nr`, `line` and `departures` (no longer asked: a new entry stores 3, an old value is ignored, the key stays so that the shape does not change);
 - the entity `unique_id` `line_<LINE>_from_<STOP>_<POLE>` and the entity ID
   `sensor.line_<line in lower case>_from_<STOP>_<POLE>`, and the diagnostic sensor's `_last_update`
-  suffix;
+  suffix; the calendar's unique_id suffix `_calendar` and entity ID `calendar.line_<line in lower case>_from_<STOP>_<POLE>_timetable`;
 - one device per line, with the identifier `("ztm_warsaw", "line_<LINE>")` (on Home Assistant 2026.10 and newer a device belongs to one config entry, so the same line at two poles has one device per entry there, with the same identifier; `test_e2e_25_two_entries_of_one_line_share_one_device_where_home_assistant_allows_it` pins both);
 - the names of the state attributes (for example `Line, Number`, `Stop, ID`,
   `Next 1, Departure Time`) and the shape of the "no service" state.
