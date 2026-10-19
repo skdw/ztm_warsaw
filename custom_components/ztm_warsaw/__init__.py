@@ -19,6 +19,18 @@ from .coordinator import ZTMStopCoordinator, store_key
 _LOGGER = logging.getLogger(__name__)
 
 
+def _first_nonempty(merged: Mapping[str, Any], *keys: str) -> str | None:
+    """The first of ``keys`` that holds a value, as a string without surrounding spaces."""
+    for k in keys:
+        v = merged.get(k)
+        if v is None:
+            continue
+        text = str(v).strip()
+        if text:
+            return text
+    return None
+
+
 def _entry_values(entry: ConfigEntry, *, log: bool = True) -> tuple[str, str, str, str] | None:
     """The (api_key, stop_id, stop_nr, line) of the entry, or None when one is missing (logged, key never named)."""
     # Merge data and options (options override data) for robustness
@@ -28,21 +40,10 @@ def _entry_values(entry: ConfigEntry, *, log: bool = True) -> tuple[str, str, st
     if isinstance(entry.options, Mapping):
         merged.update(entry.options)
 
-    def _first_nonempty(*keys: str) -> str | None:
-        for k in keys:
-            v = merged.get(k)
-            if v is None:
-                continue
-            # Normalize to string, strip spaces
-            s = str(v).strip()
-            if s:
-                return s
-        return None
-
-    api_key = _first_nonempty("api_key", "apikey", "apiKey")
-    stop_id = _first_nonempty("stop_id", "busstop_id", "busstopId", "busstopID", "stopId", "zespol")
-    stop_nr = _first_nonempty("stop_nr", "busstop_nr", "busstopNr", "stopNr", "slupek")
-    line = _first_nonempty("line", "linia")
+    api_key = _first_nonempty(merged, "api_key", "apikey", "apiKey")
+    stop_id = _first_nonempty(merged, "stop_id", "busstop_id", "busstopId", "busstopID", "stopId", "zespol")
+    stop_nr = _first_nonempty(merged, "stop_nr", "busstop_nr", "busstopNr", "stopNr", "slupek")
+    line = _first_nonempty(merged, "line", "linia")
 
     if api_key is None or stop_id is None or stop_nr is None or line is None:
         if not log:

@@ -501,3 +501,11 @@ async def test_e2e_24_the_notice_goes_even_when_the_removed_twin_is_still_listed
     assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is not None
     await integration.async_remove_entry(env.hass, first)  # first is still in env.hass.config_entries here
     assert issues.async_get_issue(DOMAIN, f"duplicate_{second.entry_id}") is None
+
+
+async def test_e2e_24_two_flows_for_one_sensor_that_overlap_make_one_entry(env):
+    """Both pass the first check before either has finished asking the City (a review finding)."""
+    a, b = await asyncio.gather(env.submit_flow(), env.submit_flow())
+    results = sorted(r["type"] for r in (a, b))
+    assert results == ["abort", "create_entry"], (a, b)
+    assert len(env.hass.config_entries.async_entries("ztm_warsaw")) == 1
