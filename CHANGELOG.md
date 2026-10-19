@@ -31,6 +31,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Next departures as their own entities** (off by default): switch on *Next 1*, *Next 2* or *Next 3* in the entity settings to get each following departure as a time you can use in a card or an automation.
 - **Its own logo in Home Assistant**: the integration carries its icon and logo, so Home Assistant 2026.3 and newer shows them without fetching anything.
 - **Delete a stop's old device**: when a stop is gone from a line, its leftover device now has a *Delete* button on its page, while a device that is still in use cannot be deleted by mistake.
+- **Proper icons**: Next 1 to 3, Last update and the calendar have icons of their own (numbers, an update arrow, a calendar with a clock) instead of Home Assistant's default eye.
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.

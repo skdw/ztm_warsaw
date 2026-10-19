@@ -44,6 +44,7 @@ class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
         line, stop_id, stop_nr = coordinator.line, coordinator.stop_id, coordinator.stop_nr
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_calendar"
         self._attr_name = f"Line {line} from {stop_id}/{stop_nr} timetable"
+        self._attr_translation_key = "timetable"  # its icon is in icons.json
         self._attr_device_info = _device_info(line, coordinator)
 
     def _event_of(self, departure) -> CalendarEvent:

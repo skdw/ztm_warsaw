@@ -358,6 +358,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_last_update"
         self._attr_name = f"Line {line} from {stop_id}/{stop_number} Last update"
+        self._attr_translation_key = "last_update"  # its icon is in icons.json
 
     def _get_stop_info(self):
         """The stop's record from the coordinator (its name, position, street ...) for the attributes and the entity name; an empty dict until the City has given it."""
@@ -426,6 +427,7 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
         self._scheduled_unsub = None
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_next_{position}"
         self._attr_name = f"Line {line} from {stop_id}/{stop_number} Next {position}"
+        self._attr_translation_key = f"next_{position}"  # its icon is in icons.json
 
     @property
     def native_value(self):
