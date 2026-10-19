@@ -14,7 +14,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import CONF_WALKING_TIME, DOMAIN, MAX_WALKING_TIME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,11 +91,20 @@ class StopUnit:
     stop_id: str
     stop_nr: str
     line: str
+    walking_minutes: int = 0  # how long the way to the stop takes: a departure sooner than that cannot be caught
 
     @property
     def ref(self) -> str:
         """What names this unit's stored answers: the subentry, or the entry of a version 1 stop."""
         return self.subentry_id or self.entry_id
+
+
+def walking_minutes_of(data: Mapping[str, Any]) -> int:
+    """The walking time stored for a stop: a whole number of minutes from 0 to ``MAX_WALKING_TIME``, else 0 (none)."""
+    value = data.get(CONF_WALKING_TIME)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value != int(value):
+        return 0
+    return int(value) if 0 <= value <= MAX_WALKING_TIME else 0
 
 
 def stop_units(entry: ConfigEntry) -> list[StopUnit]:
@@ -115,7 +124,7 @@ def stop_units(entry: ConfigEntry) -> list[StopUnit]:
         stop_id = _first_nonempty(subentry.data, "busstop_id", "stop_id")
         stop_nr = _first_nonempty(subentry.data, "busstop_nr", "stop_nr")
         if stop_id is not None and stop_nr is not None:
-            units.append(StopUnit(entry.entry_id, subentry_id, api_key, stop_id, stop_nr, line))
+            units.append(StopUnit(entry.entry_id, subentry_id, api_key, stop_id, stop_nr, line, walking_minutes_of(subentry.data)))
     return units
 
 

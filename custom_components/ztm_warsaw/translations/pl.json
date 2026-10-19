@@ -147,7 +147,8 @@
     "stop": {
       "title": "Przystanek",
       "initiate_flow": {
-        "user": "Dodaj przystanek"
+        "user": "Dodaj przystanek",
+        "reconfigure": "Zmień ustawienia przystanku"
       },
       "entry_type": "Przystanek",
       "step": {
@@ -157,6 +158,13 @@
           "data": {
             "busstop_id": "Numer zespołu przystankowego (np. 3044)",
             "busstop_nr": "Numer słupka (np. 02)"
+          }
+        },
+        "reconfigure": {
+          "title": "Czas dojścia na przystanek {stop}",
+          "description": "Ile minut idziesz na ten przystanek? Czujnik pominie wtedy odjazdy, które są wcześniej, bo nie zdążysz na nie. 0 oznacza brak czasu dojścia.",
+          "data": {
+            "walking_time": "Czas dojścia (minuty)"
           }
         }
       },
@@ -174,7 +182,8 @@
       },
       "abort": {
         "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane.",
-        "unknown": "Wystąpił nieznany błąd."
+        "unknown": "Wystąpił nieznany błąd.",
+        "reconfigure_successful": "Zapisano czas dojścia."
       }
     }
   }

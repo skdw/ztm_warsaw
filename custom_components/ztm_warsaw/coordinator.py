@@ -47,6 +47,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.stop_nr = stop_nr
         self.line = line
         self.client = client
+        self.walking_minutes = 0  # set for a stop with a walking time: the sensor skips the departures sooner than that
         self.device_per_stop = False  # set for the stops of a line entry: each is a device of its own
         self.data: ZTMDepartureData | None = None
         self.last_update_success_time: datetime | None = None

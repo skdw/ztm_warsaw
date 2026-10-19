@@ -27,6 +27,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **A badge with the line number**: on the map card the pin shows the line instead of odd initials like "L1M", in the colours of ZTM's own signs: ordinary lines light with a purple ring, fast ones red, night ones blue, trams light yellow. The same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
 - **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
+- **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
 - **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.

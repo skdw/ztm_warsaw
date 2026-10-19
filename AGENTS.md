@@ -70,8 +70,10 @@ Automations and dashboards depend on these, and the tests
 - the names of the state attributes (for example `Line, Number`, `Stop, ID`,
   `Next 1, Departure Time`) and the shape of the "no service" state.
 
-Changing any of them needs a migration, an `### Adopter action` entry in `CHANGELOG.md`, and a
-deliberate edit of the golden tests in the same pull request. The `unique_id` format has already
+Changing any of them (a rename, a removal, a new meaning) needs a migration, an `### Adopter action` entry in
+`CHANGELOG.md`, and a deliberate edit of the golden tests in the same pull request. Adding to them does not: a new
+attribute that only a configured stop has, or an optional key with a default in a stop's subentry (`walking_time`, absent
+meaning none), changes nothing an existing installation has, so it needs a test and a `CHANGELOG.md` line, not a migration. The `unique_id` format has already
 changed once without a migration; do not repeat that.
 
 ### Compatibility and dependencies
