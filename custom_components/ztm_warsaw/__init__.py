@@ -87,6 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             line=unit.line,
             entry_id=unit.ref,
         )
+        coordinator.device_per_stop = unit.subentry_id is not None  # a line's stops are devices of their own
         built[unit.subentry_id] = {"coordinator": coordinator, "client": client}
 
     _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most

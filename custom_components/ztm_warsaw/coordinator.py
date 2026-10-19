@@ -35,6 +35,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.stop_nr = stop_nr
         self.line = line
         self.client = client
+        self.device_per_stop = False  # set for the stops of a line entry: each is a device of its own
         self.data: ZTMDepartureData | None = None
         self.last_update_success_time: datetime | None = None
         # True after the API answered with something that is not a timetable, until a timetable arrives. While it

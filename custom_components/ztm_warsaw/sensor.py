@@ -88,10 +88,18 @@ def _timetable_url(line):
         return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(line))}"
 
 
-def _device_info(line):
+def _device_info(line, coordinator=None):
+    """The device of a stop's entities. A stop of a 1.1.x entry (one entry per stop) is the line's device, shared by the
+    entries of that line; the stops of a line entry each have their own device, because a device belongs to one subentry."""
+    identifier, name = f"line_{line}", f"Line {line}"
+    if getattr(coordinator, "device_per_stop", False):
+        # Named like the line's device: Home Assistant 2026.10 puts the device's name in front of an entity's name (and
+        # of its ID) unless the entity's name starts with it, and ours always start with "Line <line>". The devices of the
+        # stops are told apart by the subentry they are listed under.
+        identifier = f"line_{line}_{coordinator.stop_id}_{coordinator.stop_nr}"
     return {
-        "identifiers": {(DOMAIN, f"line_{line}")},
-        "name": f"Line {line}",
+        "identifiers": {(DOMAIN, identifier)},
+        "name": name,
         "manufacturer": "Zarząd Transportu Miejskiego",
         "entry_type": "service",
         "model": get_line_type(line),
@@ -168,7 +176,7 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         """Return device info for this entity."""
-        return _device_info(self._line)
+        return _device_info(self._line, self.coordinator)
 
     def _cancel_scheduled_update(self):
         """Cancel any scheduled update."""
@@ -341,7 +349,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         """Return device info for this entity."""
-        return _device_info(self._line)
+        return _device_info(self._line, self.coordinator)
 
     @property
     def extra_state_attributes(self):

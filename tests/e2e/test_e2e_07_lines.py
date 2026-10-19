@@ -17,6 +17,7 @@ from custom_components.ztm_warsaw.config_flow import ZtmWarsawConfigFlow, ZtmSto
 from custom_components.ztm_warsaw.const import DOMAIN
 from custom_components.ztm_warsaw.coordinator import ZTMStopCoordinator, store_key
 
+from .helpers import subentry_of
 from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, stop_name_for
 
 NEW_KEY = "22222222-3333-4444-8555-666666666666"  # gitleaks:allow  (synthetic)
@@ -44,7 +45,7 @@ async def test_e2e_32_more_stops_of_a_line_go_into_its_entry(env):
         assert env.state(LINE, stop_id, stop_nr).state not in ("unknown", "unavailable"), (stop_id, stop_nr)
 
 
-async def test_e2e_32_every_entity_belongs_to_its_stop_and_the_line_has_one_device(env):
+async def test_e2e_32_every_entity_belongs_to_its_stop_and_every_stop_has_a_device(env):
     entry = await _line_with_three_stops(env)
     by_stop = {sid: sub.data["busstop_id"] for sid, sub in entry.subentries.items()}
     entities = er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)
@@ -55,7 +56,15 @@ async def test_e2e_32_every_entity_belongs_to_its_stop_and_the_line_has_one_devi
     # the unique IDs and entity IDs are the ones a stop of its own entry had
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7013_01") is not None
     devices = dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
-    assert [d.identifiers for d in devices] == [{(DOMAIN, f"line_{LINE}")}]
+    assert sorted(next(iter(d.identifiers))[1] for d in devices) == [
+        f"line_{LINE}_7009_01",
+        f"line_{LINE}_7009_02",
+        f"line_{LINE}_7013_01",
+    ]  # one device per stop: a device belongs to one subentry
+    for device in devices:
+        assert {e.config_subentry_id for e in er.async_entries_for_device(env.entity_registry, device.id)} == {
+            subentry_of(device, entry.entry_id)
+        }
 
 
 async def test_e2e_32_adding_a_stop_reloads_the_entry_once(env):

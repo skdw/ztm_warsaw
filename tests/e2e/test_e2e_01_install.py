@@ -38,6 +38,7 @@ from .fake_city import (
     stop_name_for,
 )
 from .fake_city.data import stops_catalogue_bytes
+from .helpers import subentry_of
 
 EN = json.loads((Path(integration.__file__).parent / "translations" / "en.json").read_text(encoding="utf-8"))
 FLOW_ERROR_STRINGS = EN["config"]["error"]
@@ -215,11 +216,12 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert calendar.entity_id == f"calendar.line_{slug}_from_7009_01_timetable"
     assert calendar.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default: it holds every departure of the day
 
-    # --- device registry: one device per LINE (shared by every stop of that line)
+    # --- device registry: a stop of a line entry is a device of its own (a device belongs to one subentry)
     devices = dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
     assert len(devices) == 1
     device = devices[0]
-    assert device.identifiers == {("ztm_warsaw", f"line_{line}")}
+    assert device.identifiers == {("ztm_warsaw", f"line_{line}_7009_01")}
+    assert subentry_of(device, entry.entry_id) == next(iter(entry.subentries))  # the stop's subentry
     assert (device.name, device.manufacturer, device.model) == (
         f"Line {line}",
         "Zarząd Transportu Miejskiego",
