@@ -1,7 +1,7 @@
-"""The newest section of CHANGELOG.md keeps its entries short: one line that starts with a verb and links the pull request.
+"""The newest section of CHANGELOG.md is release notes for the people who use the integration, and it stays short.
 
-Long entries are a habit of generated text; the details belong in the pull request, which the entry links to.
-Older sections are history and are left as they are.
+Each entry is one line: a bold title and one short, friendly sentence about what the user gets. Long, technical entries are a
+habit of generated text; the details belong in the pull request. Older sections are history and are left as they are.
 """
 
 from __future__ import annotations
@@ -10,21 +10,9 @@ import re
 from pathlib import Path
 
 CHANGELOG = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
-MAX_TEXT = 190  # characters of an entry without its links
-LINK_TARGET = re.compile(r"\]\([^)]*\)")
-PULL_LINK = re.compile(r"\[#\d+\]\(https://github\.com/solarssk/ztm_warsaw/pull/\d+\)")
-# An entry starts with one of these verbs (add yours when a new one is needed: the list is what makes "starts with a verb"
-# a checkable rule, a denylist of noun openers cannot be).
-VERBS = {
-    "accept", "add", "allow", "apply", "ask", "block", "bump", "change", "check", "clear", "close", "compute", "convert",
-    "count", "create", "delete", "detect", "disable", "document", "download", "drop", "enable", "ensure", "expect",
-    "extend", "fail", "fix", "give", "handle", "hide", "improve", "include", "install", "keep", "let", "limit", "list",
-    "load", "log", "make", "mark", "match", "merge", "migrate", "move", "name", "open", "pin", "prevent", "publish",
-    "raise", "read", "record", "refresh", "refuse", "reject", "release", "reload", "remove", "rename", "replace",
-    "report", "require", "resolve", "restore", "retry", "return", "revert", "rewrite", "run", "save", "scan", "send",
-    "set", "share", "show", "simplify", "skip", "split", "start", "stop", "strip", "support", "switch", "take", "test",
-    "trim", "turn", "update", "use", "validate", "verify", "wait", "warn", "write",
-}
+MAX_ENTRY = 340  # characters of an entry line, links included
+TITLE = re.compile(r"^- \*\*[^*]{2,70}\*\*:?\s*(.*)$")  # "- **Title**: a short sentence"; group 1 is the sentence
+MAX_SENTENCES = 2
 
 
 def has_content(section: str) -> bool:
@@ -39,30 +27,32 @@ def newest_section(text: str) -> str:
     return next(sec for sec in sections if has_content(sec))
 
 
+def entries_of(section: str) -> list[str]:
+    return [line for line in section.splitlines() if line.startswith("- ")]
+
+
 def problems_of(section: str) -> list[str]:
-    """What is wrong with a section: a line that is not a heading, a blank line, one short bullet or the upgrade note."""
+    """What is wrong with a section. Before its first '###' heading prose is welcome (the greeting); after it there are
+    only headings, blank lines and one-line entries with a bold title."""
     problems = []
+    in_entries = False
     for line in section.splitlines()[1:]:  # the first line is the version heading
-        if not line.strip() or line.startswith("###") or line.startswith("Upgrading from"):
+        if line.startswith("###"):
+            in_entries = True
+            continue
+        if not line.strip() or not in_entries:
             continue
         if not line.startswith("- "):
             problems.append(f"an entry is one line, this one continues or is not an entry: {line}")
-            continue
-        text = LINK_TARGET.sub("]", line)
-        words = re.findall(r"[A-Za-z]+", text[2:])
-        if len(text) > MAX_TEXT:
+        elif not (title := TITLE.match(line)):
+            problems.append(f"an entry opens with a bold title, like '- **Title**: a short sentence': {line}")
+        elif len(title.group(1).strip(" :.")) < 8:
+            problems.append(f"a title is followed by a short sentence about what the user gets: {line}")
+        elif len(line) > MAX_ENTRY:
             problems.append(f"too long (the details belong in the pull request): {line}")
-        if not PULL_LINK.search(line):
-            problems.append(f"no link to the pull request with the details: {line}")
-        if re.search(r"\. [A-Z]", text):
-            problems.append(f"more than one sentence: {line}")
-        if not words or words[0].lower() not in VERBS:
-            problems.append(f"does not start with a verb of the list in tests/test_changelog_style.py: {line}")
+        elif len(re.findall(r"[.!?](?:\s|$)", re.sub(r"\]\([^)]*\)", "]", title.group(1)))) > MAX_SENTENCES:
+            problems.append(f"at most {MAX_SENTENCES} short sentences: {line}")
     return problems
-
-
-def entries_of(section: str) -> list[str]:
-    return [line for line in section.splitlines() if line.startswith("- ")]
 
 
 def test_the_newest_section_has_entries():
@@ -73,14 +63,14 @@ def test_the_newest_section_is_in_the_style():
     assert problems_of(newest_section(CHANGELOG.read_text(encoding="utf-8"))) == []
 
 
-GOOD = "- Add a calendar entity per sensor ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
+GOOD = "- **A calendar**: switch it on to see the day's departures."
 
 
 def section(*lines: str) -> str:
-    return "\n".join(["Unreleased]", "", "### Added", "", *lines, ""])
+    return "\n".join(["Unreleased]", "", "Hey everyone, a long friendly greeting is fine here.", "", "### Added", "", *lines, ""])
 
 
-def test_a_good_entry_passes():
+def test_a_good_entry_and_a_greeting_pass():
     assert problems_of(section(GOOD)) == []
 
 
@@ -91,11 +81,33 @@ def test_a_continuation_line_is_reported():
         assert problems[0].startswith("an entry is one line")
 
 
-def test_anything_that_is_not_a_listed_verb_is_rejected():
-    for start in ("The integration now adds", "A calendar entity", "If you use", "Calendar entities are supported", "Fast"):
-        line = f"- {start} a calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
-        assert len(problems_of(section(line))) == 1, start
-        assert "does not start with a verb" in problems_of(section(line))[0]
+def test_an_entry_without_a_bold_title_is_reported():
+    for line in ("- Add a calendar entity", "- A **calendar** for you", "-**Calendar** no space", "- **x** too short a title"):
+        assert len(problems_of(section(line))) == 1, line
+
+
+def test_a_title_without_a_sentence_is_reported():
+    for line in ("- **A calendar**", "- **A calendar**:", "- **A calendar**: ok", "- **A calendar**:   "):
+        problems = problems_of(section(line))
+        assert len(problems) == 1, line
+        assert problems[0].startswith("a title is followed by a short sentence")
+
+
+def test_more_than_two_sentences_are_reported():
+    ok = "- **A calendar**: switch it on. It shows the day."
+    too_many = "- **A calendar**: switch it on. It shows the day. Then use it in automations."
+    assert problems_of(section(ok)) == []
+    assert problems_of(section(too_many)) == [f"at most 2 short sentences: {too_many}"]
+
+
+def test_a_link_in_a_sentence_is_not_counted_as_a_sentence():
+    line = "- **Get a token**: see [the portal](https://dane.um.warszawa.pl/pl/key-api) and paste it. Then you are done."
+    assert problems_of(section(line)) == []
+
+
+def test_an_entry_that_is_too_long_is_reported():
+    long_line = "- **A calendar**: " + "words " * 80
+    assert len(problems_of(section(long_line))) == 1
 
 
 def test_a_stable_cut_leaves_an_empty_unreleased_and_the_released_section_is_checked():
@@ -104,25 +116,11 @@ def test_a_stable_cut_leaves_an_empty_unreleased_and_the_released_section_is_che
     assert problems_of(newest_section(text)) == []
 
 
-def test_bold_markup_does_not_hide_the_first_word():
-    line = "- **The** calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
-    assert any("does not start with a verb" in p for p in problems_of(section(line)))
-    assert problems_of(section("- **Add** a calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))")) == []
-
-
-def test_long_unlinked_or_two_sentence_entries_are_reported():
-    long_line = "- Add " + "x" * 200 + " ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
-    assert len(problems_of(section(long_line))) == 1
-    assert len(problems_of(section("- Add a calendar"))) == 1
-    two = "- Add a calendar. Then fix it ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
-    assert len(problems_of(section(two))) == 1
-
-
-def test_text_that_is_not_a_bullet_in_unreleased_is_checked_not_skipped():
-    text = "# Changelog\n\n## [Unreleased]\n\n### Added\n\nAdd a calendar without the dash\n\n## [1.2.0] - 2026-11-01\n\n### Added\n\n" + GOOD + "\n"
+def test_text_that_is_not_a_bullet_after_the_first_heading_is_checked_not_skipped():
+    text = "# Changelog\n\n## [Unreleased]\n\n### Added\n\nA calendar without the dash\n\n## [1.2.0] - 2026-11-01\n\n### Added\n\n" + GOOD + "\n"
     chosen = newest_section(text)
     assert chosen.startswith("Unreleased]")
-    assert problems_of(chosen) == ["an entry is one line, this one continues or is not an entry: Add a calendar without the dash"]
+    assert problems_of(chosen) == ["an entry is one line, this one continues or is not an entry: A calendar without the dash"]
 
 
 def test_an_unreleased_section_with_only_empty_headings_is_skipped():

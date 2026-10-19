@@ -135,8 +135,10 @@ For automated reviewers. Treat these as the highest priority:
 - Network access from a test, or an `allow` that widens the test seam.
 - A workflow that gains permissions, runs untrusted input through `${{ }}` in a `run:` block, or
   uses an action that is not pinned to a commit SHA.
-- A user-visible change without a `CHANGELOG.md` entry, or an entry that is not one short line that starts with a verb and
-  links the pull request (`tests/test_changelog_style.py` checks the newest section; the details belong in the pull request).
+- A user-visible change without a `CHANGELOG.md` entry, or an entry written for developers. The changelog is the release
+  notes of a Home Assistant integration, so it is for the people who use it: one line with a bold title and one short,
+  friendly sentence about what the user gets (not how it was built, no pull request numbers).
+  `tests/test_changelog_style.py` checks the newest section.
 
 Do not suggest Tier 3 tooling, widening the ruff rule set outside a change that fixes what it
 finds, or style changes that ruff does not enforce.
