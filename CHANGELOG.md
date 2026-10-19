@@ -8,7 +8,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ## [Unreleased]
 
-Hey everyone 👋 This is the first beta of **1.2.0**, and it is a big one. The City of Warsaw is moving to a new API with a personal token, so this version works with it, and many rough edges around night lines, setup and errors are fixed. Update through HACS and restart Home Assistant: nothing has to be set up again and your sensors keep their names. Please try it and tell us what you see in the [issues](https://github.com/solarssk/ztm_warsaw/issues) 🙏
+Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing has to be set up again.
 
 ### Adopter action
 
