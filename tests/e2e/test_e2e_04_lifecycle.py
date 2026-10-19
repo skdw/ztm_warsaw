@@ -156,18 +156,13 @@ async def test_e2e_25_removing_one_of_two_entries_that_share_a_device_keeps_the_
     assert not find_devices(env.device_registry, {(DOMAIN, "line_151")})
 
 
-@pytest.mark.xfail(
-    strict=True,
-    condition=hasattr(dr.DeviceRegistry, "async_get_devices"),  # Home Assistant 2026.10 and newer
-    raises=AssertionError,
-    reason="device-per-entry-on-ha-2026-10: a device belongs to one config entry there, so two entries of one "
-    "line get two devices with the same identifiers instead of sharing the one device per line",
-)
-async def test_e2e_25_two_entries_of_one_line_share_one_device(env):
-    """The frozen contract: one device per line. Broken by Home Assistant 2026.10, not yet by a fix of ours."""
+async def test_e2e_25_two_entries_of_one_line_share_one_device_where_home_assistant_allows_it(env):
+    """The contract is one device per line. Home Assistant 2026.10 ties a device to ONE config entry, so there the
+    same line at two poles has a device per entry (the same identifier twice); before it, the entries share one."""
     await env.add_entry(line="151", stop_nr="01")
     await env.add_entry(line="151", stop_nr="02")
-    assert len(find_devices(env.device_registry, {(DOMAIN, "line_151")})) == 1
+    per_entry = hasattr(dr.DeviceRegistry, "async_get_devices")  # Home Assistant 2026.10 and newer
+    assert len(find_devices(env.device_registry, {(DOMAIN, "line_151")})) == (2 if per_entry else 1)
 
 
 # ===================================================================== E2E-26

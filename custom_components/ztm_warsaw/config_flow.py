@@ -8,7 +8,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
-from . import _entry_values
+from . import _entry_values, stop_key
 from .const import DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,13 +109,21 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             _LOGGER.warning("Validation error: %s", key)
         return key
 
+    def _is_configured(self, key):
+        return any(stop_key(entry) == key for entry in self._async_current_entries())
+
     async def async_step_user(self, user_input=None):
         errors = {}
 
         if user_input is not None:
             user_input = {k: v.strip() if isinstance(v, str) else v for k, v in user_input.items()}
+            new_key = (str(user_input[CONF_BUSSTOP_ID]), user_input[CONF_BUSSTOP_NR], user_input[CONF_LINE])
+            if self._is_configured(new_key):
+                return self.async_abort(reason="already_configured")  # a second sensor of the same stop, pole and line cannot exist
             error = await self._error_for(user_input)
             if error is None:
+                if self._is_configured(new_key):  # another flow may have finished while the City was being asked
+                    return self.async_abort(reason="already_configured")
                 title = f"Line {user_input[CONF_LINE]} from {user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}"
                 return self.async_create_entry(title=title, data=user_input)
             errors["base"] = error
