@@ -3,19 +3,20 @@ import logging
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .client import ZTMApiError, ZTMStopClient
+from .client import ZTMApiError, ZTMAuthError, ZTMStopClient
 from .models import ZTMDepartureData, ZTMDepartureDataReading, in_swap_window, next_flip_refresh, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
 
 SETUP_DEADLINE = 30  # seconds the first refresh of an entry may take before setup is retried
 STOP_NAME_DEADLINE = 10  # and the stop's name after it
+REJECTIONS_BEFORE_REAUTH = 3  # consecutive refreshes that the City answers with 'rejected key' before the user is asked
 
 def store_key(entry_id: str) -> str:
     """One store per config entry: the saved failure marker belongs to the key of that entry."""
@@ -43,6 +44,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub = None
         self._refreshing = asyncio.Lock()
+        self._rejections = 0  # consecutive answers of the City that reject the key
         self._started = False  # the first refresh is over: from then on a refresh may also ask for the stop's name
         self._ztm_shutdown_done = False
         self._refreshes = 0  # how many refreshes have finished
@@ -97,6 +99,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if not isinstance(stored, dict):
             return
         self._api_error = stored.get("api_error") is True  # a rejected key stays a failure across a restart
+        rejections = stored.get("rejections")
+        self._rejections = rejections if isinstance(rejections, int) and not isinstance(rejections, bool) and 0 <= rejections < REJECTIONS_BEFORE_REAUTH else 0
         answers = stored.get("answers")
         for saved in answers if isinstance(answers, list) else []:
             try:
@@ -129,6 +133,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 if a and a.service_date
             ],
             "api_error": self._api_error,
+            "rejections": self._rejections,
         }
 
     def _save(self):
@@ -188,6 +193,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self._previous = self.data
         self.data = new_data
         self._api_error = False
+        self._rejections = 0
         self._save()
         self.last_update_success_time = dt_util.utcnow()
         # Track last success date in local time (Europe/Warsaw)
@@ -214,6 +220,27 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self._refreshes += 1  # only a finished refresh counts for a waiter
             return answer
 
+    def _api_rejected(self, err: ZTMApiError) -> ZTMDepartureData:
+        """The city answered but not with a timetable (a rejected key, an unknown stop or line, an answer in an unknown
+        format). Unlike a network error this is not "try again later with the cached timetable": the entity becomes
+        unavailable instead of pretending nothing runs. Home Assistant logs this once, when the state changes, and
+        again when it recovers. Three rejected keys in a row ask the user for a new one."""
+        if in_swap_window(dt_util.utcnow()):  # a request that straddles the start of the City's update
+            return self._hold_during_swap()
+        self._api_error = True
+        self._rejections = self._rejections + 1 if isinstance(err, ZTMAuthError) else 0
+        self._save()
+        if self._rejections >= REJECTIONS_BEFORE_REAUTH:
+            # Counted in the store, so the retries of a setup (a new coordinator each) add up.
+            raise ConfigEntryAuthFailed(str(err)) from err
+        raise UpdateFailed(str(err)) from err
+
+    def _outage(self):
+        """A network error or an answer that is not the City's breaks a run of rejected keys; the store must know."""
+        if self._rejections:
+            self._rejections = 0
+            self._save()
+
     async def _fetch(self) -> ZTMDepartureData:
         if in_swap_window(dt_util.utcnow()):
             return self._hold_during_swap()
@@ -223,6 +250,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             if in_swap_window(dt_util.utcnow()):  # the request began before the update did and ended inside it
                 return self._hold_during_swap()
             if new_data is None:
+                self._outage()
                 if self.data is not None and not self._api_error:
                     _LOGGER.warning(
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
@@ -232,18 +260,10 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
             return self._accept(new_data)
 
-        except UpdateFailed:
+        except (UpdateFailed, ConfigEntryAuthFailed):
             raise
         except ZTMApiError as err:
-            # The city answered but not with a timetable (a rejected key, an unknown stop or line, an answer in an
-            # unknown format). Unlike a network error this is not "try again later with the cached timetable":
-            # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
-            # when the state changes, and again when it recovers.
-            if in_swap_window(dt_util.utcnow()):  # a request that straddles the start of the City's update
-                return self._hold_during_swap()
-            self._api_error = True
-            self._save()
-            raise UpdateFailed(str(err)) from err
+            return self._api_rejected(err)
         except Exception as err:
             if self.data is not None and not self._api_error:
                 # Keep entity available with last known data; try again on next hourly tick

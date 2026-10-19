@@ -424,7 +424,7 @@ async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env)
     assert env.city.count("stops") == 1, f"{env.city.count('stops')} catalogue downloads for one entry"
 
 
-@known_bug("update-listener-reloads-on-any-change", "the update listener reloads the entry on ANY change, e.g. a plain title rename")
+
 async def test_e2e_05_renaming_an_entry_does_not_reload_it(env):
     entry = await env.add_entry()
     assert entry.state is ConfigEntryState.LOADED

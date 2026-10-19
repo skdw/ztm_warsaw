@@ -15,6 +15,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 - The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. The setup screen accepts either kind of key.
 - A Polish translation of the setup screen.
 - Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
+- Re-authentication: when the City's old API answers "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again), Home Assistant shows the usual "re-authentication needed" notice and asks for a new key or token. The stop and the line of the entry stay, and the new key is judged by the key alone, so it is accepted even if the line does not run today. A single bad answer or an outage never starts it. The new API cannot tell a rejected token from an outage, so there a revoked token is not noticed at once: the sensor keeps the cached timetable until its service day ends and then becomes unavailable, without a prompt.
 
 ### Changed
 
@@ -22,6 +23,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Fixed
 
+- Renaming an entry (or any change that leaves its data and options as they were) no longer reloads it and no longer asks the City for the timetable again.
 - Requests that carry the API key no longer follow redirects (a redirect is an error now), and a network error is logged by its class only. The API key can no longer reach the log through a redirect loop or an error text.
 - The setup screen strips pasted spaces and newlines from every field, and refuses a key that is neither an API key (a UUID) nor a token before anything is sent. A crafted key can no longer add parameters to the request.
 - The setup screen uses the same client as the sensor, so it also stops following redirects and keeps the key out of its log. An unknown stop or line is reported as "line not found" (the old message had no text and showed a raw error name).
