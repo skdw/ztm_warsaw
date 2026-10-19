@@ -35,6 +35,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.stop_nr = stop_nr
         self.line = line
         self.client = client
+        self.device_per_stop = False  # set for the stops of a line entry: each is a device of its own
         self.data: ZTMDepartureData | None = None
         self.last_update_success_time: datetime | None = None
         # True after the API answered with something that is not a timetable, until a timetable arrives. While it
@@ -71,6 +72,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             raise ConfigEntryNotReady(str(err.__cause__ or err) or "The City of Warsaw did not answer properly") from err
         self._started = True
         await self._load_stop_name()
+        self._schedule_flip_refresh()
+
+    def start_without_timetable(self):
+        """The first refresh of this stop failed while the other stops of its line answered: the stop starts anyway, its
+        entities are unavailable, and the hourly refresh (and the one after the service day changes) brings the timetable."""
+        self._started = True
         self._schedule_flip_refresh()
 
     async def _load_stop_name(self):

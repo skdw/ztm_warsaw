@@ -38,6 +38,7 @@ from .fake_city import (
     stop_name_for,
 )
 from .fake_city.data import stops_catalogue_bytes
+from .helpers import subentry_of
 
 EN = json.loads((Path(integration.__file__).parent / "translations" / "en.json").read_text(encoding="utf-8"))
 FLOW_ERROR_STRINGS = EN["config"]["error"]
@@ -77,15 +78,18 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     entry = await env.add_entry_via_flow(line="151")
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.title == f"Line 151 from {stop_name_for('7009')} 01"  # the stop's name, not its number
+    assert entry.title == "Line 151"  # an entry is a line ...
     assert entry.data == {
         "api_key": DEFAULT_KEY,
-        "busstop_id": 7009,  # an int: the schema coerces it, restored entries keep it that way
-        "busstop_nr": "01",
         "line": "151",
-        "departures": 3,  # no longer asked (3 are always listed); the key stays, the shape is frozen
+        "departures": 3,  # no longer asked (3 are always listed); the key stays
     }
     assert entry.options == {}
+    (stop,) = entry.subentries.values()  # ... and its stops are subentries
+    assert stop.subentry_type == "stop"
+    assert stop.title == f"{stop_name_for('7009')} 01"  # the stop's name, not its number
+    assert stop.unique_id == "7009_01"
+    assert dict(stop.data) == {"busstop_id": 7009, "busstop_nr": "01"}  # an int: the schema coerces it
     # What the integration asked the city for, in order: 2 validation calls in the flow, then the setup
     # (the timetable first, then the stop catalogue for the name).
     assert [(c.contract, c.endpoint) for c in env.city.calls] == [
@@ -185,9 +189,11 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
 
     # --- entry
     assert entry.domain == "ztm_warsaw"
-    assert entry.version == 1
+    assert entry.version == 2  # a line with its stops as subentries; a 1.1.x entry (version 1, one stop) is read as it was
     assert entry.unique_id is None
-    assert set(entry.data) == {"api_key", "busstop_id", "busstop_nr", "line", "departures"}
+    assert set(entry.data) == {"api_key", "line", "departures"}
+    (stop,) = entry.subentries.values()
+    assert set(stop.data) == {"busstop_id", "busstop_nr"}
 
     # --- entity registry
     registered = {e.unique_id: e for e in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)}
@@ -210,11 +216,12 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert calendar.entity_id == f"calendar.line_{slug}_from_7009_01_timetable"
     assert calendar.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default: it holds every departure of the day
 
-    # --- device registry: one device per LINE (shared by every stop of that line)
+    # --- device registry: a stop of a line entry is a device of its own (a device belongs to one subentry)
     devices = dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
     assert len(devices) == 1
     device = devices[0]
-    assert device.identifiers == {("ztm_warsaw", f"line_{line}")}
+    assert device.identifiers == {("ztm_warsaw", f"line_{line}_7009_01")}
+    assert subentry_of(device, entry.entry_id) == next(iter(entry.subentries))  # the stop's subentry
     assert (device.name, device.manufacturer, device.model) == (
         f"Line {line}",
         "Zarząd Transportu Miejskiego",
@@ -429,7 +436,8 @@ async def test_e2e_05_a_new_key_replaces_the_old_one_and_reloads_the_entry_once(
         await env.settle()
     assert done["type"] == "create_entry"
     assert entry.data["api_key"] == NEW_KEY
-    assert (entry.data["busstop_id"], entry.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
+    (stop,) = entry.subentries.values()
+    assert (stop.data["busstop_id"], stop.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
     assert entry.options == {}
     assert reload.call_count == 1
     assert entry.state is ConfigEntryState.LOADED
@@ -520,7 +528,9 @@ async def test_e2e_24_the_refusal_ignores_spaces_but_not_a_different_pole(env):
     again = await env.submit_flow(line=" N25 ")
     assert (again["type"], again["reason"]) == ("abort", "already_configured")
     other_pole = await env.submit_flow(line="N25", stop_nr="02")
-    assert other_pole["type"] != "abort", "another pole of the same stop is another sensor"
+    assert (other_pole["type"], other_pole["reason"]) == ("abort", "stop_added"), "another pole is another sensor of the line"
+    (entry,) = env.hass.config_entries.async_entries("ztm_warsaw")
+    assert sorted(s.data["busstop_nr"] for s in entry.subentries.values()) == ["01", "02"]
 
 
 async def test_e2e_24_a_refused_duplicate_makes_no_request_to_the_city(env):

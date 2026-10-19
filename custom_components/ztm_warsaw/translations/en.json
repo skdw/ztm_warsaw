@@ -33,7 +33,8 @@
       "single_instance_allowed": "Only one instance is allowed.",
       "reauth_successful": "The API key was updated and the entry reloaded.",
       "unknown": "An unknown error occurred.",
-      "already_configured": "This stop, pole and line are already set up."
+      "already_configured": "This stop, pole and line are already set up.",
+      "stop_added": "The stop was added to the entry that already runs this line, with that entry's key (to change the key, use Configure)."
     }
   },
   "options": {
@@ -83,6 +84,44 @@
     "legacy_key": {
       "title": "Old API key: line {line}, {stop}",
       "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+    },
+    "legacy_key_line": {
+      "title": "Old API key: line {line}",
+      "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+    }
+  },
+  "config_subentries": {
+    "stop": {
+      "title": "Stop",
+      "initiate_flow": {
+        "user": "Add stop"
+      },
+      "entry_type": "Stop",
+      "step": {
+        "user": {
+          "title": "Add a stop of line {line}",
+          "description": "Another stop and pole of line {line}. It uses the key of this entry.",
+          "data": {
+            "busstop_id": "Bus stop ID (e.g. 3044)",
+            "busstop_nr": "Stop number (e.g. 02)"
+          }
+        }
+      },
+      "error": {
+        "invalid_stop_number": "Provided stop number is incorrect. It must be two digits (e.g. “01”).",
+        "invalid_api_key": "This is not a valid API key or token. Please check what you copied from the City of Warsaw open data portal.",
+        "api_http_error": "Could not connect to the City of Warsaw API.",
+        "api_connection_error": "Connection error with the City of Warsaw API.",
+        "line_not_found": "The specified line was not found for the selected stop ID and stop number.",
+        "no_departures": "There are no departures scheduled for this line at the selected stop today.",
+        "no_valid_times": "No valid departure times returned by the API.",
+        "unknown": "An unknown error occurred.",
+        "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+      },
+      "abort": {
+        "already_configured": "This stop, pole and line are already set up.",
+        "unknown": "An unknown error occurred."
+      }
     }
   }
 }

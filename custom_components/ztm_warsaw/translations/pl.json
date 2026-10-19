@@ -33,7 +33,8 @@
       "single_instance_allowed": "Dozwolona jest tylko jedna instancja.",
       "reauth_successful": "Klucz API został zaktualizowany, a wpis przeładowany.",
       "unknown": "Wystąpił nieznany błąd.",
-      "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane."
+      "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane.",
+      "stop_added": "Przystanek został dodany do wpisu, który już obsługuje tę linię, z kluczem tego wpisu (aby zmienić klucz, użyj Konfiguruj)."
     }
   },
   "options": {
@@ -83,6 +84,44 @@
     "legacy_key": {
       "title": "Stary klucz API: linia {line}, {stop}",
       "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+    },
+    "legacy_key_line": {
+      "title": "Stary klucz API: linia {line}",
+      "description": "**Linia {line} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+    }
+  },
+  "config_subentries": {
+    "stop": {
+      "title": "Przystanek",
+      "initiate_flow": {
+        "user": "Dodaj przystanek"
+      },
+      "entry_type": "Przystanek",
+      "step": {
+        "user": {
+          "title": "Dodaj przystanek linii {line}",
+          "description": "Kolejny przystanek i słupek linii {line}. Używa klucza tego wpisu.",
+          "data": {
+            "busstop_id": "Numer zespołu przystankowego (np. 3044)",
+            "busstop_nr": "Numer słupka (np. 02)"
+          }
+        }
+      },
+      "error": {
+        "invalid_stop_number": "Numer słupka jest nieprawidłowy. Musi mieć dwie cyfry (np. „01”).",
+        "invalid_api_key": "To nie jest prawidłowy klucz API ani token. Sprawdź, co skopiowano z portalu otwartych danych m.st. Warszawy.",
+        "invalid_token_or_unavailable": "API m.st. Warszawy nie przyjęło tokenu albo jest teraz niedostępne. Sprawdź token i spróbuj ponownie później.",
+        "api_http_error": "Nie można połączyć się z API m.st. Warszawy.",
+        "api_connection_error": "Błąd połączenia z API m.st. Warszawy.",
+        "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
+        "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
+        "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
+        "unknown": "Wystąpił nieznany błąd."
+      },
+      "abort": {
+        "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane.",
+        "unknown": "Wystąpił nieznany błąd."
+      }
     }
   }
 }

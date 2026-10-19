@@ -96,3 +96,11 @@ def log_blob(caplog) -> str:
 
 def dumps(obj) -> str:
     return json.dumps(obj, default=str, ensure_ascii=False)
+
+
+def subentry_of(device, entry_id: str) -> str:
+    """The subentry a device belongs to (Home Assistant 2026.10 has ``config_subentry_id``; the older ones a mapping)."""
+    if hasattr(device, "config_subentry_id"):
+        return device.config_subentry_id
+    (subentry_id,) = device.config_entries_subentries[entry_id]
+    return subentry_id
