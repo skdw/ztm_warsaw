@@ -20,6 +20,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ### Changed
 
+- The user manual is the project's [wiki](https://github.com/solarssk/ztm_warsaw/wiki), rewritten for this version (key or token, re-authentication, diagnostics, the service day, troubleshooting) and published from `docs/wiki/` in the repository, so it no longer drifts from the code. The README has a Documentation section and the badges of the project's checks (CI, OpenSSF Scorecard, coverage, quality gate); a code of conduct is added.
 - The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw (Miasto Stołeczne Warszawa), the Zarząd Transportu Miejskiego (ZTM) and the licence (CC BY) instead of a host name.
 
 ### Fixed

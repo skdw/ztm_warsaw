@@ -19,7 +19,7 @@ change. The rules the checks enforce, and the list of identifiers that must not 
 | Question or help with setup | Ask in [Discussions](https://github.com/solarssk/ztm_warsaw/discussions), for example how to find a stop ID or a pole number, or why a sensor shows "No service". |
 | Feature request | Start a [Discussion](https://github.com/solarssk/ztm_warsaw/discussions) describing the goal and what "done" looks like, or, for a small and well-defined one, use the same issue form with Type: Feature request. |
 | Code change | Branch, then open a pull request (see below). |
-| Documentation | The user guide is [README.md](README.md). Release notes are written in [CHANGELOG.md](CHANGELOG.md). How the tests are organised is in [tests/README.md](tests/README.md). |
+| Documentation | The front page is [README.md](README.md); the user manual is the wiki, published from [docs/wiki/](docs/wiki) (edit the files there, in a pull request). Release notes are written in [CHANGELOG.md](CHANGELOG.md). How the tests are organised is in [tests/README.md](tests/README.md). |
 
 ## Development setup
 
