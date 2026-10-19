@@ -123,6 +123,32 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         """The line entry that already runs this line, if any: a new stop of the line goes into it."""
         return next((e for e in self._async_current_entries() if is_line_entry(e) and line_of(e) == line), None)
 
+    def _create_or_add(self, user_input):
+        """The input is valid: a new line is an entry with this stop, a line that is set up gets one more stop."""
+        stop = ConfigSubentryData(
+            subentry_type=SUBENTRY_STOP,
+            title=f"{user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}",  # the stop's name replaces it once known
+            data={CONF_BUSSTOP_ID: user_input[CONF_BUSSTOP_ID], CONF_BUSSTOP_NR: user_input[CONF_BUSSTOP_NR]},
+            unique_id=_stop_unique_id(user_input[CONF_BUSSTOP_ID], user_input[CONF_BUSSTOP_NR]),
+        )
+        existing = self._entry_of_line(user_input[CONF_LINE])
+        if existing is not None:  # the line is set up already: this is one more stop of it
+            try:
+                self.hass.config_entries.async_add_subentry(existing, _subentry(stop))
+            except HomeAssistantError:  # another flow added the same stop while the City was being asked
+                return self.async_abort(reason="already_configured")
+            return self.async_abort(reason="stop_added")
+        # The number of departures is no longer asked (3 are always listed); the key stays in the data as it was.
+        return self.async_create_entry(
+            title=f"Line {user_input[CONF_LINE]}",
+            data={
+                CONF_API_KEY: user_input[CONF_API_KEY],
+                CONF_LINE: user_input[CONF_LINE],
+                CONF_DEPARTURES: NEXT_DEPARTURES,
+            },
+            subentries=[stop],
+        )
+
     async def async_step_user(self, user_input=None):
         errors = {}
 
@@ -138,29 +164,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             if error is None:
                 if self._is_configured(new_key):  # another flow may have finished while the City was being asked
                     return self.async_abort(reason="already_configured")
-                stop = ConfigSubentryData(
-                    subentry_type=SUBENTRY_STOP,
-                    title=f"{user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}",  # the stop's name replaces it once known
-                    data={CONF_BUSSTOP_ID: user_input[CONF_BUSSTOP_ID], CONF_BUSSTOP_NR: user_input[CONF_BUSSTOP_NR]},
-                    unique_id=_stop_unique_id(user_input[CONF_BUSSTOP_ID], user_input[CONF_BUSSTOP_NR]),
-                )
-                existing = self._entry_of_line(user_input[CONF_LINE])
-                if existing is not None:  # the line is set up already: this is one more stop of it
-                    try:
-                        self.hass.config_entries.async_add_subentry(existing, _subentry(stop))
-                    except HomeAssistantError:  # another flow added the same stop while the City was being asked
-                        return self.async_abort(reason="already_configured")
-                    return self.async_abort(reason="stop_added")
-                # The number of departures is no longer asked (3 are always listed); the key stays in the data as it was.
-                return self.async_create_entry(
-                    title=f"Line {user_input[CONF_LINE]}",
-                    data={
-                        CONF_API_KEY: user_input[CONF_API_KEY],
-                        CONF_LINE: user_input[CONF_LINE],
-                        CONF_DEPARTURES: NEXT_DEPARTURES,
-                    },
-                    subentries=[stop],
-                )
+                return self._create_or_add(user_input)
             errors["base"] = error
 
         return self.async_show_form(

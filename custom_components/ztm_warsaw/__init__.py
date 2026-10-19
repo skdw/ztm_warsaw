@@ -32,7 +32,8 @@ _LOGGER = logging.getLogger(__name__)
 _NAME_LENGTH = 60
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+# Home Assistant awaits this function with these two arguments, so it has to be a coroutine function that takes both.
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # NOSONAR
     """A version 1 entry (one stop) keeps working as it is; the line entry of version 2 is what new setups create."""
     return entry.version <= 2
 
