@@ -668,3 +668,19 @@ async def test_e2e_05_configure_clears_the_repairs_issue_and_the_notification_of
     await env.settle()
     assert ir.async_get(env.hass).async_get_issue("homeassistant", issue_id) is None
     assert dismissed == ["config_entry_reconfigure"]
+
+
+async def test_e2e_05_configure_replaces_a_key_that_an_option_overrides(env):
+    """A restored entry can have the key in its options (options win over data): the new key must be the one in use."""
+    entry = await env.add_entry(options={"api_key": DEFAULT_KEY})
+    env.city.valid_keys.add(NEW_KEY)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    with patch.object(env.hass.config_entries, "async_reload", wraps=env.hass.config_entries.async_reload) as reload:
+        await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
+        await env.settle()
+    assert entry.data["api_key"] == NEW_KEY
+    assert "api_key" not in entry.options
+    assert reload.call_count == 1
+    assert env.city.matching("timetable")[-1].query["apikey"] == NEW_KEY, "the reload used the new key"
+

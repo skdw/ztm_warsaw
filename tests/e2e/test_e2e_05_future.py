@@ -255,6 +255,18 @@ async def test_e2e_29_reauth_of_an_entry_that_cannot_be_read_aborts(env):
     assert (result["type"], result["reason"]) == ("abort", "unknown")
 
 
+async def test_e2e_29_reauth_replaces_a_key_that_an_option_overrides(env):
+    env.city.valid_keys.clear()
+    entry = await _entry_with_a_rejected_key(env, options={"api_key": DEFAULT_KEY})
+    env.city.valid_keys.add(NEW_KEY)
+    flow = _reauth_flows(env)[0]
+    await env.hass.config_entries.flow.async_configure(flow["flow_id"], {"api_key": NEW_KEY})
+    await env.settle()
+    assert entry.data["api_key"] == NEW_KEY
+    assert "api_key" not in entry.options
+    assert entry.state is ConfigEntryState.LOADED
+
+
 # ===================================================================== E2E-30 diagnostics
 async def test_e2e_30_diagnostics_download_redacts_the_api_key(env):
     entry = await env.add_entry()

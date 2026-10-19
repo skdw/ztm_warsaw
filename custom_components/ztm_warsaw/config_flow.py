@@ -157,7 +157,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             )
             if error is None or self.key_works:  # that the line does not run today is not the key's fault
                 loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
-                changed = self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_API_KEY: key})
+                changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
                 # A loaded entry reloads itself through its update listener, but only when its data changed (the same
                 # key again, after the City had recovered, is a reload the listener does not do).
                 if not (loaded and changed):
@@ -180,6 +180,19 @@ def _host_of(api_key: str) -> str:
     if kind == "legacy":
         return "api.um.warszawa.pl"
     return "dane.um.warszawa.pl" if kind is not None else "?"
+
+
+# The spellings of the key that the setup reads (see _entry_values); an option with one of them overrides the data.
+_KEY_SPELLINGS = ("api_key", "apikey", "apiKey")
+
+
+def _with_key(entry, key: str) -> dict:
+    """The ``data`` and ``options`` of the entry with ``key`` as its key: the canonical field of the data is set and an
+    option that overrides it (a restored entry may have one: options win over data) is dropped, so the new key is used."""
+    return {
+        "data": {**entry.data, CONF_API_KEY: key},
+        "options": {k: v for k, v in entry.options.items() if k not in _KEY_SPELLINGS},
+    }
 
 
 async def _close_reauth(hass, entry) -> None:
@@ -220,9 +233,7 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
             )
             if error is None or works:  # that the line does not run today is not the key's fault
                 loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
-                changed = key != api_key
-                if changed:
-                    self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_API_KEY: key})
+                changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
                 # A loaded entry reloads itself through its update listener when its data changed; any other state has
                 # no listener (the setup failed or is being retried), and the same key again is no change: reload it.
                 if not (loaded and changed):
