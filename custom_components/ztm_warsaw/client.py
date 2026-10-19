@@ -228,7 +228,6 @@ class ZTMStopClient:
             "line": line,
         }
         self._stop_name: dict | None = None
-        self._stop_info_cache: dict[tuple[str, str], dict] = {}
 
     async def _call(self, kind: str):
         """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
@@ -356,21 +355,18 @@ class ZTMStopClient:
         if self._stop_info_next_retry and dt_util.utcnow().timestamp() < self._stop_info_next_retry:
             _LOGGER.debug("Stop-info fetch skipped until %s (backoff) for %s", dt_util.utc_from_timestamp(self._stop_info_next_retry), where)
             return None
-        cache_key = (self._params["busstopId"], self._params["busstopNr"])
-        if cache_key not in self._stop_info_cache:
-            readable, info = await self._catalogue.find(self, str(cache_key[0]), str(cache_key[1]))
-            if readable is None:  # another entry's request failed a moment ago: not asked, not a failed attempt of ours
-                return None
-            if info is None:
-                if readable:
-                    _LOGGER.warning("Stop name not found in stop info for %s", where)
-                self._stop_info_failed(where)
-                return None
-            if "nazwa_zespolu" in info and "stop_name" not in info:
-                info["stop_name"] = info["nazwa_zespolu"]  # a stable alias for the sensors
-            self._stop_info_cache[cache_key] = info
-            self._stop_info_attempts, self._stop_info_next_retry, self._stop_info_permanent_missing = 0, None, False
-        self._stop_name = self._stop_info_cache[cache_key]
+        readable, info = await self._catalogue.find(self, str(self._params["busstopId"]), str(self._params["busstopNr"]))
+        if readable is None:  # another entry's request failed a moment ago: not asked, not a failed attempt of ours
+            return None
+        if info is None:
+            if readable:
+                _LOGGER.warning("Stop name not found in stop info for %s", where)
+            self._stop_info_failed(where)
+            return None
+        if "nazwa_zespolu" in info and "stop_name" not in info:
+            info["stop_name"] = info["nazwa_zespolu"]  # a stable alias for the sensors
+        self._stop_info_attempts, self._stop_info_next_retry, self._stop_info_permanent_missing = 0, None, False
+        self._stop_name = info
         return self._stop_name
 
     async def _stop_info_rows(self) -> list | None:
