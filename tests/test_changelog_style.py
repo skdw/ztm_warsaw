@@ -11,7 +11,8 @@ from pathlib import Path
 
 CHANGELOG = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 MAX_ENTRY = 340  # characters of an entry line, links included
-TITLE = re.compile(r"^- \*\*[^*]{2,70}\*\*")  # "- **Title**" opens every entry
+TITLE = re.compile(r"^- \*\*[^*]{2,70}\*\*:?\s*(.*)$")  # "- **Title**: a short sentence"; group 1 is the sentence
+MAX_SENTENCES = 2
 
 
 def has_content(section: str) -> bool:
@@ -43,10 +44,14 @@ def problems_of(section: str) -> list[str]:
             continue
         if not line.startswith("- "):
             problems.append(f"an entry is one line, this one continues or is not an entry: {line}")
-        elif not TITLE.match(line):
+        elif not (title := TITLE.match(line)):
             problems.append(f"an entry opens with a bold title, like '- **Title**: a short sentence': {line}")
+        elif len(title.group(1).strip(" :.")) < 8:
+            problems.append(f"a title is followed by a short sentence about what the user gets: {line}")
         elif len(line) > MAX_ENTRY:
             problems.append(f"too long (the details belong in the pull request): {line}")
+        elif len(re.findall(r"[.!?](?:\s|$)", re.sub(r"\]\([^)]*\)", "]", title.group(1)))) > MAX_SENTENCES:
+            problems.append(f"at most {MAX_SENTENCES} short sentences: {line}")
     return problems
 
 
@@ -79,6 +84,25 @@ def test_a_continuation_line_is_reported():
 def test_an_entry_without_a_bold_title_is_reported():
     for line in ("- Add a calendar entity", "- A **calendar** for you", "-**Calendar** no space", "- **x** too short a title"):
         assert len(problems_of(section(line))) == 1, line
+
+
+def test_a_title_without_a_sentence_is_reported():
+    for line in ("- **A calendar**", "- **A calendar**:", "- **A calendar**: ok", "- **A calendar**:   "):
+        problems = problems_of(section(line))
+        assert len(problems) == 1, line
+        assert problems[0].startswith("a title is followed by a short sentence")
+
+
+def test_more_than_two_sentences_are_reported():
+    ok = "- **A calendar**: switch it on. It shows the day."
+    too_many = "- **A calendar**: switch it on. It shows the day. Then use it in automations."
+    assert problems_of(section(ok)) == []
+    assert problems_of(section(too_many)) == [f"at most 2 short sentences: {too_many}"]
+
+
+def test_a_link_in_a_sentence_is_not_counted_as_a_sentence():
+    line = "- **Get a token**: see [the portal](https://dane.um.warszawa.pl/pl/key-api) and paste it. Then you are done."
+    assert problems_of(section(line)) == []
 
 
 def test_an_entry_that_is_too_long_is_reported():

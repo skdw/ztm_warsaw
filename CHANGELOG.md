@@ -12,9 +12,9 @@ Hey everyone 👋 This is the first beta of **1.2.0**, and it is a big one. The 
 
 ### Adopter action
 
-- **Switch to a token.** Your old API key still works, but the City has announced no end date for it. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), open **Configure** on your entry and paste it. Until then you will see a small notice in Settings → Repairs that you can dismiss.
-- **More departures on every sensor.** Each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone. If you had picked fewer, you just get extra attributes.
-- **Two entries for the same stop and line?** The second one never had a sensor. Repairs tells you, and you can remove it.
+- **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in **Configure** on each entry (until then a notice in Repairs reminds you).
+- **More departures on every sensor**: each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone.
+- **Two entries for the same stop and line?** The second one never had a sensor, so remove it when Repairs tells you.
 
 ### Added
 
