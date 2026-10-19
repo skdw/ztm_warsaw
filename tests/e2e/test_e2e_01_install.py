@@ -38,7 +38,6 @@ from .fake_city import (
     stop_name_for,
 )
 from .fake_city.data import stops_catalogue_bytes
-from .helpers import known_bug
 
 EN = json.loads((Path(integration.__file__).parent / "translations" / "en.json").read_text(encoding="utf-8"))
 FLOW_ERROR_STRINGS = EN["config"]["error"]
@@ -414,7 +413,6 @@ async def test_e2e_05_options_flow_changes_departures_and_reloads_the_entry(env)
 
 
 @pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
-@known_bug("stops-catalogue-redownloaded", "every reload re-downloads the whole 1.6 MB stops catalogue")
 async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env):
     entry = await env.add_entry(departures=1)
     assert env.city.count("stops") == 1
