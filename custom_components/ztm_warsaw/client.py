@@ -76,7 +76,7 @@ class StopCatalogue:
     def __init__(self, ttl: float = 86400, retry_after: float = 60):
         self._ttl = ttl
         self._retry_after = retry_after
-        self._lock = asyncio.Lock()
+        self._locks: dict[bool, asyncio.Lock] = {}  # one per kind of host: a slow host does not hold up the other
         self._index: dict[bool, tuple[float, dict]] = {}  # per host kind (token or not): (when, index)
         self._failed: dict[bool, float] = {}
 
@@ -84,7 +84,7 @@ class StopCatalogue:
         """``(readable, info)``: whether the catalogue could be read (None: not asked, a failure is still fresh), and what
         it says about the pole (the first pole of the stop when this one is not listed; None when the stop is not there)."""
         key = client.uses_token
-        async with self._lock:
+        async with self._locks.setdefault(key, asyncio.Lock()):
             cached = self._index.get(key)
             if cached is None or time.monotonic() - cached[0] >= self._ttl:
                 failed = self._failed.get(key)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 
 import pytest
@@ -119,3 +120,39 @@ async def test_a_skipped_catalogue_is_not_a_failed_attempt_of_the_entry():
     assert await client.get_stop_name() is None
     assert client._stop_info_attempts == 0
     assert client._stop_info_next_retry is None
+
+
+async def test_a_slow_host_does_not_hold_up_the_other_one():
+    release = asyncio.Event()
+
+    class Blocked(Stub):
+        async def _stop_info_rows(self):
+            await release.wait()
+            return self.rows
+
+    catalogue, slow, fast = StopCatalogue(), Blocked(ROWS), Stub(ROWS)
+    fast.uses_token = True
+    first = asyncio.ensure_future(catalogue.find(slow, "7009", "01"))
+    await asyncio.sleep(0)
+    assert await asyncio.wait_for(catalogue.find(fast, "7009", "01"), 1) == (True, {"nazwa_zespolu": "Dom"})
+    assert not first.done()
+    release.set()
+    assert (await first)[0] is True
+
+
+async def test_two_entries_of_one_host_still_wait_for_one_download():
+    release = asyncio.Event()
+
+    class Blocked(Stub):
+        async def _stop_info_rows(self):
+            self.downloads += 1
+            await release.wait()
+            return self.rows
+
+    catalogue, client = StopCatalogue(), Blocked(ROWS)
+    a = asyncio.ensure_future(catalogue.find(client, "7009", "01"))
+    b = asyncio.ensure_future(catalogue.find(client, "7009", "02"))
+    await asyncio.sleep(0)
+    release.set()
+    assert [(await a)[0], (await b)[0]] == [True, True]
+    assert client.downloads == 1
