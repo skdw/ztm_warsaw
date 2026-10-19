@@ -67,9 +67,10 @@ pytest
   yourself: `python scripts/release_check.py` (the `manifest.json` version has notes in
   `CHANGELOG.md`). The Documentation impact declaration is checked only in CI, against the
   description of your pull request (see below).
-- A user-visible change gets a `CHANGELOG.md` entry under `[Unreleased]`: one short line that starts with a verb
-  and links your pull request, for example `- Add a calendar entity per sensor (... [#70](...))`. Keep the details in the
-  pull request; `tests/test_changelog_style.py` checks the length.
+- A user-visible change gets a `CHANGELOG.md` entry under `[Unreleased]`. The changelog is the release notes that
+  Home Assistant users read, so write it for them: one line with a bold title and one short, friendly sentence about what
+  they get, for example `- **A calendar of departures**: switch it on to see the whole day in Home Assistant's calendar.`
+  Leave the technical details to the pull request; `tests/test_changelog_style.py` checks the form.
 
 ## Making a change
 
