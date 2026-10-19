@@ -220,6 +220,27 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self._refreshes += 1  # only a finished refresh counts for a waiter
             return answer
 
+    def _api_rejected(self, err: ZTMApiError) -> ZTMDepartureData:
+        """The city answered but not with a timetable (a rejected key, an unknown stop or line, an answer in an unknown
+        format). Unlike a network error this is not "try again later with the cached timetable": the entity becomes
+        unavailable instead of pretending nothing runs. Home Assistant logs this once, when the state changes, and
+        again when it recovers. Three rejected keys in a row ask the user for a new one."""
+        if in_swap_window(dt_util.utcnow()):  # a request that straddles the start of the City's update
+            return self._hold_during_swap()
+        self._api_error = True
+        self._rejections = self._rejections + 1 if isinstance(err, ZTMAuthError) else 0
+        self._save()
+        if self._rejections >= REJECTIONS_BEFORE_REAUTH:
+            # Counted in the store, so the retries of a setup (a new coordinator each) add up.
+            raise ConfigEntryAuthFailed(str(err)) from err
+        raise UpdateFailed(str(err)) from err
+
+    def _outage(self):
+        """A network error or an answer that is not the City's breaks a run of rejected keys; the store must know."""
+        if self._rejections:
+            self._rejections = 0
+            self._save()
+
     async def _fetch(self) -> ZTMDepartureData:
         if in_swap_window(dt_util.utcnow()):
             return self._hold_during_swap()
@@ -229,7 +250,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             if in_swap_window(dt_util.utcnow()):  # the request began before the update did and ended inside it
                 return self._hold_during_swap()
             if new_data is None:
-                self._rejections = 0  # an outage breaks the run of rejections
+                self._outage()
                 if self.data is not None and not self._api_error:
                     _LOGGER.warning(
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
@@ -242,19 +263,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         except (UpdateFailed, ConfigEntryAuthFailed):
             raise
         except ZTMApiError as err:
-            # The city answered but not with a timetable (a rejected key, an unknown stop or line, an answer in an
-            # unknown format). Unlike a network error this is not "try again later with the cached timetable":
-            # the entity becomes unavailable instead of pretending nothing runs. Home Assistant logs this once,
-            # when the state changes, and again when it recovers.
-            if in_swap_window(dt_util.utcnow()):  # a request that straddles the start of the City's update
-                return self._hold_during_swap()
-            self._api_error = True
-            self._rejections = self._rejections + 1 if isinstance(err, ZTMAuthError) else 0
-            self._save()
-            if self._rejections >= REJECTIONS_BEFORE_REAUTH:
-                # Counted in the store, so the retries of a setup (a new coordinator each) add up.
-                raise ConfigEntryAuthFailed(str(err)) from err
-            raise UpdateFailed(str(err)) from err
+            return self._api_rejected(err)
         except Exception as err:
             if self.data is not None and not self._api_error:
                 # Keep entity available with last known data; try again on next hourly tick

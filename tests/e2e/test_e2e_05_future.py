@@ -232,6 +232,30 @@ async def test_e2e_29_rejections_must_be_consecutive(env):
     assert not _reauth_flows(env)
 
 
+async def test_e2e_29_an_outage_that_breaks_the_run_of_rejections_is_stored_too(env, hass_storage):
+    """A crash after the outage must not revive the old count (a review finding)."""
+    entry = await env.add_entry()
+    key = f"ztm_warsaw.{entry.entry_id}"
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    await env.hourly_tick()
+    await env.advance(minutes=1)
+    assert hass_storage[key]["data"]["rejections"] == 2
+    env.city.valid_keys.add(DEFAULT_KEY)
+    env.city.always(None, Http(500))
+    await env.hourly_tick()
+    await env.advance(minutes=1)
+    assert hass_storage[key]["data"]["rejections"] == 0
+
+
+async def test_e2e_29_reauth_of_an_entry_that_cannot_be_read_aborts(env):
+    entry = await env.add_entry(data={"api_key": DEFAULT_KEY}, setup=False)
+    result = await env.hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reauth", "entry_id": entry.entry_id}, data=entry.data
+    )
+    assert (result["type"], result["reason"]) == ("abort", "unknown")
+
+
 # ===================================================================== E2E-30 diagnostics
 @known_bug("no-diagnostics-platform", "no diagnostics platform", raises=(AssertionError, ImportError))
 async def test_e2e_30_diagnostics_download_redacts_the_api_key(env):
