@@ -3,64 +3,64 @@
   "config": {
     "step": {
       "user": {
-        "description": "Inserisci i dati della linea che vuoi seguire. Per maggiore aiuto, consulta la documentazione su GitHub.",
+        "description": "Indica la linea e la fermata di cui vuoi visualizzare le partenze. Trovi le istruzioni dettagliate nella documentazione su GitHub.",
         "data": {
-          "api_key": "Chiave API (vecchia API) o token (nuova API) dal portale dei dati aperti della città di Varsavia",
+          "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
           "busstop_id": "ID della fermata (es. 3044)",
-          "busstop_nr": "Numero del palo (es. 02)",
+          "busstop_nr": "Numero del punto di fermata (es. 02)",
           "line": "Numero della linea (es. N31)"
         }
       },
       "reauth_confirm": {
-        "description": "L’API della città di Varsavia non accetta più la chiave API o il token di questa voce. Inseriscine uno nuovo dal portale dei dati aperti; la fermata e la linea restano invariate.",
+        "description": "L’API della città di Varsavia rifiuta la chiave API o il token salvato. Inserisci una nuova chiave o un nuovo token dal portale dei dati aperti. Le impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
-          "api_key": "Chiave API (vecchia API) o token (nuova API) dal portale dei dati aperti della città di Varsavia"
+          "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia"
         }
       }
     },
     "error": {
-      "invalid_stop_number": "Il numero del palo indicato non è corretto. Deve essere di due cifre (es. «01»).",
-      "invalid_api_key": "Non è una chiave API né un token valido. Controlla cosa hai copiato dal portale dei dati aperti della città di Varsavia.",
+      "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
+      "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
       "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
       "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
-      "line_not_found": "La linea indicata non è stata trovata per l’ID fermata e il numero del palo selezionati.",
+      "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
       "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
       "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
       "unknown": "Si è verificato un errore sconosciuto.",
       "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
-      "invalid_stop_id": "L’ID fermata indicato non è corretto. Deve essere un numero (es. «3044»)."
+      "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»)."
     },
     "abort": {
       "single_instance_allowed": "È consentita una sola istanza.",
-      "reauth_successful": "La chiave API è stata aggiornata e la voce ricaricata.",
+      "reauth_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata.",
       "unknown": "Si è verificato un errore sconosciuto.",
-      "already_configured": "Questa fermata, palo e linea sono già configurati.",
-      "stop_added": "La fermata è stata aggiunta alla voce che gestisce già questa linea, con la chiave di quella voce (per cambiare la chiave usa «Configura»)."
+      "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",
+      "stop_added": "La fermata è stata aggiunta alla configurazione esistente della linea. Utilizzerà le credenziali salvate per quella linea. Per modificarle, scegli **Configura**."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Trasporto pubblico di Varsavia",
-        "description": "**Questa voce usa la vecchia API della città ({current}).**\n\nFunziona, ma la città non ha pubblicato una data di fine, e la nuova API è il servizio attuale.\n\nPer passare:\n\n1. Ottieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Incollalo qui sotto.\n\nLa fermata e la linea restano invariate.",
+        "description": "**Questa configurazione utilizza la vecchia API della città di Varsavia ({current}).**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nPer passare alla nuova API:\n\n1. Ottieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Incollalo nel campo qui sotto.\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
           "api_key": "Chiave API o token"
         }
       },
       "token": {
         "title": "Trasporto pubblico di Varsavia",
-        "description": "**Sostituisci il token di questa voce.**\n\nIncolla il nuovo token da [dane.um.warszawa.pl/pl/key-api]({portal}), ad esempio quando il vecchio è scaduto.\n\nLa fermata e la linea restano invariate.",
+        "description": "**Modifica il token di accesso all’API.**\n\nSe il token attuale è scaduto o vuoi sostituirlo, incolla un nuovo token da [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
           "api_key": "Token"
         }
       }
     },
     "error": {
-      "invalid_stop_number": "Il numero del palo indicato non è corretto. Deve essere di due cifre (es. «01»).",
-      "invalid_api_key": "Non è una chiave API né un token valido. Controlla cosa hai copiato dal portale dei dati aperti della città di Varsavia.",
+      "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
+      "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
       "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
       "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
-      "line_not_found": "La linea indicata non è stata trovata per l’ID fermata e il numero del palo selezionati.",
+      "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
       "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
       "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
       "unknown": "Si è verificato un errore sconosciuto.",
@@ -79,23 +79,23 @@
   },
   "issues": {
     "duplicate_entry": {
-      "title": "Già configurato: linea {line}, {stop}",
-      "description": "**La linea {line} a {stop} è configurata due volte.**\n\nHome Assistant può mostrare un solo sensore per essa, quindi la seconda voce non ne ha.\n\nRimuovi una delle due voci: **Impostazioni > Dispositivi e servizi > Trasporto pubblico di Varsavia**."
+      "title": "Configurazione duplicata: linea {line}, {stop}",
+      "description": "**La linea {line} alla fermata {stop} ha due configurazioni.**\n\nHome Assistant può creare un solo sensore per questa linea e fermata. Non è stato creato alcun sensore per la seconda configurazione.\n\nRimuovi una delle configurazioni duplicate in **Impostazioni > Dispositivi e servizi > Trasporto pubblico di Varsavia**."
     },
     "legacy_key": {
       "title": "Vecchia chiave API: linea {line}, {stop}",
       "fix_flow": {
         "step": {
           "token": {
-            "title": "Sostituisci la vecchia chiave",
-            "description": "**La linea {line} usa ancora una chiave della vecchia API della città.**\n\nFunziona, ma la città non ha pubblicato una data di fine. La nuova API con token è il servizio attuale.\n\nIncolla qui sotto un token da [dane.um.warszawa.pl/pl/key-api]({portal}); sostituisce la vecchia chiave e le fermate restano invariate.",
+            "title": "Sostituisci la vecchia chiave con un token",
+            "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia.**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nIncolla qui sotto un token da [dane.um.warszawa.pl/pl/key-api]({portal}). Sostituirà la vecchia chiave. Le impostazioni delle fermate verranno mantenute.",
             "data": {
               "api_key": "Token"
             }
           },
           "init": {
             "title": "Vecchia chiave API",
-            "description": "**La linea {line} usa ancora una chiave della vecchia API della città.**\n\nFunziona, ma la città non ha pubblicato una data di fine. La nuova API con token è il servizio attuale.\n\nOttieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}); sostituisce la vecchia chiave e le fermate restano invariate. Puoi anche tenere per ora la vecchia chiave e ignorare questo avviso.",
+            "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia.**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nOttieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}) e scegli «Incolla un token» per sostituire la vecchia chiave. Le impostazioni delle fermate verranno mantenute. Puoi anche continuare a utilizzare la vecchia chiave e ignorare questo avviso.",
             "menu_options": {
               "token": "Incolla un token",
               "ignore": "Tieni la vecchia chiave e ignora questo avviso"
@@ -103,19 +103,19 @@
           }
         },
         "error": {
-          "invalid_stop_number": "Il numero del palo indicato non è corretto. Deve essere di due cifre (es. «01»).",
-          "invalid_api_key": "Non è una chiave API né un token valido. Controlla cosa hai copiato dal portale dei dati aperti della città di Varsavia.",
+          "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
+          "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
           "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
           "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
-          "line_not_found": "La linea indicata non è stata trovata per l’ID fermata e il numero del palo selezionati.",
+          "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
           "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
           "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
           "unknown": "Si è verificato un errore sconosciuto.",
           "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi."
         },
         "abort": {
-          "unknown": "La voce di questo avviso non esiste più o non può essere modificata.",
-          "ignored": "L’avviso è ignorato. Se cambi idea, aprilo in Riparazioni sotto *Problemi ignorati* e scegli *Non ignorare più*."
+          "unknown": "La configurazione associata a questo avviso è stata rimossa o non può essere modificata.",
+          "ignored": "L’avviso è stato ignorato. Per riaprirlo, apri **Riparazioni**, scegli **Mostra riparazioni ignorate**, apri questo avviso e scegli **Non ignorare**."
         }
       }
     },
@@ -124,15 +124,15 @@
       "fix_flow": {
         "step": {
           "token": {
-            "title": "Sostituisci la vecchia chiave",
-            "description": "**La linea {line} usa ancora una chiave della vecchia API della città.**\n\nFunziona, ma la città non ha pubblicato una data di fine. La nuova API con token è il servizio attuale.\n\nIncolla qui sotto un token da [dane.um.warszawa.pl/pl/key-api]({portal}); sostituisce la vecchia chiave e le fermate restano invariate.",
+            "title": "Sostituisci la vecchia chiave con un token",
+            "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia.**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nIncolla qui sotto un token da [dane.um.warszawa.pl/pl/key-api]({portal}). Sostituirà la vecchia chiave. Le impostazioni delle fermate verranno mantenute.",
             "data": {
               "api_key": "Token"
             }
           },
           "init": {
             "title": "Vecchia chiave API",
-            "description": "**La linea {line} usa ancora una chiave della vecchia API della città.**\n\nFunziona, ma la città non ha pubblicato una data di fine. La nuova API con token è il servizio attuale.\n\nOttieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}); sostituisce la vecchia chiave e le fermate restano invariate. Puoi anche tenere per ora la vecchia chiave e ignorare questo avviso.",
+            "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia.**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nOttieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}) e scegli «Incolla un token» per sostituire la vecchia chiave. Le impostazioni delle fermate verranno mantenute. Puoi anche continuare a utilizzare la vecchia chiave e ignorare questo avviso.",
             "menu_options": {
               "token": "Incolla un token",
               "ignore": "Tieni la vecchia chiave e ignora questo avviso"
@@ -140,25 +140,25 @@
           }
         },
         "error": {
-          "invalid_stop_number": "Il numero del palo indicato non è corretto. Deve essere di due cifre (es. «01»).",
-          "invalid_api_key": "Non è una chiave API né un token valido. Controlla cosa hai copiato dal portale dei dati aperti della città di Varsavia.",
+          "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
+          "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
           "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
           "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
-          "line_not_found": "La linea indicata non è stata trovata per l’ID fermata e il numero del palo selezionati.",
+          "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
           "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
           "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
           "unknown": "Si è verificato un errore sconosciuto.",
           "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi."
         },
         "abort": {
-          "unknown": "La voce di questo avviso non esiste più o non può essere modificata.",
-          "ignored": "L’avviso è ignorato. Se cambi idea, aprilo in Riparazioni sotto *Problemi ignorati* e scegli *Non ignorare più*."
+          "unknown": "La configurazione associata a questo avviso è stata rimossa o non può essere modificata.",
+          "ignored": "L’avviso è stato ignorato. Per riaprirlo, apri **Riparazioni**, scegli **Mostra riparazioni ignorate**, apri questo avviso e scegli **Non ignorare**."
         }
       }
     },
     "merged_keys": {
-      "title": "Linea {line}: le fermate usavano chiavi diverse",
-      "description": "**Le fermate della linea {line} usavano chiavi diverse.**\n\nOra sono una sola voce, quindi la linea usa una sola chiave: un token se una di esse lo era, altrimenti la chiave della voce più vecchia.\n\nSe una fermata smette di funzionare, apri l’integrazione, scegli **Configura** su questa voce e inserisci la chiave che vuoi.\n\nPuoi chiudere questo avviso."
+      "title": "Linea {line}: credenziali condivise",
+      "description": "**Le fermate della linea {line} utilizzavano chiavi API o token diversi.**\n\nLe fermate sono state raggruppate in un’unica configurazione e ora l’intera linea utilizza le stesse credenziali. Se una fermata aveva un token salvato, è stato scelto quel token. Altrimenti è stata mantenuta la chiave della configurazione più vecchia.\n\nSe una fermata non funziona più, apri l’integrazione e scegli **Configura** per questa linea per inserire la chiave API o il token corretto.\n\nPuoi chiudere questo avviso."
     }
   },
   "config_subentries": {
@@ -172,36 +172,36 @@
       "step": {
         "user": {
           "title": "Aggiungi una fermata della linea {line}",
-          "description": "Un’altra fermata e palo della linea {line}. Usa la chiave di questa voce.",
+          "description": "Indica l’ID della fermata e il numero del punto di fermata per la linea {line}. La nuova fermata utilizzerà le credenziali salvate per questa linea.",
           "data": {
             "busstop_id": "ID della fermata (es. 3044)",
-            "busstop_nr": "Numero del palo (es. 02)"
+            "busstop_nr": "Numero del punto di fermata (es. 02)"
           }
         },
         "reconfigure": {
-          "title": "Tempo a piedi fino a {stop}",
-          "description": "Quanti minuti ti servono per arrivare a piedi a questa fermata? Il sensore salta allora le partenze precedenti a quel tempo, perché non faresti in tempo. 0 significa nessun tempo a piedi.",
+          "title": "Tempo per raggiungere {stop} a piedi",
+          "description": "Indica quanti minuti impieghi per raggiungere la fermata a piedi. Il sensore escluderà le partenze che non riusciresti a raggiungere in questo tempo. Inserisci 0 per non tenere conto del tempo di percorrenza a piedi.",
           "data": {
-            "walking_time": "Tempo a piedi (minuti)"
+            "walking_time": "Tempo di percorrenza a piedi (minuti)"
           }
         }
       },
       "error": {
-        "invalid_stop_number": "Il numero del palo indicato non è corretto. Deve essere di due cifre (es. «01»).",
-        "invalid_api_key": "Non è una chiave API né un token valido. Controlla cosa hai copiato dal portale dei dati aperti della città di Varsavia.",
+        "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
+        "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
         "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
         "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
-        "line_not_found": "La linea indicata non è stata trovata per l’ID fermata e il numero del palo selezionati.",
+        "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
         "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
         "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
         "unknown": "Si è verificato un errore sconosciuto.",
         "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
-        "invalid_stop_id": "L’ID fermata indicato non è corretto. Deve essere un numero (es. «3044»)."
+        "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»)."
       },
       "abort": {
-        "already_configured": "Questa fermata, palo e linea sono già configurati.",
+        "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",
         "unknown": "Si è verificato un errore sconosciuto.",
-        "reconfigure_successful": "Il tempo a piedi è stato salvato."
+        "reconfigure_successful": "Il tempo di percorrenza a piedi è stato salvato."
       }
     }
   }

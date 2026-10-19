@@ -1,7 +1,7 @@
 <h1 align="center">🚍 ZTM Varsavia per Home Assistant</h1>
 
 <p align="center">
-  <strong>Le prossime partenze programmate di una linea di autobus, tram, metro o notturna di Varsavia, come sensore.<br>Dai dati aperti della città. Senza YAML e senza promesse di tracciamento in tempo reale.</strong>
+  <strong>Gli orari del trasporto pubblico di Varsavia in Home Assistant.<br>Le prossime partenze nelle dashboard e nelle automazioni. Configurazione senza YAML.</strong>
 </p>
 
 <p align="center">
@@ -59,33 +59,33 @@
 
 </details>
 
-Mostra le prossime **partenze programmate** di una linea del trasporto pubblico di Varsavia (autobus, tram, metro, treno urbano o linea notturna) a un palo di fermata come sensore in Home Assistant, dai dati aperti della città di Varsavia. Utile per dashboard e automazioni come «esci tra otto minuti» senza aprire un’app di orari.
+L’integrazione mostra le **partenze previste dall’orario** utilizzando i dati aperti della città di Varsavia. Ogni sensore mostra le partenze di una linea da un punto di fermata specifico. Puoi visualizzarle nella dashboard di Home Assistant o utilizzarle nelle automazioni, ad esempio per ricevere un promemoria quando è ora di uscire per prendere l’autobus.
 
-Mostra l’**orario**, non i veicoli in tempo reale. Cosa **non** fa:
+I dati provengono dagli orari pubblicati. L’integrazione presenta questi limiti:
 
-- niente posizioni in tempo reale, ritardi o disservizi: la città pubblica partenze pianificate, aggiornate una volta al giorno;
-- niente orari per altri giorni: l’API fornisce solo il giorno di servizio corrente;
-- niente pianificazione di viaggi: per questo c’è [wtp.waw.pl](https://wtp.waw.pl).
+- non mostra la posizione dei veicoli in tempo reale, i ritardi o gli avvisi di disservizio: l’API fornisce partenze programmate, aggiornate una volta al giorno;
+- gli orari sono disponibili solo per il giorno di servizio corrente: l’API pubblica non fornisce altre date;
+- non pianifica percorsi o coincidenze: per questo, usa [wtp.waw.pl](https://wtp.waw.pl).
 
 ---
 
 ## 🔧 Funzionalità
 
-- ✅ Linee di autobus, tram, metro, notturne, per i cimiteri, express e locali.
-- ✅ Più istanze: monitora quante fermate e linee vuoi.
-- ✅ La prossima partenza come marca temporale, utilizzabile nell’interfaccia e nelle automazioni, e le tre successive come attributi (`Next 1` ... `Next 3`).
-- ✅ Uno stato «No service» chiaro nei giorni in cui una linea non circola e `unavailable` quando l’API della città ha problemi (vedi [Risoluzione dei problemi](#-risoluzione-dei-problemi)).
-- ✅ Configurazione interamente nell’interfaccia di Home Assistant, in inglese, polacco, ucraino, russo, tedesco, spagnolo, francese o italiano (i testi diversi da inglese e polacco sono tradotti automaticamente: le correzioni sono benvenute come pull request).
-- ✅ Attributi con la fermata (nome e posizione, quindi compare come segnaposto sulla scheda mappa), la direzione, un link all’orario e delle note.
-- ✅ Cambia la chiave API o il token di una voce in qualsiasi momento in **Configura**, per esempio dalla vecchia API della città alla nuova.
-- ✅ Un’entità **calendario** per ogni sensore (disattivata di default: attivala nelle impostazioni dell’entità) con ogni partenza del giorno come evento di un minuto: vedi tutto l’orario nella vista calendario di Home Assistant e avvii automazioni con il trigger del calendario («8 minuti prima di una partenza») senza template.
+- ✅ Autobus, tram, metropolitana e treni SKM, comprese le linee notturne, per i cimiteri, espresse e locali.
+- ✅ Supporto per più linee e fermate.
+- ✅ L’ora della prossima partenza come stato del sensore, disponibile nelle dashboard e nelle automazioni. Le tre partenze successive sono salvate negli attributi (`Next 1`–`Next 3`).
+- ✅ Il messaggio «No service» quando non ci sono più partenze e lo stato `unavailable` quando non è possibile ottenere un orario valido (vedi [Risoluzione dei problemi](#-risoluzione-dei-problemi)).
+- ✅ Configurazione nell’interfaccia di Home Assistant in otto lingue: inglese, polacco, ucraino, russo, tedesco, spagnolo, francese e italiano. Le sei nuove versioni sono state tradotte automaticamente; puoi proporre correzioni tramite pull request.
+- ✅ Attributi con il nome e le coordinate della fermata, la direzione di viaggio, un collegamento all’orario e le note. Le coordinate permettono di visualizzare la fermata su una mappa.
+- ✅ Modifica della chiave API o del token tramite **Configura**, anche per passare alla nuova API della città.
+- ✅ Un’entità **calendario** separata per ogni sensore, disattivata per impostazione predefinita. Dopo averla attivata nelle impostazioni dell’entità, ogni partenza del giorno di servizio appare come un evento di un minuto. Il trigger del calendario permette di avviare un’automazione, ad esempio otto minuti prima della partenza, senza creare template.
 
 ---
 
 ## 📸 Schermate
 
 ### Configurazione dell’integrazione
-*Inserisci la tua chiave API e i dati della fermata...*
+*Il modulo di configurazione con le credenziali e i dati della linea e della fermata.*
 
 <div align="center"><img width="478" alt="image" src="https://github.com/user-attachments/assets/9a77591e-5b1a-4fe5-a29d-637d3c9b566c" /></div>
 
@@ -94,7 +94,7 @@ Mostra l’**orario**, non i veicoli in tempo reale. Cosa **non** fa:
 <div align="center"><img width="555" alt="image" src="https://github.com/user-attachments/assets/ef709b81-1575-4718-9c39-f6c135cf3cca" /></div>
 
 ### Attributi
-*Entità di esempio con partenze e attributi come orario, direzione...*
+*I dettagli dell’orario, comprese le ore di partenza e la direzione di viaggio.*
 
 <div align="center"><img width="530" alt="image" src="https://github.com/user-attachments/assets/95cde9db-1182-41ba-9ae6-3187bd6a527c" /></div>
 
@@ -109,12 +109,12 @@ Mostra l’**orario**, non i veicoli in tempo reale. Cosa **non** fa:
 
 ## 🧭 Come ottenere una chiave o un token
 
-La città gestisce due portali, e l’integrazione accetta la chiave di entrambi:
+L’integrazione supporta le credenziali di entrambe le API della città di Varsavia:
 
-- **Nuovo (consigliato):** su [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) inserisci un nickname, accetta le condizioni e scarica il tuo token. È un lungo testo in tre parti separate da punti.
-- **Vecchio:** una chiave di [api.um.warszawa.pl](https://api.um.warszawa.pl) ha l’aspetto `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Le vecchie chiavi esistenti funzionano ancora al momento della scrittura, ma la città non indica né una data né una promessa su quanto, quindi passa a un token quando puoi.
+- **Token per la nuova API (consigliato):** su [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), inserisci un nome utente, accetta le condizioni e scarica il tuo token. È una lunga stringa di caratteri composta da tre parti separate da punti.
+- **Chiave per la vecchia API:** una chiave di [api.um.warszawa.pl](https://api.um.warszawa.pl) ha il formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API.
 
-L’integrazione riconosce quale hai incollato e parla solo con l’API corrispondente. Per passare una voce esistente a un token, usa **Configura** su quella voce e inserisci il token (la fermata e la linea restano); non aggiungere una seconda voce, perché due voci per la stessa fermata, palo e linea non possono coesistere e la procedura rifiuta la seconda.
+L’integrazione riconosce il tipo di credenziale e la invia soltanto all’API corrispondente. Per sostituire una vecchia chiave con un token, scegli **Configura** per la linea e incolla il token. Le impostazioni della linea e delle fermate verranno mantenute. Non serve aggiungere di nuovo l’integrazione: la procedura rifiuta configurazioni duplicate della stessa linea nello stesso punto di fermata.
 
 ---
 
@@ -123,7 +123,7 @@ L’integrazione riconosce quale hai incollato e parla solo con l’API corrispo
 ### Con HACS
 
 1. In Home Assistant vai su **HACS → Integrazioni**.
-2. Cerca **Warsaw Public Transport**.
+2. Cerca **Trasporto pubblico di Varsavia**.
 3. Clicca su **Scarica** e conferma.
 4. Riavvia Home Assistant.
 
@@ -138,40 +138,40 @@ L’integrazione riconosce quale hai incollato e parla solo con l’API corrispo
 ## 🔌 Configurazione
 
 1. Vai su **Impostazioni → Dispositivi e servizi**.
-2. Clicca su **+ Aggiungi integrazione** e cerca **Warsaw Public Transport**.
+2. Clicca su **+ Aggiungi integrazione** e cerca **Trasporto pubblico di Varsavia**.
 3. Compila:
    - **chiave API o token** (vedi sopra),
-   - **ID della fermata** e **numero del palo** (per esempio 7009 e 01),
+   - **ID della fermata** e **numero del punto di fermata** (per esempio 7009 e 01),
    - **numero della linea** (per esempio 151).
 
-L’entità prende il nome dalla fermata e dalla linea, per esempio `sensor.line_151_from_7009_01`. Per sostituire la chiave API o il token di una voce (ad esempio passare da una vecchia chiave a un token), usa **Impostazioni → Dispositivi e servizi → Warsaw Public Transport → Configura** su quella voce; la fermata e la linea restano. Una voce che usa ancora una vecchia chiave mostra un avviso chiudibile in **Impostazioni → Riparazioni**.
+L’ID dell’entità contiene il numero della linea, l’ID della fermata e il numero del punto di fermata, ad esempio `sensor.line_151_from_7009_01`. Per modificare la chiave API o il token, apri **Impostazioni → Dispositivi e servizi → Trasporto pubblico di Varsavia** e scegli **Configura** per la linea. Le impostazioni della linea e delle fermate verranno mantenute. Se viene ancora utilizzata una vecchia chiave, in **Riparazioni** comparirà un avviso con le istruzioni per passare a un token. Puoi ignorarlo.
 
-**L’ID della fermata e il numero del palo** non sono la stessa cosa: l’ID della fermata è comune a tutti i pali di una fermata, e il numero del palo (di solito 01, 02, ...) è il numero dipinto sul cartello del palo (*słupek*). Una fermata con più direzioni ha un numero diverso per ciascuna.
+L’**ID della fermata** è comune a tutti i punti di fermata che appartengono alla stessa fermata. Il **numero del punto di fermata** identifica il luogo preciso in cui si sale a bordo, solitamente per una direzione di viaggio. Di norma è composto da due cifre, come 01 o 02, e si trova sulla palina della fermata. In polacco, questo punto numerato si chiama *słupek*.
 
 ---
 
 ## 🩺 Risoluzione dei problemi
 
-- **Lo stato è `unknown` e l’attributo dice «No service».** La linea oggi non circola, oppure la sua ultima partenza è passata. Non è un errore: controlla [wtp.waw.pl](https://wtp.waw.pl) o chiama il 19115.
-- **Il sensore è `unavailable`.** L’API della città ha risposto, ma non con un orario: la chiave o il token è stato rifiutato, la fermata, il palo e la linea non sono noti all’API, oppure la risposta aveva un formato che l’integrazione non capisce. Se già il primo caricamento fallisce (non per una chiave rifiutata, vedi sotto), l’integrazione appare come *nuovo tentativo di configurazione* e Home Assistant riprova da solo. L’errore è nel log di Home Assistant (la chiave non vi compare mai), e il sensore si riprende da solo quando l’API risponde di nuovo correttamente; altrimenti controlla nelle impostazioni la chiave, la fermata, il palo e la linea.
-- **Home Assistant chiede una nuova chiave (riautenticazione).** La vecchia API ha risposto «chiave rifiutata» tre volte di fila (contano anche i nuovi tentativi di una configurazione; un’interruzione nel mezzo riavvia il conteggio). Inserisci una nuova chiave o un token nella richiesta; la fermata e la linea restano, e una chiave viene accettata anche se la linea oggi non circola. Finché non lo fai, il sensore resta `unavailable`. La nuova API risponde allo stesso modo a ogni richiesta rifiutata, quindi un token rifiutato lì non si distingue da un’interruzione: il sensore tiene l’orario salvato fino alla fine del suo giorno di servizio, poi diventa `unavailable`, e non compare alcuna richiesta; se hai revocato il token, inseriscine uno nuovo in **Configura** sulla voce.
-- **Segnalare un problema.** Apri la voce dell’integrazione, usa *Scarica diagnostica* e allega il file alla segnalazione: mostra la voce e lo stato dell’orario, con la chiave o il token sostituiti da `**REDACTED**`.
-- **I dati sembrano obsoleti durante un’interruzione.** Un timeout, un errore di rete o un errore del server (HTTP 5xx) dopo un caricamento riuscito **non** rende il sensore `unavailable`: conserva l’ultimo orario e riprova ogni ora, perché l’orario è un dato pianificato che non cambia nell’arco di un giorno. Il sensore diagnostico **Last update** (disattivato di default; attivalo nelle impostazioni dell’entità) mostra quando i dati sono stati recuperati con successo l’ultima volta.
-- **La configurazione dice che la linea non è stata trovata.** L’API elenca solo le linee che circolano oggi. Una linea che oggi non circola (per esempio una linea feriale di domenica) non può essere aggiunta fino al giorno in cui circola.
-- **Una linea di wtp.waw.pl manca qui.** Il pianificatore di viaggi ha più dati dell’API pubblica. Questo non si può correggere nell’integrazione.
-- **Linee notturne** (`N01`, `N44` ...): la città conta tutta la notte come parte del giorno di servizio precedente, quindi un autobus alle `24:50` o `26:20` è ancora nell’orario di quel giorno. L’integrazione legge correttamente questi orari: una partenza alle `02:15` (`26:15` nell’API) alle 02:00 è mostrata come «tra 15 minuti».
+- **Il sensore ha lo stato `unknown` e gli attributi mostrano «No service».** La linea oggi non circola oppure tutte le partenze sono già passate. È il comportamento previsto. Consulta l’orario su [wtp.waw.pl](https://wtp.waw.pl) o chiama il 19115.
+- **Il sensore ha lo stato `unavailable` (non disponibile).** L’API non ha restituito un orario valido. Le possibili cause includono una chiave rifiutata, dati errati della fermata, del punto di fermata o della linea, oppure un formato di risposta non supportato. Se il primo recupero dei dati fallisce per un motivo diverso da una chiave rifiutata, Home Assistant riprova automaticamente la configurazione. Le chiavi rifiutate vengono gestite come descritto di seguito. I dettagli dell’errore si trovano nel registro di Home Assistant; le chiavi e i token non vengono registrati. Il sensore torna disponibile quando riceve dati validi. Se il problema persiste, verifica le credenziali e i dati della fermata e della linea.
+- **Home Assistant richiede una nuova chiave.** Succede quando la vecchia API rifiuta la chiave tre volte consecutive. Contano anche i tentativi durante la configurazione; un errore di rete o del server interrompe la sequenza. Inserisci una nuova chiave API o un token nel modulo. Le impostazioni verranno mantenute e una chiave valida verrà accettata anche se la linea non circola quel giorno. Il sensore rimane non disponibile finché non aggiorni le credenziali. La nuova API non permette di distinguere un token rifiutato da un’interruzione del servizio. Se è già stato scaricato un orario, il sensore lo utilizza fino al termine del giorno di servizio, poi diventa non disponibile. Non appare automaticamente alcun modulo per cambiare le credenziali. Se hai revocato il token, inseriscine uno nuovo tramite **Configura** per la linea.
+- **Segnalare un problema.** Apri la configurazione della linea, scegli *Scarica la diagnostica* e allega il file alla segnalazione. Contiene informazioni sulla configurazione e sull’orario. La chiave API o il token viene sostituito da `**REDACTED**`.
+- **Le partenze sono ancora visibili durante un’interruzione dell’API.** Dopo un download riuscito, un timeout, un errore di rete o un errore del server (HTTP 5xx) non rende immediatamente il sensore non disponibile. L’integrazione utilizza l’orario salvato fino al termine del giorno di servizio e riprova il download ogni ora. Le partenze programmate non cambiano nel corso della giornata. Il sensore diagnostico **Last update**, disattivato per impostazione predefinita, mostra l’ultimo recupero riuscito. Puoi attivarlo nelle impostazioni dell’entità.
+- **La linea non viene trovata durante la configurazione.** L’API elenca soltanto le linee che circolano quel giorno. Ad esempio, una linea attiva solo nei giorni feriali non può essere aggiunta di domenica. Riprova in un giorno in cui sono previste partenze.
+- **Una linea appare su wtp.waw.pl, ma non nell’integrazione.** Il pianificatore di percorsi utilizza più dati rispetto all’API pubblica. L’integrazione può mostrare solo i dati forniti dall’API.
+- **Orari delle linee notturne** (`N01`, `N44` ecc.). Il giorno di servizio può proseguire oltre la mezzanotte: `24:50` significa le 00:50 del giorno successivo e `26:20` significa le 02:20. L’integrazione converte correttamente questi orari. Una partenza registrata come `26:15` corrisponde alle 02:15 del giorno successivo; alle 02:00 appare come una partenza tra 15 minuti.
 
 ---
 
 ## 📚 Documentazione
 
-La [wiki](https://github.com/solarssk/ztm_warsaw/wiki) è il manuale utente: installazione, configurazione, come funzionano orario e giorno di servizio, e risoluzione dei problemi. È pubblicata da [`docs/wiki/`](docs/wiki) in questo repository (in inglese).
+Il [manuale utente nella wiki](https://github.com/solarssk/ztm_warsaw/wiki) descrive l’installazione, la configurazione, gli orari, il giorno di servizio e la risoluzione dei problemi. È disponibile in inglese; i file sorgente si trovano in [`docs/wiki/`](docs/wiki).
 
 ---
 
 ## 🧑‍💻 Contribuire e sicurezza
 
-Idee, segnalazioni di bug e pull request sono benvenute: vedi [CONTRIBUTING.md](CONTRIBUTING.md). Per segnalare una vulnerabilità, vedi [SECURITY.md](SECURITY.md).
+Idee, segnalazioni di errori e pull request sono benvenute. Le indicazioni per contribuire sono in [CONTRIBUTING.md](CONTRIBUTING.md). Per segnalare una vulnerabilità, segui le istruzioni in [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -179,13 +179,13 @@ Idee, segnalazioni di bug e pull request sono benvenute: vedi [CONTRIBUTING.md](
 
 Dati: la città di Varsavia (**Miasto Stołeczne Warszawa**) e l’Autorità del trasporto pubblico di Varsavia (**Zarząd Transportu Miejskiego**, ZTM), tramite il portale dei dati aperti della città ([dane.um.warszawa.pl](https://dane.um.warszawa.pl)), con licenza [Creative Commons Attribution](https://creativecommons.org/licenses/by/4.0/deed.it).
 
-Questo progetto è stato interamente pianificato e progettato da me: dall’idea e dal comportamento atteso dell’integrazione fino a come dialoga con l’API pubblica della città di Varsavia. Non sono uno sviluppatore Python professionista, ma capisco l’essenziale abbastanza bene da definire la struttura, la logica e le funzioni che volevo offrisse.
+Ho progettato il concetto, le funzionalità, la struttura e il collegamento con l’API pubblica della città di Varsavia. Non sono uno sviluppatore Python professionista, ma le mie conoscenze di base mi hanno permesso di pianificare il funzionamento del progetto.
 
-Per realizzarla ho usato il supporto di un’IA (ChatGPT), che mi ha aiutato soprattutto con la sintassi, il debug e i dettagli di implementazione. Il progetto complessivo, il comportamento e il flusso di lavoro sono però frutto mio.
+Ho utilizzato ChatGPT come supporto per la sintassi, il debug e i dettagli di implementazione. Ho preso personalmente le decisioni sul progetto e sul suo funzionamento.
 
-Un ringraziamento speciale a [@peetereczek](https://github.com/peetereczek/ztm), il cui progetto precedente mi ha ispirato all’inizio. Anche se questa versione finale è stata costruita in modo indipendente da zero, il suo lavoro mi ha dato la prima spinta ad affrontare le cose a modo mio.
+Grazie a [@peetereczek](https://github.com/peetereczek/ztm), il cui progetto precedente mi ha ispirato. Questa integrazione è stata sviluppata da zero come progetto indipendente.
 
-Se ti interessa migliorare o estendere il progetto, fai pure! Contributi, idee e pull request sono sempre benvenuti.
+Puoi contribuire allo sviluppo del progetto con idee, segnalazioni di errori e proposte di miglioramento.
 
 ---
 

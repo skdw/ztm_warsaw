@@ -41,14 +41,14 @@
   "options": {
     "step": {
       "init": {
-        "title": "Warsaw Public Transport",
+        "title": "Warszawski Transport Publiczny",
         "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
           "api_key": "Klucz API lub token"
         }
       },
       "token": {
-        "title": "Warsaw Public Transport",
+        "title": "Warszawski Transport Publiczny",
         "description": "**Zmień token dostępu do API.**\n\nJeśli dotychczasowy token wygasł lub chcesz go zastąpić, wklej nowy token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
           "api_key": "Token"
@@ -80,7 +80,7 @@
   "issues": {
     "duplicate_entry": {
       "title": "Powielona konfiguracja: linia {line}, {stop}",
-      "description": "**Linia {line} na przystanku {stop} ma dwie konfiguracje.**\n\nHome Assistant może utworzyć dla tej linii i przystanku tylko jeden sensor. W drugiej konfiguracji sensor nie został utworzony.\n\nUsuń jedną z powielonych konfiguracji w sekcji **Ustawienia > Urządzenia i usługi > Warsaw Public Transport**."
+      "description": "**Linia {line} na przystanku {stop} ma dwie konfiguracje.**\n\nHome Assistant może utworzyć dla tej linii i przystanku tylko jeden sensor. W drugiej konfiguracji sensor nie został utworzony.\n\nUsuń jedną z powielonych konfiguracji w sekcji **Ustawienia > Urządzenia oraz usługi > Warszawski Transport Publiczny**."
     },
     "legacy_key": {
       "title": "Stary klucz API: linia {line}, {stop}",
@@ -115,7 +115,7 @@
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
-          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz sekcję *Zignorowane* na stronie *Naprawy* i wybierz *Przestań ignorować*."
+          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**."
         }
       }
     },
@@ -152,7 +152,7 @@
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
-          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz sekcję *Zignorowane* na stronie *Naprawy* i wybierz *Przestań ignorować*."
+          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**."
         }
       }
     },

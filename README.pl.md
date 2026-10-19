@@ -123,7 +123,7 @@ Integracja rozpoznaje rodzaj danych dostępu i wysyła je wyłącznie do odpowie
 ### Przez HACS
 
 1. W Home Assistancie otwórz **HACS → Integracje**.
-2. Wyszukaj **Warsaw Public Transport**.
+2. Wyszukaj **Warszawski Transport Publiczny**.
 3. Kliknij **Pobierz** i potwierdź.
 4. Uruchom ponownie Home Assistanta.
 
@@ -137,14 +137,14 @@ Integracja rozpoznaje rodzaj danych dostępu i wysyła je wyłącznie do odpowie
 
 ## 🔌 Konfiguracja
 
-1. Otwórz **Ustawienia → Urządzenia i usługi**.
-2. Kliknij **+ Dodaj integrację** i wyszukaj **Warsaw Public Transport**.
+1. Otwórz **Ustawienia → Urządzenia oraz usługi**.
+2. Kliknij **+ Dodaj integrację** i wyszukaj **Warszawski Transport Publiczny**.
 3. Wypełnij pola:
    - **klucz API lub token** (zob. [Klucz i token](#-klucz-i-token)),
    - **ID przystanku** i **numer słupka** (np. 7009 i 01),
    - **numer linii** (np. 151).
 
-Identyfikator encji zawiera numer linii, ID przystanku i numer słupka, np. `sensor.line_151_from_7009_01`. Klucz API lub token możesz zmienić w **Ustawienia → Urządzenia i usługi → Warsaw Public Transport**, wybierając **Konfiguruj** przy danej linii. Zmiana nie wpływa na ustawienia linii ani przystanków. Jeśli konfiguracja nadal korzysta ze starego klucza, w sekcji **Naprawy** pojawi się powiadomienie z instrukcją przejścia na token. Możesz je zignorować.
+Identyfikator encji zawiera numer linii, ID przystanku i numer słupka, np. `sensor.line_151_from_7009_01`. Klucz API lub token możesz zmienić w **Ustawienia → Urządzenia oraz usługi → Warszawski Transport Publiczny**, wybierając **Konfiguruj** przy danej linii. Zmiana nie wpływa na ustawienia linii ani przystanków. Jeśli konfiguracja nadal korzysta ze starego klucza, w sekcji **Problemy** pojawi się powiadomienie z instrukcją przejścia na token. Możesz je zignorować.
 
 **ID przystanku** (numer zespołu przystankowego) jest wspólne dla wszystkich słupków należących do tego przystanku. **Numer słupka** wskazuje konkretne miejsce odjazdu, zwykle dla jednego kierunku. Ma zazwyczaj dwie cyfry, np. 01 lub 02, i znajduje się na tabliczce przystankowej.
 
