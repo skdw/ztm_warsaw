@@ -37,6 +37,8 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Changed
 
+- **Clearer Polish instructions**: the Polish README and setup messages now explain configuration, API keys and errors in more natural language.
+
 - **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
 - **A clearer README**: it says plainly that these are scheduled departures, not live positions.
