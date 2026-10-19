@@ -88,9 +88,17 @@
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nTo keep the old key for now, close this window; the notice stays in Repairs, where you can choose *Ignore*.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.",
             "data": {
               "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Old API key",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nGet a token at [dane.um.warszawa.pl/pl/key-api]({portal}); it replaces the old key and the stops stay as they are. You can also keep the old key for now and ignore this notice.",
+            "menu_options": {
+              "token": "Paste a token",
+              "ignore": "Keep the old key and ignore this notice"
             }
           }
         },
@@ -106,7 +114,8 @@
           "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
         },
         "abort": {
-          "unknown": "The entry of this notice is gone or cannot be changed."
+          "unknown": "The entry of this notice is gone or cannot be changed.",
+          "ignored": "The notice is ignored. If you change your mind, open it in Repairs under *Ignored issues* and choose *Unignore*."
         }
       }
     },
@@ -116,9 +125,17 @@
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nTo keep the old key for now, close this window; the notice stays in Repairs, where you can choose *Ignore*.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.",
             "data": {
               "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Old API key",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nGet a token at [dane.um.warszawa.pl/pl/key-api]({portal}); it replaces the old key and the stops stay as they are. You can also keep the old key for now and ignore this notice.",
+            "menu_options": {
+              "token": "Paste a token",
+              "ignore": "Keep the old key and ignore this notice"
             }
           }
         },
@@ -134,7 +151,8 @@
           "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
         },
         "abort": {
-          "unknown": "The entry of this notice is gone or cannot be changed."
+          "unknown": "The entry of this notice is gone or cannot be changed.",
+          "ignored": "The notice is ignored. If you change your mind, open it in Repairs under *Ignored issues* and choose *Unignore*."
         }
       }
     },

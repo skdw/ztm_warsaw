@@ -26,6 +26,14 @@ async def _flows(env) -> RepairsFlowManager:
     return RepairsFlowManager(env.hass)
 
 
+async def _open(manager, issue_id):
+    """Start the fix flow of a notice and take the menu's *Paste a token*: the form of the token, or whatever ends the flow earlier."""
+    first = await manager.async_init(DOMAIN, data={"issue_id": issue_id})
+    if first["type"] != "menu":
+        return first
+    return await manager.async_configure(first["flow_id"], {"next_step_id": "token"})
+
+
 def _notice(env, entry, key="legacy_key"):
     """The Repairs notice about the old key of this entry (None when there is none)."""
     return ir.async_get(env.hass).async_get_issue(DOMAIN, f"{key}_{entry.entry_id}")
@@ -43,7 +51,7 @@ async def test_e2e_34_pasting_a_token_in_the_notice_replaces_the_key_of_the_whol
     await env.submit_flow(line=LINE, stop_nr="02")
     env.city.valid_tokens.add(DEFAULT_TOKEN)
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     assert (form["type"], form["step_id"]) == ("form", "token")
     assert form["description_placeholders"] == {"line": LINE, "portal": "https://dane.um.warszawa.pl/pl/key-api"}
     with patch.object(env.hass.config_entries, "async_reload", wraps=env.hass.config_entries.async_reload) as reload:
@@ -59,7 +67,7 @@ async def test_e2e_34_pasting_a_token_in_the_notice_replaces_the_key_of_the_whol
 async def test_e2e_34_a_key_the_city_does_not_accept_is_refused_and_the_notice_stays(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     done = await manager.async_configure(form["flow_id"], {"api_key": "not a key"})
     assert (done["type"], done["errors"]) == ("form", {"base": "invalid_api_key"})
     done = await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN + "9"})  # a token the City does not know
@@ -75,7 +83,7 @@ async def test_e2e_34_the_notice_of_a_1_1_x_entry_is_fixable_too(env):
     assert (notice.is_fixable, notice.translation_key, notice.data) == (True, "legacy_key", {"entry_id": entry.entry_id})
     env.city.valid_tokens.add(DEFAULT_TOKEN)
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     done = await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
     await env.settle()
     assert done["type"] == "create_entry", done
@@ -99,7 +107,7 @@ async def test_e2e_34_a_notice_whose_entry_is_gone_aborts_the_flow(env):
         translation_key="legacy_key_line",
         translation_placeholders={"line": LINE, "portal": "x"},
     )
-    form = await manager.async_init(DOMAIN, data={"issue_id": issue_id})
+    form = await _open(manager, issue_id)
     assert (form["type"], form["reason"]) == ("abort", "unknown")
 
 
@@ -115,7 +123,7 @@ async def test_e2e_34_a_notice_without_an_entry_id_aborts_the_flow(env):
         translation_key="legacy_key_line",
         translation_placeholders={"line": LINE, "portal": "x"},
     )
-    form = await manager.async_init(DOMAIN, data={"issue_id": "legacy_key_orphan"})
+    form = await _open(manager, "legacy_key_orphan")
     assert (form["type"], form["reason"]) == ("abort", "unknown")
 
 
@@ -125,7 +133,7 @@ async def test_e2e_34_a_key_that_works_for_a_line_that_does_not_run_today_is_acc
     entry = await env.add_entry(line="411")
     env.city.valid_tokens.add(DEFAULT_TOKEN)
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     done = await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
     await env.settle()
     assert done["type"] == "create_entry", done
@@ -146,7 +154,7 @@ async def test_e2e_34_an_entry_whose_data_cannot_be_read_is_not_changed_blindly(
         translation_key="legacy_key",
         translation_placeholders={"line": "?", "stop": "?", "portal": "x"},
     )
-    form = await manager.async_init(DOMAIN, data={"issue_id": "legacy_key_broken"})
+    form = await _open(manager, "legacy_key_broken")
     assert (form["type"], form["reason"]) == ("abort", "unknown")
     assert entry.data["api_key"] == DEFAULT_KEY
 
@@ -156,13 +164,13 @@ async def test_e2e_34_another_old_key_leaves_the_notice_and_a_token_ends_it(env)
     env.city.valid_keys.add(OTHER_KEY)
     entry = await env.add_entry_via_flow(line=LINE)
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     done = await manager.async_configure(form["flow_id"], {"api_key": OTHER_KEY})
     await env.settle()
     assert done["type"] == "create_entry", done
     assert entry.data["api_key"] == OTHER_KEY
     assert _notice(env, entry) is not None, "still an old key: the reload makes the notice again"
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
     await env.settle()
     assert _notice(env, entry) is None, "a token: the reload does not make it again"
@@ -174,7 +182,7 @@ async def test_e2e_34_the_flow_closes_a_reauth_that_was_waiting_for_the_key(env)
     await env.settle()
     assert env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     done = await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
     await env.settle()
     assert done["type"] == "create_entry", done
@@ -187,7 +195,7 @@ async def test_e2e_34_a_line_without_stops_takes_a_key_checked_by_its_shape(env)
     env.hass.config_entries.async_remove_subentry(entry, only)
     await env.settle()
     manager = await _flows(env)
-    form = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    form = await _open(manager, f"legacy_key_{entry.entry_id}")
     assert form["description_placeholders"]["line"] == LINE  # the line is known without a stop
     done = await manager.async_configure(form["flow_id"], {"api_key": "not a key"})
     assert done["errors"] == {"base": "invalid_api_key"}
@@ -195,3 +203,40 @@ async def test_e2e_34_a_line_without_stops_takes_a_key_checked_by_its_shape(env)
     await env.settle()
     assert done["type"] == "create_entry", done
     assert entry.data["api_key"] == DEFAULT_TOKEN
+
+
+async def test_e2e_34_the_flow_starts_with_a_menu_of_pasting_a_token_or_ignoring_the_notice(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = await _flows(env)
+    menu = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    assert (menu["type"], menu["step_id"], menu["menu_options"]) == ("menu", "init", ["token", "ignore"])
+    assert menu["description_placeholders"]["line"] == LINE
+
+
+async def test_e2e_34_ignoring_the_notice_keeps_the_old_key_and_the_notice_stays_ignored(env):
+    """A fixable notice has no Ignore button in the Repairs list, so the flow offers it; the entry is not touched."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = await _flows(env)
+    menu = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    done = await manager.async_configure(menu["flow_id"], {"next_step_id": "ignore"})
+    assert (done["type"], done["reason"]) == ("abort", "ignored")
+    notice = _notice(env, entry)
+    assert notice is not None and notice.dismissed_version is not None
+    assert entry.data["api_key"] == DEFAULT_KEY
+    await env.hass.config_entries.async_reload(entry.entry_id)  # the notice is created again on a reload: it stays ignored
+    await env.settle()
+    assert _notice(env, entry).dismissed_version is not None
+    assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_e2e_34_an_ignored_notice_does_not_hide_the_reauth_of_a_key_the_city_rejects(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = await _flows(env)
+    menu = await manager.async_init(DOMAIN, data={"issue_id": f"legacy_key_{entry.entry_id}"})
+    await manager.async_configure(menu["flow_id"], {"next_step_id": "ignore"})
+    env.city.valid_keys.discard(DEFAULT_KEY)  # the City stops accepting the old key
+    await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.advance(minutes=2)  # three rejections at setup: the entry is in an error state and reauth is open
+    reauth = env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
+    assert len(reauth) == 1, "the ignored notice is about the old key; a rejected key is a reauth of its own"
+    assert _notice(env, entry).dismissed_version is not None
