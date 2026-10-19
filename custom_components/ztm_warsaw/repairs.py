@@ -56,9 +56,7 @@ class LegacyKeyRepairFlow(RepairsFlow):
 
 
 # Home Assistant awaits this function with these arguments, so it has to be a coroutine function that takes all three.
-async def async_create_fix_flow(  # NOSONAR
-    hass: HomeAssistant, issue_id: str, data: dict[str, str | int | float | None] | None
-) -> RepairsFlow:
+async def async_create_fix_flow(hass: HomeAssistant, issue_id: str, data: dict[str, str | int | float | None] | None) -> RepairsFlow:  # NOSONAR
     """The fix flow of a fixable notice of this integration: both of them are about an old key, and carry the entry."""
     entry_id = (data or {}).get("entry_id")
     return LegacyKeyRepairFlow(entry_id if isinstance(entry_id, str) else None)
