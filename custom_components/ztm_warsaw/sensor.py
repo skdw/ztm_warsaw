@@ -244,14 +244,15 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             self._cancel_scheduled_update()
 
         now = dt_util.utcnow()
-        future_departures = self.coordinator.upcoming(now)
+        walk = timedelta(minutes=self.coordinator.walking_minutes)
+        future_departures = self.coordinator.upcoming(now + walk)  # the ones that can still be caught
         if not future_departures:
             _LOGGER.info("No future departures found for %s", self.entity_id)
             self._set_no_departures()
             return
 
         self._update_departure_info(future_departures, now)
-        self._schedule_wakeup(future_departures[0].dt, now)
+        self._schedule_wakeup(future_departures[0].dt - walk, now)  # it cannot be caught any more `walk` before it leaves
 
     def _update_stop_name(self):
         """Update friendly name if stop info is now available."""
@@ -273,6 +274,8 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._attributes.update(_stop_attributes(self._get_stop_info()))
         self._attributes["Stop, Timezone"] = TIMEZONE
         self._attributes[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
+        if self.coordinator.walking_minutes:
+            self._attributes["Walking time, Minutes"] = self.coordinator.walking_minutes
         self._attributes.update(_departure_attrs("Upcoming", current, _friendly_day(current.dt, now)))
 
         # Add information about next departures

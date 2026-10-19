@@ -17,6 +17,7 @@ from custom_components.ztm_warsaw.entries import (
     runtimes,
     stop_keys,
     stop_units,
+    walking_minutes_of,
 )
 
 KEY = "11111111-2222-3333-4444-555555555555"  # gitleaks:allow  (synthetic)
@@ -146,3 +147,21 @@ def test_an_entry_whose_data_and_options_are_not_mappings_is_read_as_empty_not_a
 def test_options_override_the_data_of_a_line_entry_too():
     entry = _entry(version=2, data={"api_key": KEY, "line": "525"}, options={"line": "N25"})
     assert line_of(entry) == "N25"
+
+
+@pytest.mark.parametrize(
+    ("stored", "minutes"),
+    [(10, 10), (10.0, 10), (0, 0), (120, 120), (121, 0), (-1, 0), (5.5, 0), ("10", 0), (True, 0), (None, 0), ([], 0)],
+)
+def test_the_walking_time_of_a_stop_is_a_whole_number_of_minutes_up_to_two_hours(stored, minutes):
+    assert walking_minutes_of({"walking_time": stored}) == minutes
+    assert walking_minutes_of({}) == 0
+
+
+def test_a_stop_of_a_line_carries_its_walking_time():
+    entry = _entry(
+        version=2,
+        data={"api_key": KEY, "line": "525"},
+        subentries={"s1": _stop(busstop_id=7009, busstop_nr="01", walking_time=8), "s2": _stop(busstop_id=7013, busstop_nr="01")},
+    )
+    assert [(u.stop_id, u.walking_minutes) for u in stop_units(entry)] == [("7009", 8), ("7013", 0)]

@@ -26,6 +26,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **The stop on the map**: the sensor has `latitude` and `longitude`, so it shows as a pin on the map card.
 - **A badge with the line number**: on the map card the pin shows the line (colour by kind of line) instead of odd initials like "L1M", and the same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
+- **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
 - **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.

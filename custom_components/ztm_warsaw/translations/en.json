@@ -98,7 +98,8 @@
     "stop": {
       "title": "Stop",
       "initiate_flow": {
-        "user": "Add stop"
+        "user": "Add stop",
+        "reconfigure": "Reconfigure stop"
       },
       "entry_type": "Stop",
       "step": {
@@ -108,6 +109,13 @@
           "data": {
             "busstop_id": "Bus stop ID (e.g. 3044)",
             "busstop_nr": "Stop number (e.g. 02)"
+          }
+        },
+        "reconfigure": {
+          "title": "Walking time to {stop}",
+          "description": "How many minutes does it take you to walk to this stop? The sensor then skips the departures that are sooner than that, because you cannot catch them. 0 means no walking time.",
+          "data": {
+            "walking_time": "Walking time (minutes)"
           }
         }
       },
@@ -124,7 +132,8 @@
       },
       "abort": {
         "already_configured": "This stop, pole and line are already set up.",
-        "unknown": "An unknown error occurred."
+        "unknown": "An unknown error occurred.",
+        "reconfigure_successful": "The walking time was saved."
       }
     }
   }

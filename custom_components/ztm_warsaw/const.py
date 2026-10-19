@@ -10,6 +10,8 @@ CONF_BUSSTOP_ID = "busstop_id"
 CONF_BUSSTOP_NR = "busstop_nr"
 CONF_LINE = "line"
 CONF_DEPARTURES = "departures"  # still stored in the entry (the shape is frozen), no longer asked
+CONF_WALKING_TIME = "walking_time"  # minutes from the user to the stop, kept in the data of the stop (0: no walking time)
+MAX_WALKING_TIME = 120
 NEXT_DEPARTURES = 3  # the departures after the next one that the sensor lists (Next 1 ... Next 3)
 CONF_ATTRIBUTION = "Data provided by Miasto Stołeczne Warszawa and Zarząd Transportu Miejskiego (CC BY)"
 

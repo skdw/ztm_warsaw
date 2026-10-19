@@ -18,11 +18,23 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.config_entries import ConfigSubentry, ConfigSubentryData, ConfigSubentryFlow
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, callback
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
-from .entries import SUBENTRY_STOP, entry_api_key, is_line_entry, line_of, stop_keys, stop_units
-from .const import KEY_PORTAL_URL, NEXT_DEPARTURES, DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
+from .entries import SUBENTRY_STOP, walking_minutes_of, entry_api_key, is_line_entry, line_of, stop_keys, stop_units
+from .const import (
+    CONF_API_KEY,
+    CONF_BUSSTOP_ID,
+    CONF_BUSSTOP_NR,
+    CONF_DEPARTURES,
+    CONF_LINE,
+    CONF_WALKING_TIME,
+    DOMAIN,
+    KEY_PORTAL_URL,
+    MAX_WALKING_TIME,
+    NEXT_DEPARTURES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -347,6 +359,25 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
 
 class ZtmStopSubentryFlow(ConfigSubentryFlow):
     """*Add stop*: another stop (and pole) of the line, asked with the key the line already has."""
+
+    async def async_step_reconfigure(self, user_input=None):
+        """*Reconfigure* on a stop: how many minutes it takes to walk to it. The sensor of the stop then skips the departures
+        that are sooner than that (they cannot be caught); 0 is no walking time, the default."""
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            data = {**subentry.data, CONF_WALKING_TIME: int(user_input[CONF_WALKING_TIME])}
+            return self.async_update_and_abort(entry, subentry, data=data)
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_WALKING_TIME, default=walking_minutes_of(subentry.data)): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0, max=MAX_WALKING_TIME, step=1, unit_of_measurement="min", mode=NumberSelectorMode.BOX
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="reconfigure", data_schema=schema, description_placeholders={"stop": subentry.title})
 
     async def async_step_user(self, user_input=None):
         """Ask for the stop and pole to add to the line, check them with the line's key, and add them as a subentry."""
