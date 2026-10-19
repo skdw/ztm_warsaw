@@ -77,7 +77,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     entry = await env.add_entry_via_flow(line="151")
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.title == "Line 151 from 7009/01"
+    assert entry.title == f"Line 151 from {stop_name_for('7009')} 01"  # the stop's name, not its number
     assert entry.data == {
         "api_key": DEFAULT_KEY,
         "busstop_id": 7009,  # an int: the schema coerces it, restored entries keep it that way
@@ -563,8 +563,33 @@ async def test_e2e_05_an_old_key_gets_a_notice_and_a_token_does_not(env):
     notice = issues.async_get_issue(DOMAIN, f"legacy_key_{old.entry_id}")
     assert notice is not None
     assert (notice.is_fixable, notice.translation_key) == (False, "legacy_key")
-    assert notice.translation_placeholders == {"line": "151", "stop": "7009/01"}
+    assert notice.translation_placeholders == {"line": "151", "stop": f"{stop_name_for('7009')} 01 (7009/01)"}
     assert issues.async_get_issue(DOMAIN, f"legacy_key_{token.entry_id}") is None
+
+
+def test_e2e_26_a_stop_name_cannot_add_markdown_to_a_notice():
+    from custom_components.ztm_warsaw import _stop_text
+
+    assert _stop_text("7009", "01", "Rynek [click](http://x.example) *Główny*") == "Rynek clickhttpxexample Główny 01 (7009/01)"
+    assert _stop_text("7009", "01", "Al. Jerozolimskie, www.evil.example") == "Al. Jerozolimskie, wwwevilexample 01 (7009/01)"
+    assert _stop_text("7009", "01", "Rondo ONZ 02") == "Rondo ONZ 02 01 (7009/01)"
+    assert "\n" not in _stop_text("7009", "01", "A\n- B")
+    assert _stop_text("7009", "01", "<>[]()") == "7009/01"
+    assert _stop_text("7009", "01", None) == "7009/01"
+
+
+async def test_e2e_26_a_title_the_user_chose_is_kept_and_a_default_one_gets_the_stop_name(env):
+    entry = await env.add_entry(line="151")
+    default = f"Line 151 from {stop_name_for('7009')} 01"
+    assert entry.title == default
+    env.hass.config_entries.async_update_entry(entry, title="My bus")
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.hass.async_block_till_done()
+    assert entry.title == "My bus"
+    env.hass.config_entries.async_update_entry(entry, title="Line 151 from 7009/01")  # the old default of 1.1.x
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.hass.async_block_till_done()
+    assert entry.title == default
 
 
 async def test_e2e_05_the_notice_goes_when_the_key_becomes_a_token_or_the_entry_is_removed(env):

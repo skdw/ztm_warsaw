@@ -70,12 +70,12 @@
   },
   "issues": {
     "duplicate_entry": {
-      "title": "Already configured",
-      "description": "The line {line} at stop {stop} is set up twice. Home Assistant can only show one sensor for it, so the second entry has none. Remove one of the two entries (Settings > Devices & services > Warsaw Public Transport)."
+      "title": "Already configured: line {line}, {stop}",
+      "description": "**The line {line} at {stop} is set up twice.**\n\nHome Assistant can only show one sensor for it, so the second entry has none.\n\nRemove one of the two entries: **Settings > Devices & services > Warsaw Public Transport**."
     },
     "legacy_key": {
-      "title": "Old API key in use",
-      "description": "The line {line} at stop {stop} still uses a key of the City's old API (api.um.warszawa.pl). It works, but the City has published no date for its end, and its new API with a token (dane.um.warszawa.pl/pl/key-api) is the current service. To switch, open the integration, choose Configure on this entry and enter the token. You can dismiss this notice."
+      "title": "Old API key: line {line}, {stop}",
+      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
     }
   }
 }

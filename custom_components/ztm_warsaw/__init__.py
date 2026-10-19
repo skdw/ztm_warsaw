@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -17,6 +18,7 @@ from homeassistant.helpers.storage import Store
 from .coordinator import ZTMStopCoordinator, store_key
 
 _LOGGER = logging.getLogger(__name__)
+_NAME_LENGTH = 60
 
 
 def _first_nonempty(merged: Mapping[str, Any], *keys: str) -> str | None:
@@ -103,6 +105,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     _update_duplicate_issue(hass, entry)
+    _update_legacy_issue(hass, entry)  # again, now that the stop's name is known
+    _use_stop_name_in_title(hass, entry, values)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     seen = (dict(entry.data), dict(entry.options))
 
@@ -113,6 +117,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_reload_if_changed))
     return True
+
+
+def _stop_name_of(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
+    """The stop's name, once the entry has loaded and the City has given it (the coordinator holds it)."""
+    stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    coordinator = stored.get("coordinator") if isinstance(stored, dict) else None
+    info = getattr(getattr(coordinator, "data", None), "stop_info", None)
+    name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
+    if not isinstance(name, str):
+        return None
+    tidy = " ".join(name.split())[:_NAME_LENGTH]  # one line, not longer than a stop's name can sensibly be
+    return tidy or None
+
+
+def _stop_text(stop_id: str, pole: str, name: str | None) -> str:
+    """How a notice names the stop: "Marcelin 15 (1085/15)", or just the numbers while the name is not known."""
+    if not name:
+        return f"{stop_id}/{pole}"
+    # The name comes from the City and goes into a Markdown text: keep letters, digits, spaces, hyphens, commas and
+    # apostrophes, and a dot only before a space, so nothing in it can format a line or become a link.
+    plain = re.sub(r"\.(?=\S)", "", re.sub(r"[^\w\s.,'-]|_", "", " ".join(name.split()))).strip()
+    return f"{plain} {pole} ({stop_id}/{pole})" if plain else f"{stop_id}/{pole}"
+
+
+def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry, values: tuple[str, str, str, str]) -> None:
+    """Title an entry "Line 176 from Marcelin 15" instead of "Line 176 from 1085/15", unless the user gave it their own."""
+    _, stop_id, pole, line = values
+    name = _stop_name_of(hass, entry)
+    if name and entry.title == f"Line {line} from {stop_id}/{pole}":
+        hass.config_entries.async_update_entry(entry, title=f"Line {line} from {name} {pole}")
 
 
 def stop_key(entry: ConfigEntry) -> tuple[str, str, str] | None:
@@ -144,7 +178,7 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="duplicate_entry",
-            translation_placeholders={"line": key[2], "stop": f"{key[0]}/{key[1]}"},
+            translation_placeholders={"line": key[2], "stop": _stop_text(key[0], key[1], _stop_name_of(hass, entry))},
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
@@ -163,7 +197,7 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="legacy_key",
-            translation_placeholders={"line": values[3], "stop": f"{values[1]}/{values[2]}"},
+            translation_placeholders={"line": values[3], "stop": _stop_text(values[1], values[2], _stop_name_of(hass, entry))},
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
