@@ -54,7 +54,7 @@ async def test_e2e_32_every_entity_belongs_to_its_stop_and_every_stop_has_a_devi
     entry = await _line_with_three_stops(env)
     by_stop = {sid: sub.data["busstop_id"] for sid, sub in entry.subentries.items()}
     entities = er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)
-    assert len(entities) == 9  # the sensor, its diagnostic sensor and the calendar, for each of three stops
+    assert len(entities) == 18  # the sensor, its diagnostic sensor, the calendar and Next 1 to 3, for each of three stops
     for entity in entities:
         assert entity.config_subentry_id in by_stop
         assert f"_from_{by_stop[entity.config_subentry_id]}_" in entity.unique_id

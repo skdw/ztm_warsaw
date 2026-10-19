@@ -403,6 +403,102 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
+class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
+    """One of the departures after the next one (Next 1 to Next 3) as a sensor of its own, disabled by default.
+
+    The main sensor of the stop lists them as attributes; as entities they have a history, a card and a trigger of their own
+    without a template. Like the main sensor they count only the departures that can still be caught (the walking time of
+    the stop is taken off), and they wake up when the first of those can no longer be caught, because every one moves up then.
+    """
+
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator, line, stop_id, stop_number, position):
+        """The ``position``-th departure after the next one (1 to 3) of a line at a pole, named and identified by the numbers."""
+        super().__init__(coordinator)
+        self._line = line
+        self._stop_number = stop_number
+        self._position = position
+        self._departure = None
+        self._scheduled_unsub = None
+        self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_next_{position}"
+        self._attr_name = f"Line {line} from {stop_id}/{stop_number} Next {position}"
+
+    @property
+    def native_value(self):
+        """The moment this departure leaves, or None when there are not that many departures left to catch."""
+        return self._departure.dt if self._departure else None
+
+    @property
+    def available(self):
+        """Available as the main sensor of the stop is: while the coordinator holds a timetable that may be shown."""
+        return bool(self.coordinator) and self.coordinator.is_usable(dt_util.utcnow())
+
+    @property
+    def device_info(self):
+        """The device of the stop, as the other entities of the stop have it."""
+        return _device_info(self._line, self.coordinator)
+
+    @property
+    def extra_state_attributes(self):
+        """The headsign, the day, the route and the brigade of the departure (nothing without one)."""
+        if self._departure is None:
+            return {ATTR_ATTRIBUTION: CONF_ATTRIBUTION}
+        attrs = _departure_attrs("", self._departure, _friendly_day(self._departure.dt, dt_util.utcnow()))
+        attrs = {name.removeprefix(", "): value for name, value in attrs.items()}  # "Headsign", "Departure Day" ...
+        attrs[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
+        return attrs
+
+    def _refresh(self):
+        """Pick this entity's departure among those that can be caught, and wake up when they move up."""
+        now = dt_util.utcnow()
+        walk = timedelta(minutes=self.coordinator.walking_minutes)
+        catchable = self.coordinator.upcoming(now + walk)
+        self._departure = catchable[self._position] if len(catchable) > self._position else None
+        self._cancel_wakeup()
+        if catchable:
+            wake = min(catchable[0].dt - walk, next_warsaw_midnight(now))  # midnight changes the label of the day
+            self._scheduled_unsub = async_track_point_in_time(self.hass, self._wake_up, wake)
+
+    def _cancel_wakeup(self):
+        """Forget the wake-up that is scheduled, if any."""
+        if self._scheduled_unsub:
+            self._scheduled_unsub()
+            self._scheduled_unsub = None
+
+    @callback
+    def _wake_up(self, _now):
+        """A departure can no longer be caught, or it is midnight: show what moved up."""
+        self._scheduled_unsub = None
+        self._refresh()
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self):
+        """Pick the departure and take the stop's name when the sensor is added."""
+        await super().async_added_to_hass()
+        self._take_stop_name()
+        self._refresh()
+
+    async def async_will_remove_from_hass(self):
+        """Cancel the wake-up when the sensor goes."""
+        self._cancel_wakeup()
+        await super().async_will_remove_from_hass()
+
+    def _take_stop_name(self):
+        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
+        stop_name = _stop_info_of(self.coordinator).get("nazwa_zespolu")
+        if stop_name:
+            self._attr_name = f"Line {self._line} {stop_name} {self._stop_number} Next {self._position}"
+
+    @callback
+    def _handle_coordinator_update(self):
+        """A new answer: take the stop's name once it is known, pick the departure again and write the state."""
+        self._take_stop_name()
+        self._refresh()
+        self.async_write_ha_state()
+
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the ZTM sensors of a config entry: two for every stop it runs."""
     try:
@@ -424,7 +520,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 stop_id=stop_id,
                 stop_number=stop_number,
             )
-            async_add_entities([entity, diag_sensor], config_subentry_id=subentry_id)
+            following = [
+                ZTMNextDepartureSensor(coordinator, line, stop_id, stop_number, position)
+                for position in range(1, NEXT_DEPARTURES + 1)
+            ]
+            async_add_entities([entity, diag_sensor, *following], config_subentry_id=subentry_id)
 
             _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s", line, stop_id, stop_number)
 

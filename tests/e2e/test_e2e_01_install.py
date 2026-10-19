@@ -201,6 +201,9 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
         f"line_{line}_from_7009_01",
         f"line_{line}_from_7009_01_last_update",
         f"line_{line}_from_7009_01_calendar",  # added in 1.2.0: the timetable as a calendar (the other two are unchanged)
+        f"line_{line}_from_7009_01_next_1",  # added in 1.2.0: the departures after the next one as sensors of their own
+        f"line_{line}_from_7009_01_next_2",
+        f"line_{line}_from_7009_01_next_3",
     }
     main = registered[f"line_{line}_from_7009_01"]
     assert (main.entity_id, main.platform, main.domain) == (f"sensor.line_{slug}_from_7009_01", "ztm_warsaw", "sensor")
@@ -212,6 +215,11 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert diag.entity_id == f"sensor.line_{slug}_from_7009_01_last_update"
     assert diag.entity_category == "diagnostic"
     assert diag.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default
+    for position in (1, 2, 3):
+        following = registered[f"line_{line}_from_7009_01_next_{position}"]
+        assert following.entity_id == f"sensor.line_{slug}_from_7009_01_next_{position}"
+        assert following.original_device_class == "timestamp"
+        assert following.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default
     calendar = registered[f"line_{line}_from_7009_01_calendar"]
     assert calendar.entity_id == f"calendar.line_{slug}_from_7009_01_timetable"
     assert calendar.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default: it holds every departure of the day
