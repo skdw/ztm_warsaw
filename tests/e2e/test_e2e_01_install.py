@@ -608,4 +608,47 @@ async def test_e2e_05_a_stop_position_that_is_not_a_place_is_not_published():
     assert (ok["latitude"], ok["longitude"]) == (52.2, 21.0)
     for bad in (("nan", "21"), ("52", "inf"), ("91", "21"), ("52", "181"), ("x", "21"), (None, None)):
         attrs = _stop_attributes({"szer_geo": bad[0], "dlug_geo": bad[1]})
-        assert "latitude" not in attrs and "longitude" not in attrs, bad
+        assert "latitude" not in attrs, bad
+        assert "longitude" not in attrs, bad
+
+
+async def test_e2e_05_configure_aborts_for_an_entry_whose_data_cannot_be_read(env):
+    entry = await env.add_entry(data={"api_key": DEFAULT_KEY}, setup=False)
+    result = await env.hass.config_entries.options.async_init(entry.entry_id)
+    assert (result["type"], result["reason"]) == ("abort", "unknown")
+
+
+async def test_e2e_05_configure_accepts_a_key_for_a_line_that_does_not_run_today(env):
+    """A weekday-only line on a Saturday: the key is judged by the key (a review finding of the same kind as reauth)."""
+    env.move_to("2026-10-17 12:00")
+    entry = await env.add_entry(line="411")
+    env.city.valid_keys.add(NEW_KEY)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    done = await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
+    assert done["type"] == "create_entry"
+    assert entry.data["api_key"] == NEW_KEY
+
+
+def test_the_host_named_in_the_configure_form_follows_the_kind_of_key():
+    from custom_components.ztm_warsaw.config_flow import _host_of
+
+    assert _host_of(DEFAULT_KEY) == "api.um.warszawa.pl"
+    assert _host_of(DEFAULT_TOKEN) == "dane.um.warszawa.pl"
+    assert _host_of("not a key") == "?"
+
+
+async def test_e2e_05_configure_closes_a_reauth_flow_that_home_assistant_leaves_open(env):
+    """Home Assistant before 2026.10 does not close it on a reload; 2026.10 does (so it is faked here)."""
+    entry = await env.add_entry()
+    env.city.valid_keys.add(NEW_KEY)
+    flows = env.hass.config_entries.flow
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    with (
+        patch.object(flows, "async_progress_by_handler", return_value=[{"flow_id": "left-open"}]) as progress,
+        patch.object(flows, "async_abort") as abort,
+    ):
+        await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
+    assert {"entry_id": entry.entry_id, "source": "reauth"} in [c.kwargs["match_context"] for c in progress.call_args_list]
+    abort.assert_any_call("left-open")  # (2026.10's own reload asks the same patched question, so it may be twice)

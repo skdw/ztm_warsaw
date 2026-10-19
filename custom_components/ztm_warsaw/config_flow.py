@@ -173,6 +173,14 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         return ZtmWarsawOptionsFlow(config_entry)
 
 
+def _host_of(api_key: str) -> str:
+    """The City host the key belongs to, for the Configure form (neutral in every language); '?' for a key of neither kind."""
+    kind = key_kind(api_key)
+    if kind == "legacy":
+        return "api.um.warszawa.pl"
+    return "dane.um.warszawa.pl" if kind is not None else "?"
+
+
 class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
     """*Configure*: replace the API key or token of the entry, e.g. an old key by a token of the new API."""
 
@@ -212,5 +220,5 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
             errors=errors,
-            description_placeholders={"current": {"token": "dane.um.warszawa.pl", "legacy": "api.um.warszawa.pl"}.get(key_kind(api_key), "?")},
+            description_placeholders={"current": _host_of(api_key)},
         )
