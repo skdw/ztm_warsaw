@@ -27,10 +27,16 @@ VERBS = {
 }
 
 
+def has_content(section: str) -> bool:
+    """Whether a section holds anything but its heading line, blank lines and empty '###' headings: an empty section
+    is skipped, text that is not a bullet (a malformed first entry) is content and gets checked."""
+    return any(line.strip() and not line.startswith("###") for line in section.splitlines()[1:])
+
+
 def newest_section(text: str) -> str:
-    """The first section with entries: [Unreleased], or after a stable cut (it is empty then) the version just released."""
+    """The first section with content: [Unreleased], or after a stable cut (it is empty then) the version just released."""
     sections = re.split(r"^## \[", text, flags=re.MULTILINE)[1:]
-    return next(sec for sec in sections if entries_of(sec))
+    return next(sec for sec in sections if has_content(sec))
 
 
 def problems_of(section: str) -> list[str]:
@@ -60,7 +66,7 @@ def entries_of(section: str) -> list[str]:
 
 
 def test_the_newest_section_has_entries():
-    assert len(entries_of(newest_section(CHANGELOG.read_text(encoding="utf-8")))) >= 3
+    assert len(entries_of(newest_section(CHANGELOG.read_text(encoding="utf-8")))) >= 1
 
 
 def test_the_newest_section_is_in_the_style():
@@ -110,3 +116,21 @@ def test_long_unlinked_or_two_sentence_entries_are_reported():
     assert len(problems_of(section("- Add a calendar"))) == 1
     two = "- Add a calendar. Then fix it ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
     assert len(problems_of(section(two))) == 1
+
+
+def test_text_that_is_not_a_bullet_in_unreleased_is_checked_not_skipped():
+    text = "# Changelog\n\n## [Unreleased]\n\n### Added\n\nAdd a calendar without the dash\n\n## [1.2.0] - 2026-11-01\n\n### Added\n\n" + GOOD + "\n"
+    chosen = newest_section(text)
+    assert chosen.startswith("Unreleased]")
+    assert problems_of(chosen) == ["an entry is one line, this one continues or is not an entry: Add a calendar without the dash"]
+
+
+def test_an_unreleased_section_with_only_empty_headings_is_skipped():
+    text = "# Changelog\n\n## [Unreleased]\n\n### Added\n\n### Fixed\n\n## [1.2.0] - 2026-11-01\n\n### Added\n\n" + GOOD + "\n"
+    assert newest_section(text).startswith("1.2.0]")
+
+
+def test_one_entry_in_unreleased_after_a_release_is_enough():
+    text = "# Changelog\n\n## [Unreleased]\n\n### Fixed\n\n" + GOOD + "\n\n## [1.2.0] - 2026-11-01\n\n- Old\n"
+    assert newest_section(text).startswith("Unreleased]")
+    assert problems_of(newest_section(text)) == []
