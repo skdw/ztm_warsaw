@@ -37,8 +37,9 @@ Check this list at every minor release. A trigger means "review the tier", not "
 | Two or more user-visible regressions in a quarter that the end-to-end tests should have caught | Review |
 
 A promotion would mean turning the Codecov and SonarCloud signals into required checks
-(`sonar.qualitygate.wait=true`) and earning the OpenSSF Best Practices badge. DAST, a wiki and
-auditor documentation do not apply to an integration without a running service.
+(`sonar.qualitygate.wait=true`) and earning the OpenSSF Best Practices badge. DAST and auditor
+documentation do not apply to an integration without a running service. The wiki is the user manual and a
+build output of `docs/wiki/` (see the map below); a Tier 3 formal docs site is not claimed.
 
 ### Accepted `verify-tier` warnings
 
@@ -154,7 +155,8 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `tests/e2e/` | The real integration in a real in-process Home Assistant against a fake City of Warsaw ([tests/README.md](tests/README.md)) |
 | `tests/live/` | An opt-in check of the real API (not run in CI); `test_key_redaction.py` there needs no key and runs in every pytest run |
 | `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
-| `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `release.yml`, `scorecard.yml`, `verify-standard.yml` (the playbook's `verify-tier`, report only). A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
+| `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `publish-wiki.yml`, `release.yml`, `scorecard.yml`, `verify-standard.yml` (the playbook's `verify-tier`, report only). A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
+| `docs/wiki/` | The source of the GitHub Wiki: edit the pages here, never in the wiki's web interface. `publish-wiki.yml` copies them on a push to `main`; `scripts/check_wiki_docs.py` (also run by pytest) checks that every page exists and every link resolves |
 | `CHANGELOG.md` | The source of the GitHub Release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to run the checks and open a pull request |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability, and the controls that run |
