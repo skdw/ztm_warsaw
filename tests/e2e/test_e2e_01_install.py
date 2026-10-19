@@ -22,7 +22,6 @@ from custom_components.ztm_warsaw.const import DOMAIN
 from .fake_city import (
     DEFAULT_KEY,
     DEFAULT_TOKEN,
-    FULL_CATALOGUE,
     LEGACY_LINES_ID,
     LEGACY_STOPS_ID,
     LEGACY_TIMETABLE_ID,
@@ -71,11 +70,10 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
         "busstop_id",
         "busstop_nr",
         "line",
-        "departures",
     ]
     assert env.city.count() == 0, "showing the form must not call the city"
 
-    entry = await env.add_entry_via_flow(line="151", departures=2)
+    entry = await env.add_entry_via_flow(line="151")
 
     assert entry.state is ConfigEntryState.LOADED
     assert entry.title == "Line 151 from 7009/01"
@@ -84,7 +82,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
         "busstop_id": 7009,  # an int: the schema coerces it, restored entries keep it that way
         "busstop_nr": "01",
         "line": "151",
-        "departures": 2,
+        "departures": 3,  # no longer asked (3 are always listed); the key stays, the shape is frozen
     }
     assert entry.options == {}
     # What the integration asked the city for, in order: 2 validation calls in the flow, then the setup
@@ -113,8 +111,8 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     assert st.state not in ("unknown", "unavailable")
     assert st.attributes["Stop, Name"] == stop_name_for("7009")
     assert st.attributes["friendly_name"] == f"Line 151 {stop_name_for('7009')} 01"
-    assert "Next 2, Headsign" in st.attributes
-    assert "Next 3, Headsign" not in st.attributes
+    assert "Next 3, Headsign" in st.attributes
+    assert "Next 4, Headsign" not in st.attributes
 
 
 # ===================================================================== E2E-02
@@ -129,6 +127,8 @@ GOLDEN_ENTITY_ATTRS_WITH_SERVICE = {
     "Stop, Street ID",
     "Stop, Latitude",
     "Stop, Longitude",
+    "latitude",  # the standard names: the stop is a pin on the map card
+    "longitude",
     "Stop, Timezone",
     "attribution",
     "device_class",
@@ -151,6 +151,8 @@ GOLDEN_ENTITY_ATTRS_NO_SERVICE = {
     "Stop, Street ID",
     "Stop, Latitude",
     "Stop, Longitude",
+    "latitude",  # the standard names: the stop is a pin on the map card
+    "longitude",
     "Stop, Timezone",
     "attribution",
     "device_class",
@@ -174,7 +176,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     unique_id / entity_id / attribute names / device identifiers / entry.data keys are PUBLIC API of
     the integration; the unique_id format has already changed once without a migration.
     """
-    entry = await env.add_entry_via_flow(line=line, departures=3)
+    entry = await env.add_entry_via_flow(line=line)
     slug = line.lower()
 
     # --- entry
@@ -229,7 +231,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
 
 async def test_e2e_02_golden_attributes_when_there_is_no_service(env):
     """Same entity, different attribute set: the 'no service' shape is public contract too."""
-    await env.add_entry_via_flow(line="151", departures=3)
+    await env.add_entry_via_flow(line="151")
     await env.run_to("2026-10-17 01:00")
     st = env.state("151")
     assert st.state == "unknown"
@@ -242,33 +244,29 @@ async def test_e2e_02_golden_attributes_when_there_is_no_service(env):
 
 # ===================================================================== E2E-03
 RESTORED_SHAPES = {
-    # name: (entry.data, entry.options, how many "Next N" blocks the sensor must show)
+    # name: (entry.data, entry.options). The stored number of departures is ignored: three are always listed.
     "plain_1_1_4": (
         {"api_key": DEFAULT_KEY, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 1},
         {},
-        1,
     ),
     "options_override_data": (
         {"api_key": DEFAULT_KEY, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 1},
         {"departures": 3},
-        3,
     ),
     "string_stop_id_and_padding": (
         {"api_key": f" {DEFAULT_KEY} ", "busstop_id": " 7009 ", "busstop_nr": "01", "line": " 151 ", "departures": 2},
         {},
-        2,
     ),
     "legacy_alias_keys_no_departures": (
         {"apikey": DEFAULT_KEY, "busstopId": "7009", "busstopNr": "01", "linia": "151"},
         {},
-        1,
     ),
 }
 
 
 @pytest.mark.parametrize("shape", RESTORED_SHAPES)
 async def test_e2e_03_restored_1_1_4_entries_load_and_call_the_city_unchanged(env, shape):
-    data, options, next_blocks = RESTORED_SHAPES[shape]
+    data, options = RESTORED_SHAPES[shape]
     entry = await env.add_entry(data=data, options=options)
 
     assert entry.state is ConfigEntryState.LOADED
@@ -282,8 +280,8 @@ async def test_e2e_03_restored_1_1_4_entries_load_and_call_the_city_unchanged(en
         "line": "151",
     }, "the GET the city sees must not change between versions"
     attrs = env.state().attributes
-    assert f"Next {next_blocks}, Headsign" in attrs
-    assert f"Next {next_blocks + 1}, Headsign" not in attrs
+    assert "Next 3, Headsign" in attrs
+    assert "Next 4, Headsign" not in attrs
 
 
 # ===================================================================== E2E-04
@@ -386,42 +384,80 @@ async def test_e2e_04_user_input_cannot_inject_query_parameters(env):
 
 
 # ===================================================================== E2E-05
-async def test_e2e_05_options_flow_changes_departures_and_reloads_the_entry(env):
-    entry = await env.add_entry_via_flow(departures=1)
-    assert "Next 2, Headsign" not in env.state().attributes
+NEW_KEY = "22222222-3333-4444-8555-666666666666"  # gitleaks:allow  (synthetic)
+
+
+async def test_e2e_05_the_options_flow_asks_for_a_key_and_says_which_kind_is_in_use(env):
+    entry = await env.add_entry_via_flow()
+    form = await env.hass.config_entries.options.async_init(entry.entry_id)
+    assert (form["type"], form["step_id"]) == ("form", "init")
+    assert [str(k) for k in form["data_schema"].schema] == ["api_key"]
+    assert form["description_placeholders"] == {"current": "api.um.warszawa.pl"}
+
+
+async def test_e2e_05_a_new_key_replaces_the_old_one_and_reloads_the_entry_once(env):
+    entry = await env.add_entry_via_flow()
+    env.city.valid_keys.add(NEW_KEY)
     flow = env.hass.config_entries.options
-
     form = await flow.async_init(entry.entry_id)
-    assert form["type"] == "form"
-    assert form["step_id"] == "init"
-    assert [str(k) for k in form["data_schema"].schema] == ["departures"]
-    assert form["data_schema"]({}) == {"departures": 1}  # default = current value
-
-    done = await flow.async_configure(form["flow_id"], {"departures": 3})
+    with patch.object(env.hass.config_entries, "async_reload", wraps=env.hass.config_entries.async_reload) as reload:
+        done = await flow.async_configure(form["flow_id"], {"api_key": f" {NEW_KEY} "})
+        await env.settle()
     assert done["type"] == "create_entry"
-    await env.settle()
-
-    assert entry.options == {"departures": 3}
-    assert entry.data["departures"] == 1, "options never rewrite entry.data"
+    assert entry.data["api_key"] == NEW_KEY
+    assert (entry.data["busstop_id"], entry.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
+    assert entry.options == {}
+    assert reload.call_count == 1
     assert entry.state is ConfigEntryState.LOADED
-    attrs = env.state().attributes
-    assert {f"Next {n}, Headsign" for n in (1, 2, 3)} <= set(attrs)
-    assert "Next 4, Headsign" not in attrs
-    # the entity (and its registry identity) survived the reload
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
-    assert len(er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)) == 2
 
 
-@pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)
-async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env):
-    entry = await env.add_entry(departures=1)
-    assert env.city.count("stops") == 1
+async def test_e2e_05_a_token_replaces_an_old_key(env):
+    entry = await env.add_entry_via_flow()
+    env.city.valid_keys.add(DEFAULT_TOKEN)
     flow = env.hass.config_entries.options
     form = await flow.async_init(entry.entry_id)
-    await flow.async_configure(form["flow_id"], {"departures": 2})
+    await flow.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
+    await env.settle()
+    assert entry.data["api_key"] == DEFAULT_TOKEN
+    assert env.city.count(contract="new") > 0, "the entry talks to the new API now"
+    form = await flow.async_init(entry.entry_id)
+    assert form["description_placeholders"] == {"current": "dane.um.warszawa.pl"}
+
+
+async def test_e2e_05_a_key_the_city_rejects_is_refused_and_the_entry_keeps_its_own(env):
+    entry = await env.add_entry_via_flow()
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    done = await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})  # not among the valid keys
+    assert (done["type"], done["errors"]) == ("form", {"base": "invalid_api_key"})
+    assert entry.data["api_key"] == DEFAULT_KEY
+
+
+async def test_e2e_05_the_options_flow_does_not_ask_for_the_number_of_departures_any_more(env):
+    entry = await env.add_entry_via_flow()
+    attrs = env.state().attributes
+    assert {f"Next {n}, Headsign" for n in (1, 2, 3)} <= set(attrs), "three are always listed"
+    assert "Next 4, Headsign" not in attrs
+    form = await env.hass.config_entries.options.async_init(entry.entry_id)
+    assert "departures" not in [str(k) for k in form["data_schema"].schema]
+
+
+async def test_e2e_05_the_stop_is_a_pin_on_the_map(env):
+    await env.add_entry()
+    attrs = env.state().attributes
+    assert (attrs["latitude"], attrs["longitude"]) == (float(attrs["Stop, Latitude"]), float(attrs["Stop, Longitude"]))
+
+
+async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env):
+    entry = await env.add_entry()
+    assert env.city.count("stops") == 1
+    env.city.valid_keys.add(NEW_KEY)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
     await env.settle()
     assert env.city.count("stops") == 1, f"{env.city.count('stops')} catalogue downloads for one entry"
-
 
 
 async def test_e2e_05_renaming_an_entry_does_not_reload_it(env):
@@ -507,3 +543,69 @@ async def test_e2e_24_two_flows_for_one_sensor_that_overlap_make_one_entry(env):
     results = sorted(r["type"] for r in (a, b))
     assert results == ["abort", "create_entry"], (a, b)
     assert len(env.hass.config_entries.async_entries("ztm_warsaw")) == 1
+
+
+async def test_e2e_05_an_old_key_gets_a_notice_and_a_token_does_not(env):
+    old = await env.add_entry(line="151")
+    token = await env.add_entry(line="N25", api_key=DEFAULT_TOKEN)
+    issues = ir.async_get(env.hass)
+    notice = issues.async_get_issue(DOMAIN, f"legacy_key_{old.entry_id}")
+    assert notice is not None
+    assert (notice.is_fixable, notice.translation_key) == (False, "legacy_key")
+    assert notice.translation_placeholders == {"line": "151", "stop": "7009/01"}
+    assert issues.async_get_issue(DOMAIN, f"legacy_key_{token.entry_id}") is None
+
+
+async def test_e2e_05_the_notice_goes_when_the_key_becomes_a_token_or_the_entry_is_removed(env):
+    entry = await env.add_entry()
+    issues = ir.async_get(env.hass)
+    env.city.valid_keys.add(DEFAULT_TOKEN)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    await flow.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
+    await env.settle()
+    assert issues.async_get_issue(DOMAIN, f"legacy_key_{entry.entry_id}") is None, "the reload saw a token"
+    other = await env.add_entry(line="N25")
+    assert issues.async_get_issue(DOMAIN, f"legacy_key_{other.entry_id}") is not None
+    await env.hass.config_entries.async_remove(other.entry_id)
+    await env.settle()
+    assert issues.async_get_issue(DOMAIN, f"legacy_key_{other.entry_id}") is None
+
+
+async def test_e2e_05_configure_heals_an_entry_whose_setup_failed_and_closes_its_reauth(env):
+    """No update listener exists for an entry that never loaded: Configure must reload it itself (a review finding)."""
+    env.city.valid_keys.clear()
+    entry = await env.add_entry()
+    await env.advance(minutes=2)  # three rejections at setup: the entry is in an error state and reauth is open
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    reauth = env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
+    assert len(reauth) == 1
+    env.city.valid_keys.add(NEW_KEY)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
+    await env.settle()
+    assert entry.state is ConfigEntryState.LOADED
+    assert not env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
+    assert env.state().state not in ("unknown", "unavailable")
+
+
+async def test_e2e_05_the_same_key_again_still_reloads_the_entry_once(env):
+    """After three rejections the hourly refresh has stopped; typing the key the user has restarts it."""
+    entry = await env.add_entry()
+    flow = env.hass.config_entries.options
+    with patch.object(env.hass.config_entries, "async_reload", wraps=env.hass.config_entries.async_reload) as reload:
+        form = await flow.async_init(entry.entry_id)
+        await flow.async_configure(form["flow_id"], {"api_key": DEFAULT_KEY})
+        await env.settle()
+    assert reload.call_count == 1, "no data changed, so no listener: Configure schedules the reload itself"
+
+
+async def test_e2e_05_a_stop_position_that_is_not_a_place_is_not_published():
+    from custom_components.ztm_warsaw.sensor import _stop_attributes
+
+    ok = _stop_attributes({"szer_geo": "52.2", "dlug_geo": "21.0"})
+    assert (ok["latitude"], ok["longitude"]) == (52.2, 21.0)
+    for bad in (("nan", "21"), ("52", "inf"), ("91", "21"), ("52", "181"), ("x", "21"), (None, None)):
+        attrs = _stop_attributes({"szer_geo": bad[0], "dlug_geo": bad[1]})
+        assert "latitude" not in attrs and "longitude" not in attrs, bad

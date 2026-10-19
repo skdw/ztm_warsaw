@@ -8,8 +8,7 @@
           "api_key": "Klucz API (stare API) lub token (nowe API) z portalu otwartych danych m.st. Warszawy",
           "busstop_id": "Numer zespołu przystankowego (np. 3044)",
           "busstop_nr": "Numer słupka (np. 02)",
-          "line": "Numer linii (np. N31)",
-          "departures": "Liczba najbliższych odjazdów do wyświetlenia"
+          "line": "Numer linii (np. N31)"
         }
       },
       "reauth_confirm": {
@@ -40,11 +39,26 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opcje ZTM",
+        "title": "Warsaw Public Transport",
+        "description": "Zmień klucz API lub token tego wpisu (teraz: {current}). Przystanek i linia zostają bez zmian. Nowe API (token z dane.um.warszawa.pl/pl/key-api) to aktualna usługa miasta.",
         "data": {
-          "departures": "Liczba najbliższych odjazdów do wyświetlenia"
+          "api_key": "Klucz API (stare API) lub token (nowe API)"
         }
       }
+    },
+    "error": {
+      "invalid_stop_number": "Numer słupka jest nieprawidłowy. Musi mieć dwie cyfry (np. „01”).",
+      "invalid_api_key": "To nie jest prawidłowy klucz API ani token. Sprawdź, co skopiowano z portalu otwartych danych m.st. Warszawy.",
+      "invalid_token_or_unavailable": "API m.st. Warszawy nie przyjęło tokenu albo jest teraz niedostępne. Sprawdź token i spróbuj ponownie później.",
+      "api_http_error": "Nie można połączyć się z API m.st. Warszawy.",
+      "api_connection_error": "Błąd połączenia z API m.st. Warszawy.",
+      "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
+      "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
+      "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
+      "unknown": "Wystąpił nieznany błąd."
+    },
+    "abort": {
+      "unknown": "Wystąpił nieznany błąd."
     }
   },
   "entity": {
@@ -58,6 +72,10 @@
     "duplicate_entry": {
       "title": "Już skonfigurowane",
       "description": "Linia {line} na przystanku {stop} jest skonfigurowana dwa razy. Home Assistant może pokazać dla niej tylko jeden czujnik, więc drugi wpis go nie ma. Usuń jeden z dwóch wpisów (Ustawienia > Urządzenia i usługi > Warsaw Public Transport)."
+    },
+    "legacy_key": {
+      "title": "Używany stary klucz API",
+      "description": "Linia {line} na przystanku {stop} nadal używa klucza starego API miasta (api.um.warszawa.pl). Działa, ale miasto nie podało daty jego zakończenia, a nowe API z tokenem (dane.um.warszawa.pl/pl/key-api) to aktualna usługa. Aby przejść, otwórz integrację, wybierz Konfiguruj przy tym wpisie i wpisz token. To powiadomienie można odrzucić."
     }
   }
 }

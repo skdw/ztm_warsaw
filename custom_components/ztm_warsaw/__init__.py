@@ -10,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from collections.abc import Mapping
 
 from .const import DOMAIN, PLATFORMS
-from .client import StopCatalogue, ZTMStopClient, user_agent
+from .client import StopCatalogue, ZTMStopClient, key_kind, user_agent
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
@@ -93,6 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_id=entry.entry_id,
     )
 
+    _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most
     # Raises ConfigEntryNotReady when the City does not answer: Home Assistant then retries the setup by itself.
     await coordinator.async_config_entry_first_refresh()
 
@@ -149,6 +150,25 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
         ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
 
 
+def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """A notice (Repairs, can be dismissed) for an entry that still uses a key of the City's old API: it works, but the
+    City publishes no date for its end and the token of the new API is its current service. Configure changes the key."""
+    values = _entry_values(entry, log=False)
+    issue_id = f"legacy_key_{entry.entry_id}"
+    if values is not None and key_kind(values[0]) == "legacy":
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="legacy_key",
+            translation_placeholders={"line": values[3], "stop": f"{values[1]}/{values[2]}"},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -175,6 +195,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete the answers stored for a removed entry, and the notice about it or about its twin."""
     await Store(hass, 1, store_key(entry.entry_id)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
+    ir.async_delete_issue(hass, DOMAIN, f"legacy_key_{entry.entry_id}")
     for other in hass.config_entries.async_entries(DOMAIN):
         if other.entry_id != entry.entry_id:
             _update_duplicate_issue(hass, other, removed=entry.entry_id)

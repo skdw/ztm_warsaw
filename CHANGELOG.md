@@ -17,9 +17,12 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 - Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
 - Re-authentication: when the City's old API answers "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again), Home Assistant shows the usual "re-authentication needed" notice and asks for a new key or token. The stop and the line of the entry stay, and the new key is judged by the key alone, so it is accepted even if the line does not run today. A single bad answer or an outage never starts it. The new API cannot tell a rejected token from an outage, so there a revoked token is not noticed at once: the sensor keeps the cached timetable until its service day ends and then becomes unavailable, without a prompt.
 - Diagnostics: the entry's *Download diagnostics* now works. It holds the entry (the API key or token is replaced by `**REDACTED**`) and the state of the timetable: the service day, how many departures, the first few labels, the last error's class, whether the City answered without a timetable and how many rejected keys came in a row. Attach it to a bug report; it never contains the key.
+- **Configure** on an entry now changes its API key or token (the stop and the line stay), so an entry can move from the City's old API to the new one without being removed and added again; a key that the City rejects is refused. An entry that still uses a key of the old API shows a dismissible notice in Repairs that says it can be changed there.
+- The sensor has the standard `latitude` and `longitude` attributes (the stop's position from the City's catalogue), so the stop can be shown as a pin on the map card.
 
 ### Changed
 
+- The number of departures is no longer asked, when you add a sensor or in Configure: the sensor always lists the next departure and the three after it (`Next 1` ... `Next 3`). An entry that was set to fewer gets the additional attributes; nothing is removed, and the stored setting is ignored.
 - The README is rewritten: it says that the data are scheduled departures, not live positions, and explains both kinds of key and what each sensor state means. The attribution shown on the sensors now names the City of Warsaw (Miasto Stołeczne Warszawa), the Zarząd Transportu Miejskiego (ZTM) and the licence (CC BY) instead of a host name.
 
 ### Fixed

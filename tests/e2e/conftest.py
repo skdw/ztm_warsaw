@@ -240,7 +240,6 @@ class Env:
         line: str = "151",
         stop_id: int | str = 7009,
         stop_nr: str = "01",
-        departures: int = 1,
         api_key: str = DEFAULT_KEY,
     ) -> dict:
         """Run the user step of the real config flow once and return the raw flow result."""
@@ -255,7 +254,6 @@ class Env:
                 "busstop_id": stop_id,
                 "busstop_nr": stop_nr,
                 "line": line,
-                "departures": departures,
             },
         )
         await self.settle()

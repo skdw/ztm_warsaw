@@ -38,11 +38,11 @@ async def test_the_config_flow_creates_an_entry_that_loads(hass, enable_custom_i
     flow = hass.config_entries.flow
     result = await flow.async_init(DOMAIN, context={"source": "user"})
     assert result["type"] == "form"
-    result = await flow.async_configure(result["flow_id"], ENTRY_DATA)
+    result = await flow.async_configure(result["flow_id"], {k: v for k, v in ENTRY_DATA.items() if k != "departures"})
     await hass.async_block_till_done()
     assert result["type"] == "create_entry", result.get("errors")
     assert result["result"].state is ConfigEntryState.LOADED
-    assert dict(result["result"].data) == ENTRY_DATA
+    assert dict(result["result"].data) == {**ENTRY_DATA, "departures": 3}
 
 
 async def test_a_sensor_appears_and_is_removed_with_the_entry(hass, enable_custom_integrations, city):

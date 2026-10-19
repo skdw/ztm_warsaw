@@ -21,10 +21,11 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 
 - ✅ Buses, trams, metro, night, cemetery, express and local lines.
 - ✅ Several instances: monitor as many stops and lines as you like.
-- ✅ The next departure as a timestamp, usable in the UI and in automations; optionally up to 3 more.
+- ✅ The next departure as a timestamp, usable in the UI and in automations, and the three after it as attributes (`Next 1` ... `Next 3`).
 - ✅ A clear "No service" state on days when a line does not run, and an `unavailable` state when the City's API fails (see [Troubleshooting](#-troubleshooting)).
 - ✅ Set up entirely in the Home Assistant UI, in English or Polish.
-- ✅ Attributes with the stop, the direction, a timetable link and notes.
+- ✅ Attributes with the stop (its name and position, so it shows as a pin on the map card), the direction, a timetable link and notes.
+- ✅ Change the API key or token of an entry at any time in **Configure**, for example from the City's old API to the new one.
 
 ---
 
@@ -88,10 +89,9 @@ The integration recognises which one you pasted and talks only to the matching A
 3. Fill in:
    - **API key or token** (see above),
    - **Stop ID** and **stop number** (for example 7009 and 01),
-   - **Line number** (for example 151),
-   - **Number of departures to show**.
+   - **Line number** (for example 151).
 
-The entity is named after the stop and the line, for example `sensor.line_151_from_7009_01`. You can change the number of upcoming departures at any time in **Settings → Devices & Services → Warsaw Public Transport → Configure**.
+The entity is named after the stop and the line, for example `sensor.line_151_from_7009_01`. To replace the API key or token of an entry (to move from an old key to a token, say), use **Settings → Devices & Services → Warsaw Public Transport → Configure** on that entry; the stop and the line stay. An entry that still uses an old key shows a dismissible notice in **Settings → Repairs** that says so.
 
 **Stop ID and stop number** are not the same thing: the stop ID is shared by all poles of a stop, and the stop number (usually 01, 02, ...) is the number painted on the sign of the pole (*słupek*). A stop with several directions has a different number for each.
 
