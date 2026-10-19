@@ -652,3 +652,19 @@ async def test_e2e_05_configure_closes_a_reauth_flow_that_home_assistant_leaves_
         await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
     assert {"entry_id": entry.entry_id, "source": "reauth"} in [c.kwargs["match_context"] for c in progress.call_args_list]
     abort.assert_any_call("left-open")  # (2026.10's own reload asks the same patched question, so it may be twice)
+
+
+async def test_e2e_05_configure_clears_the_repairs_issue_and_the_notification_of_the_reauth_it_closes(env):
+    """Aborting the flow through the manager does not do it (a review finding); Home Assistant before 2026.10 relied on it."""
+    entry = await env.add_entry()
+    env.city.valid_keys.add(NEW_KEY)
+    issue_id = f"config_entry_reauth_{DOMAIN}_{entry.entry_id}"
+    ir.async_create_issue(env.hass, "homeassistant", issue_id, is_fixable=False, severity=ir.IssueSeverity.ERROR, translation_key="config_entry_reauth")
+    dismissed = []
+    env.hass.services.async_register("persistent_notification", "dismiss", lambda call: dismissed.append(call.data["notification_id"]))
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(entry.entry_id)
+    await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})
+    await env.settle()
+    assert ir.async_get(env.hass).async_get_issue("homeassistant", issue_id) is None
+    assert dismissed == ["config_entry_reconfigure"]

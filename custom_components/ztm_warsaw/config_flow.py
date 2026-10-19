@@ -4,7 +4,8 @@ import re
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import callback
+from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
@@ -181,6 +182,22 @@ def _host_of(api_key: str) -> str:
     return "dane.um.warszawa.pl" if kind is not None else "?"
 
 
+async def _close_reauth(hass, entry) -> None:
+    """A re-authentication that was waiting for this key is done. Home Assistant 2026.10 closes it when the entry reloads;
+    older versions leave the flow open, and aborting a flow through the manager does not remove the Repairs issue and the
+    notification that went with it, so they are cleared here (what Home Assistant itself does when it removes an entry)."""
+    flows = hass.config_entries.flow
+    for flow in flows.async_progress_by_handler(DOMAIN, match_context={"entry_id": entry.entry_id, "source": "reauth"}):
+        flows.async_abort(flow["flow_id"])
+    ir.async_delete_issue(hass, HOMEASSISTANT_DOMAIN, f"config_entry_reauth_{entry.domain}_{entry.entry_id}")
+    if not flows.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"}) and hass.services.has_service(
+        "persistent_notification", "dismiss"
+    ):
+        await hass.services.async_call(
+            "persistent_notification", "dismiss", {"notification_id": "config_entry_reconfigure"}, blocking=True
+        )
+
+
 class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
     """*Configure*: replace the API key or token of the entry, e.g. an old key by a token of the new API."""
 
@@ -210,10 +227,7 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
                 # no listener (the setup failed or is being retried), and the same key again is no change: reload it.
                 if not (loaded and changed):
                     self.hass.config_entries.async_schedule_reload(entry.entry_id)
-                for flow in self.hass.config_entries.flow.async_progress_by_handler(
-                    DOMAIN, match_context={"entry_id": entry.entry_id, "source": "reauth"}
-                ):  # a re-authentication that was waiting for this key is done (older Home Assistant does not close it)
-                    self.hass.config_entries.flow.async_abort(flow["flow_id"])
+                await _close_reauth(self.hass, entry)
                 return self.async_create_entry(title="", data=dict(entry.options))
             errors["base"] = error
         return self.async_show_form(
