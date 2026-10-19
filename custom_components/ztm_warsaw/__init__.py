@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from collections.abc import Mapping
 
-from .const import DOMAIN, PLATFORMS
+from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS
 from .client import StopCatalogue, ZTMStopClient, key_kind, user_agent
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
@@ -19,7 +19,6 @@ from .coordinator import ZTMStopCoordinator, store_key
 
 _LOGGER = logging.getLogger(__name__)
 _NAME_LENGTH = 60
-KEY_PORTAL_URL = "https://dane.um.warszawa.pl/pl/key-api"
 
 
 def _first_nonempty(merged: Mapping[str, Any], *keys: str) -> str | None:

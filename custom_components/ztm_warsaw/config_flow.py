@@ -10,7 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
 from . import _entry_values, stop_key
-from .const import NEXT_DEPARTURES, DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
+from .const import KEY_PORTAL_URL, NEXT_DEPARTURES, DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -218,6 +218,13 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
+        return await self._change_key(user_input)
+
+    async def async_step_token(self, user_input=None):
+        """The same step for an entry that already has a token: its form does not ask for an old key."""
+        return await self._change_key(user_input)
+
+    async def _change_key(self, user_input):
         entry = self._config_entry
         values = _entry_values(entry, log=False)
         if values is None:
@@ -242,8 +249,8 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
                 return self.async_create_entry(title="", data=dict(entry.options))
             errors["base"] = error
         return self.async_show_form(
-            step_id="init",
+            step_id="init" if key_kind(api_key) == "legacy" else "token",  # an old key is nudged to the token, a token is not
             data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
             errors=errors,
-            description_placeholders={"current": _host_of(api_key)},
+            description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
         )

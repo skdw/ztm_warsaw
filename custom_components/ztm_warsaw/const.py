@@ -12,4 +12,5 @@ NEXT_DEPARTURES = 3  # the departures after the next one that the sensor lists (
 CONF_ATTRIBUTION = "Data provided by Miasto Stołeczne Warszawa and Zarząd Transportu Miejskiego (CC BY)"
 
 # Platforms exposed by this integration
+KEY_PORTAL_URL = "https://dane.um.warszawa.pl/pl/key-api"  # where the City gives a token of the new API
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
