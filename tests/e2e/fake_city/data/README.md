@@ -70,7 +70,7 @@ night therefore says nothing about when the new host flips its service day (the 
 those lines, or the flip is not at 03:00).
 
 Still **unverified**, and marked `UNVERIFIED` in `server.py` where the fake has to pick an answer: rate limits and quotas;
-what a revoked or expired token gets; when the service day flips on the new host; behaviour across the DST change of
+what a revoked or expired token gets; when the service day flips on the new host (seen once, on 2026-10-19: the old host switched to Monday at about 03:00, the new host only at about 04:51; not yet confirmed on another night); behaviour across the DST change of
 2026-10-25; the order in which the new host checks action, method and token; a line that exists but is not served at the
 stop; a known stop with no line on a service day; a lines or departures request without a body; gzip.
 

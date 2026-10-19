@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
 from homeassistant.util import dt as dt_util
@@ -14,7 +15,7 @@ from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import CONF_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
+from .const import NEXT_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
 from .models import WARSAW, next_warsaw_midnight
 
@@ -57,7 +58,14 @@ def _stop_info_of(coordinator):
 
 
 def _stop_attributes(stop_info):
-    return {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
+    attrs = {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
+    try:  # the standard names, so that the stop is a pin on Home Assistant's map card
+        latitude, longitude = float(stop_info["szer_geo"]), float(stop_info["dlug_geo"])
+    except (KeyError, TypeError, ValueError):
+        return attrs
+    if not (math.isfinite(latitude) and math.isfinite(longitude) and -90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return attrs  # not a place ("nan" parses as a float, and a NaN would make every update look like a change)
+    return {**attrs, "latitude": latitude, "longitude": longitude}
 
 
 def _departure_attrs(label, dep, day, time_str=None):
@@ -363,9 +371,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         stored = hass.data[DOMAIN][config_entry.entry_id]
         coordinator: ZTMStopCoordinator = stored["coordinator"] if isinstance(stored, dict) else stored
 
-        options = config_entry.options
-        data = config_entry.data
-        departures = options.get(CONF_DEPARTURES, data.get(CONF_DEPARTURES, 1))
+        departures = NEXT_DEPARTURES
 
         stop_id = coordinator.stop_id
         stop_number = coordinator.stop_nr
