@@ -135,7 +135,8 @@ For automated reviewers. Treat these as the highest priority:
 - Network access from a test, or an `allow` that widens the test seam.
 - A workflow that gains permissions, runs untrusted input through `${{ }}` in a `run:` block, or
   uses an action that is not pinned to a commit SHA.
-- A user-visible change without a `CHANGELOG.md` entry.
+- A user-visible change without a `CHANGELOG.md` entry, or an entry that is not one short line that starts with a verb and
+  links the pull request (`tests/test_changelog_style.py` checks the newest section; the details belong in the pull request).
 
 Do not suggest Tier 3 tooling, widening the ruff rule set outside a change that fixes what it
 finds, or style changes that ruff does not enforce.
