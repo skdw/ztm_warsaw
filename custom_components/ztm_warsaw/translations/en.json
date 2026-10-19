@@ -83,11 +83,61 @@
     },
     "legacy_key": {
       "title": "Old API key: line {line}, {stop}",
-      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Press **Submit** on this notice, or open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice.",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Replace the old key",
+            "description": "**Paste a token of the City's new API.**\n\nGet one at [dane.um.warszawa.pl/pl/key-api]({portal}). It replaces the old key of the line {line}; the stops and the line stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "data": {
+              "api_key": "Token"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Provided stop number is incorrect. It must be two digits (e.g. “01”).",
+          "invalid_api_key": "This is not a valid API key or token. Please check what you copied from the City of Warsaw open data portal.",
+          "api_http_error": "Could not connect to the City of Warsaw API.",
+          "api_connection_error": "Connection error with the City of Warsaw API.",
+          "line_not_found": "The specified line was not found for the selected stop ID and stop number.",
+          "no_departures": "There are no departures scheduled for this line at the selected stop today.",
+          "no_valid_times": "No valid departure times returned by the API.",
+          "unknown": "An unknown error occurred.",
+          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+        },
+        "abort": {
+          "unknown": "The entry of this notice is gone or cannot be changed."
+        }
+      }
     },
     "legacy_key_line": {
       "title": "Old API key: line {line}",
-      "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+      "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Press **Submit** on this notice, or open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice.",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Replace the old key",
+            "description": "**Paste a token of the City's new API.**\n\nGet one at [dane.um.warszawa.pl/pl/key-api]({portal}). It replaces the old key of the line {line}; the stops and the line stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "data": {
+              "api_key": "Token"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Provided stop number is incorrect. It must be two digits (e.g. “01”).",
+          "invalid_api_key": "This is not a valid API key or token. Please check what you copied from the City of Warsaw open data portal.",
+          "api_http_error": "Could not connect to the City of Warsaw API.",
+          "api_connection_error": "Connection error with the City of Warsaw API.",
+          "line_not_found": "The specified line was not found for the selected stop ID and stop number.",
+          "no_departures": "There are no departures scheduled for this line at the selected stop today.",
+          "no_valid_times": "No valid departure times returned by the API.",
+          "unknown": "An unknown error occurred.",
+          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+        },
+        "abort": {
+          "unknown": "The entry of this notice is gone or cannot be changed."
+        }
+      }
     },
     "merged_keys": {
       "title": "Line {line}: the stops used different keys",

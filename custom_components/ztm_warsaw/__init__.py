@@ -239,7 +239,8 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
             hass,
             DOMAIN,
             issue_id,
-            is_fixable=False,
+            is_fixable=True,  # the token can be pasted in the notice itself (repairs.py)
+            data={"entry_id": entry.entry_id},
             severity=ir.IssueSeverity.WARNING,
             translation_key="legacy_key_line",
             translation_placeholders={"line": line_of(entry) or "", "portal": KEY_PORTAL_URL},
@@ -250,7 +251,8 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass,
         DOMAIN,
         issue_id,
-        is_fixable=False,
+        is_fixable=True,  # the token can be pasted in the notice itself (repairs.py)
+        data={"entry_id": entry.entry_id},
         severity=ir.IssueSeverity.WARNING,
         translation_key="legacy_key",
         translation_placeholders={

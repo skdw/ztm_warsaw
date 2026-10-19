@@ -14,7 +14,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 - **Your stops are grouped by line**: each line becomes one entry with its stops under it, and your sensors keep their names, IDs and settings. An automation or card that points at the old *device* needs choosing again, and there is no way back to 1.1.4, so take a backup first.
 - **Home Assistant 2026.1 or newer**: this version needs it, and HACS will not offer the update on an older one, so you stay on 1.1.4 until you upgrade Home Assistant.
-- **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in **Configure** on each entry (until then a notice in Repairs reminds you).
+- **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in the notice in Repairs or in **Configure** on each entry.
 - **More departures on every sensor**: each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone.
 - **Two entries for the same stop and line?** The second one never had a sensor, so remove it when Repairs tells you.
 
@@ -26,6 +26,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **The stop on the map**: the sensor has `latitude` and `longitude`, so it shows as a pin on the map card.
 - **A badge with the line number**: on the map card the pin shows the line (colour by kind of line) instead of odd initials like "L1M", and the same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
+- **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
 - **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.

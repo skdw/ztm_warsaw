@@ -83,11 +83,61 @@
     },
     "legacy_key": {
       "title": "Stary klucz API: linia {line}, {stop}",
-      "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+      "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Naciśnij **Zatwierdź** przy tym powiadomieniu albo otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić.",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Wymień stary klucz",
+            "description": "**Wklej token nowego API miasta.**\n\nPobierzesz go na [dane.um.warszawa.pl/pl/key-api]({portal}). Zastępuje on stary klucz linii {line}; przystanki i linia zostają bez zmian.\n\nMożesz też wybrać *Zignoruj*, żeby na razie zostać przy starym kluczu.",
+            "data": {
+              "api_key": "Token"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Numer słupka jest nieprawidłowy. Musi mieć dwie cyfry (np. „01”).",
+          "invalid_api_key": "To nie jest prawidłowy klucz API ani token. Sprawdź, co skopiowano z portalu otwartych danych m.st. Warszawy.",
+          "invalid_token_or_unavailable": "API m.st. Warszawy nie przyjęło tokenu albo jest teraz niedostępne. Sprawdź token i spróbuj ponownie później.",
+          "api_http_error": "Nie można połączyć się z API m.st. Warszawy.",
+          "api_connection_error": "Błąd połączenia z API m.st. Warszawy.",
+          "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
+          "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
+          "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
+          "unknown": "Wystąpił nieznany błąd."
+        },
+        "abort": {
+          "unknown": "Wpis tego powiadomienia już nie istnieje albo nie da się go zmienić."
+        }
+      }
     },
     "legacy_key_line": {
       "title": "Stary klucz API: linia {line}",
-      "description": "**Linia {line} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+      "description": "**Linia {line} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Naciśnij **Zatwierdź** przy tym powiadomieniu albo otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić.",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Wymień stary klucz",
+            "description": "**Wklej token nowego API miasta.**\n\nPobierzesz go na [dane.um.warszawa.pl/pl/key-api]({portal}). Zastępuje on stary klucz linii {line}; przystanki i linia zostają bez zmian.\n\nMożesz też wybrać *Zignoruj*, żeby na razie zostać przy starym kluczu.",
+            "data": {
+              "api_key": "Token"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Numer słupka jest nieprawidłowy. Musi mieć dwie cyfry (np. „01”).",
+          "invalid_api_key": "To nie jest prawidłowy klucz API ani token. Sprawdź, co skopiowano z portalu otwartych danych m.st. Warszawy.",
+          "invalid_token_or_unavailable": "API m.st. Warszawy nie przyjęło tokenu albo jest teraz niedostępne. Sprawdź token i spróbuj ponownie później.",
+          "api_http_error": "Nie można połączyć się z API m.st. Warszawy.",
+          "api_connection_error": "Błąd połączenia z API m.st. Warszawy.",
+          "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
+          "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
+          "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
+          "unknown": "Wystąpił nieznany błąd."
+        },
+        "abort": {
+          "unknown": "Wpis tego powiadomienia już nie istnieje albo nie da się go zmienić."
+        }
+      }
     },
     "merged_keys": {
       "title": "Linia {line}: przystanki miały różne klucze",

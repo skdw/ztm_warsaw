@@ -195,19 +195,14 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
     async def async_step_reauth_confirm(self, user_input=None):
         """Ask for a new API key or token for an entry whose key the City rejects; the rest of the entry stays."""
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        if entry is None or not _key_can_change(entry):
+        if entry is None or not key_can_change(entry):
             return self.async_abort(reason="unknown")
         errors = {}
         if user_input is not None:
             key = user_input[CONF_API_KEY].strip()
-            error, self.key_works = await _key_error(self.hass, entry, key)
+            error, self.key_works = await key_error(self.hass, entry, key)
             if error is None or self.key_works:  # that the line does not run today is not the key's fault
-                loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
-                changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
-                # A loaded entry reloads itself through its update listener, but only when its data changed (the same
-                # key again, after the City had recovered, is a reload the listener does not do).
-                if not (loaded and changed):
-                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                save_key(self.hass, entry, key)
                 return self.async_abort(reason="reauth_successful")
             errors["base"] = error
         return self.async_show_form(
@@ -243,12 +238,12 @@ def _stop_unique_id(stop_id, stop_nr) -> str:
     return f"{stop_id}_{stop_nr}"
 
 
-def _key_can_change(entry) -> bool:
+def key_can_change(entry) -> bool:
     """An entry whose data cannot be read is not changed blindly: a 1.1.x entry needs its stop, a line needs only its key."""
     return entry_api_key(entry) is not None and (is_line_entry(entry) or bool(stop_units(entry)))
 
 
-async def _key_error(hass, entry, key: str) -> tuple[str | None, bool]:
+async def key_error(hass, entry, key: str) -> tuple[str | None, bool]:
     """``(error key, key works)`` for a new key of this entry (see ``error_for``): the City is asked with the entry's stop,
     or with the first stop of a line. A line that has no stop left has only the shape of the key to check."""
     units = stop_units(entry)
@@ -283,7 +278,18 @@ def _with_key(entry, key: str) -> dict:
     }
 
 
-async def _close_reauth(hass, entry) -> None:
+def save_key(hass, entry, key: str) -> None:
+    """Save a new key in the entry and make sure the entry runs with it.
+
+    A loaded entry reloads itself through its update listener when its data changed; any other state has no listener (the
+    setup failed or is being retried), and the same key again is no change: it is reloaded here."""
+    loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
+    changed = hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
+    if not (loaded and changed):
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+
+async def close_reauth(hass, entry) -> None:
     """A re-authentication that was waiting for this key is done. Home Assistant 2026.10 closes it when the entry reloads;
     older versions leave the flow open, and aborting a flow through the manager does not remove the Repairs issue and the
     notification that went with it, so they are cleared here (what Home Assistant itself does when it removes an entry)."""
@@ -321,20 +327,15 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
         """
         entry = self._config_entry
         api_key = entry_api_key(entry)
-        if api_key is None or not _key_can_change(entry):
+        if api_key is None or not key_can_change(entry):
             return self.async_abort(reason="unknown")
         errors = {}
         if user_input is not None:
             key = user_input[CONF_API_KEY].strip()
-            error, works = await _key_error(self.hass, entry, key)
+            error, works = await key_error(self.hass, entry, key)
             if error is None or works:  # that the line does not run today is not the key's fault
-                loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
-                changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
-                # A loaded entry reloads itself through its update listener when its data changed; any other state has
-                # no listener (the setup failed or is being retried), and the same key again is no change: reload it.
-                if not (loaded and changed):
-                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
-                await _close_reauth(self.hass, entry)
+                save_key(self.hass, entry, key)
+                await close_reauth(self.hass, entry)
                 return self.async_create_entry(title="", data=dict(entry.options))
             errors["base"] = error
         return self.async_show_form(
