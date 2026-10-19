@@ -10,6 +10,14 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ## [Unreleased]
 
+Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing has to be set up again; your sensors keep their entity IDs and attributes. This is a beta: tell us what you see in the [issues](https://github.com/solarssk/ztm_warsaw/issues).
+
+### Adopter action
+
+- **If you use a key of the City's old API** (`xxxxxxxx-xxxx-...`): it keeps working, but the City has published no date for its end and its new API with a token is the current service. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and enter it in **Settings → Devices & Services → Warsaw Public Transport → Configure** on each entry (the stop and the line stay). Until then each such entry shows a dismissible notice in Repairs.
+- **If you set the number of departures** to less than three: the sensors now always list the next departure and `Next 1` ... `Next 3`, so an entry that listed fewer gets additional attributes. Nothing is removed.
+- **If you have the same stop, pole and line twice**: the later entry has never had a sensor; the notice in Repairs asks you to remove one of the two.
+
 ### Added
 
 - The integration can use the new City of Warsaw API (dane.um.warszawa.pl) with a token. A key that looks like the old one (a UUID) is sent only to the old API, any other key only to the new one, and a key never goes to the other host. The setup screen accepts either kind of key.
