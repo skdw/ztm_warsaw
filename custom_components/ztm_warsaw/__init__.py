@@ -8,7 +8,7 @@ import re
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS
@@ -71,8 +71,6 @@ async def _first_refresh(coordinators: list[ZTMStopCoordinator]) -> None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
     if not is_line_entry(entry) and _entry_values(entry) is None:
         return False  # said in the log, without the key
     units = stop_units(entry)
@@ -108,7 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _first_refresh([rt["coordinator"] for rt in built.values()])
 
     # A version 1 entry keeps the shape it always had; a line has its stops by subentry.
-    hass.data[DOMAIN][entry.entry_id] = {"units": built} if is_line_entry(entry) else built[None]
+    entry.runtime_data = {"units": built} if is_line_entry(entry) else built[None]
 
     def _show_stop_names() -> None:
         """Show everything that depends on a stop's name: the notices, and the titles of the entry and of its stops.
@@ -154,7 +152,7 @@ def _snapshot(entry: ConfigEntry) -> tuple:
 
 def _stop_name_of(hass: HomeAssistant, entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
     """The stop's name, once the entry has loaded and the City has given it (the coordinator holds it)."""
-    coordinator = runtimes(hass, entry).get(subentry_id, {}).get("coordinator")
+    coordinator = runtimes(entry).get(subentry_id, {}).get("coordinator")
     info = getattr(getattr(coordinator, "data", None), "stop_info", None)
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     if not isinstance(name, str):
@@ -268,18 +266,24 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    running = runtimes(hass, entry)
-    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    running = runtimes(entry)
     for runtime in running.values():
         try:
             await runtime["coordinator"].async_shutdown()
         except Exception:  # noqa: BLE001 - shutdown should not crash unload
             _LOGGER.debug("Coordinator shutdown raised; ignoring", exc_info=True)
 
-    if not hass.data.get(DOMAIN):
-        hass.data.pop(DOMAIN, None)
-
     return unload_ok
+
+async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEntry, device_entry: dr.DeviceEntry) -> bool:
+    """Let the user delete a device of a stop that the entry no longer has; refuse one that is still in use.
+
+    A device of a line entry belongs to one of its stops (``line_<line>_<id>_<nr>``), the device of a 1.1.x entry to its line
+    (``line_<line>``). Home Assistant calls this from the *Delete* button of the device page.
+    """
+    live = {f"line_{unit.line}_{unit.stop_id}_{unit.stop_nr}" if is_line_entry(entry) else f"line_{unit.line}" for unit in stop_units(entry)}
+    return not any(domain == DOMAIN and identifier in live for domain, identifier in device_entry.identifiers)
+
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete the answers stored for a removed entry, and the notice about it or about its twin."""

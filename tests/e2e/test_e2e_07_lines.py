@@ -158,7 +158,7 @@ async def test_e2e_32_one_stop_that_fails_stops_the_line_from_loading_and_leaves
     assert failing.await_count == 2  # both stops asked together
     stopped = {call.args[0] for call in shutdown.await_args_list}
     assert {c.stop_nr for c in stopped} == {"01", "02"}, "both stops were stopped when one failed"
-    assert DOMAIN not in env.hass.data or entry.entry_id not in env.hass.data[DOMAIN]
+    assert not hasattr(entry, "runtime_data")
 
 
 async def test_e2e_32_configure_replaces_the_key_of_the_whole_line(env):
@@ -257,7 +257,7 @@ async def test_e2e_32_a_stop_the_city_does_not_answer_for_does_not_hold_back_the
     assert entry.state is ConfigEntryState.LOADED
     assert env.state(LINE, 7009, "01").state not in ("unknown", "unavailable")
     assert env.state(LINE, 7009, "02").state == "unavailable"
-    coordinator = env.hass.data[DOMAIN][entry.entry_id]["units"]
+    coordinator = entry.runtime_data["units"]
     second = next(rt["coordinator"] for rt in coordinator.values() if rt["coordinator"].stop_nr == "02")
     assert second._started  # it runs like the others: it asks for the stop's name and wakes at the day change
     assert second._flip_unsub is not None
@@ -367,7 +367,7 @@ async def test_e2e_32_a_stop_name_that_arrives_after_the_setup_titles_the_stop_t
         entry = await env.add_entry_via_flow(line=LINE)
     (stop,) = entry.subentries.values()
     assert stop.title == "7009/01"
-    (runtime,) = env.hass.data[DOMAIN][entry.entry_id]["units"].values()
+    (runtime,) = entry.runtime_data["units"].values()
     with patch.object(ZTMStopClient, "get_stop_name", AsyncMock(return_value=None)):
         await runtime["coordinator"].async_refresh()  # the catalogue still does not answer: nothing to show yet
     assert stop.title == "7009/01"

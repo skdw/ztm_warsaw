@@ -12,9 +12,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 
-from .const import CONF_WALKING_TIME, DOMAIN, MAX_WALKING_TIME
+from .const import CONF_WALKING_TIME, MAX_WALKING_TIME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -143,9 +142,9 @@ def line_of(entry: ConfigEntry) -> str | None:
     return _first_nonempty(_merged(entry), "line", "linia") if is_line_entry(entry) else None
 
 
-def runtimes(hass: HomeAssistant, entry: ConfigEntry) -> dict[str | None, dict]:
-    """The running coordinators of a loaded entry by subentry id (None for a version 1 entry)."""
-    stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+def runtimes(entry: ConfigEntry) -> dict[str | None, dict]:
+    """The running coordinators of a loaded entry by subentry id (None for a version 1 entry), from its ``runtime_data``."""
+    stored = getattr(entry, "runtime_data", None)
     if not isinstance(stored, dict):
         return {}
     if "units" in stored:

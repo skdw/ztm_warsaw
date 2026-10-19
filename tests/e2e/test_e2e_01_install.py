@@ -635,7 +635,7 @@ async def test_e2e_26_a_stop_name_that_arrives_after_the_setup_is_shown_then(env
     assert entry.title == "Line 151 from 7009/01"
     assert notice is not None
     assert notice.translation_placeholders["stop"] == "7009/01"
-    coordinator = env.hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator = entry.runtime_data["coordinator"]
     await coordinator.async_refresh()  # the catalogue answers now
     await env.hass.async_block_till_done()
     assert entry.title == f"Line 151 from {stop_name_for('7009')} 01"

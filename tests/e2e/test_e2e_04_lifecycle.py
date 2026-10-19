@@ -34,13 +34,13 @@ async def test_e2e_22_setup_owns_exactly_two_timers_and_unload_releases_both(env
     assert integration_timers(env) == []
     entry = await env.add_entry()
     assert len(integration_timers(env)) == 2, integration_timers(env)  # hourly refresh + next-departure wake-up
-    assert DOMAIN in env.hass.data
+    assert entry.runtime_data, "a loaded entry holds its running coordinators"
 
     assert await env.hass.config_entries.async_unload(entry.entry_id)
     await env.settle()
     assert entry.state is ConfigEntryState.NOT_LOADED
     assert integration_timers(env) == []
-    assert DOMAIN not in env.hass.data, "no per-entry data left behind"
+    assert not hasattr(entry, "runtime_data"), "no per-entry data left behind"
     st = env.hass.states.get("sensor.line_151_from_7009_01")
     assert st is not None
     assert st.state == "unavailable"
@@ -61,7 +61,7 @@ async def test_e2e_22_reloading_three_times_never_accumulates_timers_or_entities
         assert entry.state is ConfigEntryState.LOADED
         assert env.city.count("timetable") == tt + 1, f"reload {round_no}: exactly one timetable fetch"
         assert len(integration_timers(env)) == 2, integration_timers(env)
-        assert list(env.hass.data[DOMAIN]) == [entry.entry_id]
+        assert entry.runtime_data, f"reload {round_no}: the entry holds its running coordinators again"
     registry_after = {e.entity_id for e in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)}
     assert registry_after == registry_before
 
@@ -75,7 +75,6 @@ async def test_e2e_22_removing_the_last_entry_cleans_registries(env):
     assert not find_devices(env.device_registry, {(DOMAIN, "line_151")})
     assert env.hass.states.get("sensor.line_151_from_7009_01") is None
     assert integration_timers(env) == []
-    assert DOMAIN not in env.hass.data
 
 
 async def test_e2e_22_two_loaded_entries_hold_two_timers_each_and_unloading_releases_them(env):

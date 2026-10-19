@@ -8,7 +8,6 @@ import pytest
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import stop_name_for
 
@@ -38,7 +37,7 @@ async def _line_with_next_enabled(env, walking_time=0):
 
 def _coordinator(env, entry):
     """The coordinator of the one stop of the line."""
-    (runtime,) = env.hass.data[DOMAIN][entry.entry_id]["units"].values()
+    (runtime,) = entry.runtime_data["units"].values()
     return runtime["coordinator"]
 
 

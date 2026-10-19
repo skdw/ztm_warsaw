@@ -29,6 +29,8 @@ from .models import WARSAW, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0  # the entities only read what their coordinator fetched: nothing to limit
+
 def _friendly_day(dt, now):
     """Name the day of a departure relative to today in Warsaw: today, tomorrow, yesterday or the weekday."""
     if not dt:
@@ -502,7 +504,7 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the ZTM sensors of a config entry: two for every stop it runs."""
     try:
-        for subentry_id, runtime in runtimes(hass, config_entry).items():
+        for subentry_id, runtime in runtimes(config_entry).items():
             coordinator: ZTMStopCoordinator = runtime["coordinator"]
             stop_id, stop_number, line = coordinator.stop_id, coordinator.stop_nr, coordinator.line
 
