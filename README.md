@@ -1,14 +1,49 @@
-# 🚍 ZTM Warsaw Integration for Home Assistant
+<h1 align="center">🚍 ZTM Warsaw for Home Assistant</h1>
 
-**English** · [Polski](README.pl.md)
+<p align="center">
+  <strong>The next scheduled departures of a Warsaw bus, tram, metro or night line, as a sensor.<br>From the City's open data. No YAML, no live-tracking promises.</strong>
+</p>
 
-[![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/solarssk/ztm_warsaw/badge)](https://securityscorecards.dev/viewer/?uri=github.com/solarssk/ztm_warsaw)
-[![codecov](https://codecov.io/gh/solarssk/ztm_warsaw/graph/badge.svg)](https://codecov.io/gh/solarssk/ztm_warsaw)
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=solarssk_ztm_warsaw&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=solarssk_ztm_warsaw)
-[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
+<p align="center">
+  <strong>🇬🇧 English</strong> &nbsp;·&nbsp; <a href="README.pl.md">🇵🇱 Polski</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml"><img src="https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  &nbsp;
+  <a href="https://codecov.io/gh/solarssk/ztm_warsaw"><img src="https://codecov.io/gh/solarssk/ztm_warsaw/graph/badge.svg" alt="Codecov"></a>
+  &nbsp;
+  <a href="https://sonarcloud.io/summary/new_code?id=solarssk_ztm_warsaw"><img src="https://sonarcloud.io/api/project_badges/measure?project=solarssk_ztm_warsaw&metric=alert_status" alt="Quality Gate Status"></a>
+  &nbsp;
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/solarssk/ztm_warsaw"><img src="https://api.securityscorecards.dev/projects/github.com/solarssk/ztm_warsaw/badge" alt="OpenSSF Scorecard"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/solarssk/ztm_warsaw/releases"><img src="https://img.shields.io/github/v/release/solarssk/ztm_warsaw?include_prereleases&label=release&color=066fd1" alt="release"></a>
+  &nbsp;
+  <a href="https://hacs.xyz/"><img src="https://img.shields.io/badge/HACS-Default-41BDF5" alt="HACS Default"></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Home%20Assistant-2026.1%2B-41BDF5?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.1+">
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/solarssk/ztm_warsaw" alt="License: MIT"></a>
+</p>
+
+<details>
+<summary><strong>Table of contents</strong></summary>
+
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [Requirements](#-requirements)
+- [Getting a key or token](#-getting-a-key-or-token)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Troubleshooting](#-troubleshooting)
+- [Documentation](#-documentation)
+- [Contributing and security](#-contributing-and-security)
+- [Data and acknowledgments](#-data-and-acknowledgments)
+- [License](#-license)
+
+</details>
 
 Shows the next **scheduled** departures of one Warsaw public-transport line (bus, tram, metro, rail or night line) at one stop pole as a sensor in Home Assistant, from the City of Warsaw's open data. Use it for dashboards and automations such as "leave in eight minutes" without opening a timetable app.
 
@@ -51,7 +86,7 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 
 ---
 
-## ⚙️ Requirements
+## 📋 Requirements
 
 - Home Assistant 2026.1 or newer
 - An API key or token from the City of Warsaw (below)
@@ -86,7 +121,7 @@ The integration recognises which one you pasted and talks only to the matching A
 
 ---
 
-## ⚙️ Configuration
+## 🔌 Configuration
 
 1. Go to **Settings → Devices & Services**.
 2. Click **+ Add Integration** and search for **Warsaw Public Transport**.

@@ -1,14 +1,49 @@
-# 🚍 Integracja ZTM Warszawa dla Home Assistanta
+<h1 align="center">🚍 ZTM Warszawa dla Home Assistanta</h1>
 
-[English](README.md) · **Polski**
+<p align="center">
+  <strong>Najbliższe rozkładowe odjazdy linii autobusowej, tramwajowej, metra lub nocnej w Warszawie jako sensor.<br>Z otwartych danych miasta. Bez YAML-a i bez obietnic o pozycjach na żywo.</strong>
+</p>
 
-[![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/solarssk/ztm_warsaw/badge)](https://securityscorecards.dev/viewer/?uri=github.com/solarssk/ztm_warsaw)
-[![codecov](https://codecov.io/gh/solarssk/ztm_warsaw/graph/badge.svg)](https://codecov.io/gh/solarssk/ztm_warsaw)
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=solarssk_ztm_warsaw&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=solarssk_ztm_warsaw)
-[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
+<p align="center">
+  <a href="README.md">🇬🇧 English</a> &nbsp;·&nbsp; <strong>🇵🇱 Polski</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml"><img src="https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  &nbsp;
+  <a href="https://codecov.io/gh/solarssk/ztm_warsaw"><img src="https://codecov.io/gh/solarssk/ztm_warsaw/graph/badge.svg" alt="Codecov"></a>
+  &nbsp;
+  <a href="https://sonarcloud.io/summary/new_code?id=solarssk_ztm_warsaw"><img src="https://sonarcloud.io/api/project_badges/measure?project=solarssk_ztm_warsaw&metric=alert_status" alt="Quality Gate Status"></a>
+  &nbsp;
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/solarssk/ztm_warsaw"><img src="https://api.securityscorecards.dev/projects/github.com/solarssk/ztm_warsaw/badge" alt="OpenSSF Scorecard"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/solarssk/ztm_warsaw/releases"><img src="https://img.shields.io/github/v/release/solarssk/ztm_warsaw?include_prereleases&label=release&color=066fd1" alt="release"></a>
+  &nbsp;
+  <a href="https://hacs.xyz/"><img src="https://img.shields.io/badge/HACS-Default-41BDF5" alt="HACS Default"></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Home%20Assistant-2026.1%2B-41BDF5?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.1+">
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/solarssk/ztm_warsaw" alt="License: MIT"></a>
+</p>
+
+<details>
+<summary><strong>Spis treści</strong></summary>
+
+- [Funkcje](#-funkcje)
+- [Zrzuty ekranu](#-zrzuty-ekranu)
+- [Wymagania](#-wymagania)
+- [Jak zdobyć klucz lub token](#-jak-zdobyć-klucz-lub-token)
+- [Instalacja](#-instalacja)
+- [Konfiguracja](#-konfiguracja)
+- [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
+- [Dokumentacja](#-dokumentacja)
+- [Współpraca i bezpieczeństwo](#-współpraca-i-bezpieczeństwo)
+- [Dane i podziękowania](#-dane-i-podziękowania)
+- [Licencja](#-licencja)
+
+</details>
 
 Pokazuje najbliższe **rozkładowe** odjazdy jednej linii komunikacji miejskiej w Warszawie (autobusowej, tramwajowej, metra, kolejowej lub nocnej) z jednego słupka jako sensor w Home Assistancie, na podstawie otwartych danych miasta. Przydaje się do pulpitów i automatyzacji w rodzaju „wyjdź za osiem minut” bez zaglądania do aplikacji z rozkładem.
 
@@ -51,7 +86,7 @@ Pokazuje **rozkład**, a nie pojazdy na żywo. Czego **nie** robi:
 
 ---
 
-## ⚙️ Wymagania
+## 📋 Wymagania
 
 - Home Assistant 2026.1 lub nowszy
 - Klucz API lub token od miasta Warszawy (poniżej)
@@ -86,7 +121,7 @@ Integracja rozpoznaje, który z nich wkleiłeś, i rozmawia tylko z pasującym A
 
 ---
 
-## ⚙️ Konfiguracja
+## 🔌 Konfiguracja
 
 1. Wejdź w **Ustawienia → Urządzenia i usługi**.
 2. Kliknij **+ Dodaj integrację** i wyszukaj **Warsaw Public Transport**.
