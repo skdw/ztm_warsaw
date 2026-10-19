@@ -34,6 +34,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. This is a 
 - Stop asking for the number of departures: every sensor lists the next departure and `Next 1` to `Next 3` ([#69](https://github.com/solarssk/ztm_warsaw/pull/69))
 - Publish the user manual as the project wiki from `docs/wiki/`, and add the project badges and a code of conduct ([#68](https://github.com/solarssk/ztm_warsaw/pull/68))
 - Rewrite the README: scheduled data, two kinds of key, what each state means ([#61](https://github.com/solarssk/ztm_warsaw/pull/61))
+- Name the City of Warsaw, ZTM and the licence (CC BY) in the sensor's `attribution` attribute, instead of a host name ([#61](https://github.com/solarssk/ztm_warsaw/pull/61))
 - Give each entry its own device on Home Assistant 2026.10 and newer, where a device belongs to one entry ([#65](https://github.com/solarssk/ztm_warsaw/pull/65))
 
 ### Fixed
