@@ -15,7 +15,6 @@ from homeassistant.config_entries import ConfigEntryState
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, Http, stop_name_for
-from .helpers import known_bug
 
 pytestmark = pytest.mark.e2e
 
@@ -257,10 +256,81 @@ async def test_e2e_29_reauth_of_an_entry_that_cannot_be_read_aborts(env):
 
 
 # ===================================================================== E2E-30 diagnostics
-@known_bug("no-diagnostics-platform", "no diagnostics platform", raises=(AssertionError, ImportError))
 async def test_e2e_30_diagnostics_download_redacts_the_api_key(env):
     entry = await env.add_entry()
     diagnostics = importlib.import_module("custom_components.ztm_warsaw.diagnostics")
     result = await diagnostics.async_get_config_entry_diagnostics(env.hass, entry)
     assert DEFAULT_KEY not in json.dumps(result, default=str)
     assert "api_key" in json.dumps(result, default=str), "the field is shown, its value is redacted"
+
+
+async def _diagnostics(env, entry):
+    module = importlib.import_module("custom_components.ztm_warsaw.diagnostics")
+    return await module.async_get_config_entry_diagnostics(env.hass, entry)
+
+
+async def test_e2e_30_diagnostics_describe_the_entry_and_its_timetable(env):
+    entry = await env.add_entry(departures=2)
+    result = await _diagnostics(env, entry)
+    assert result["entry"]["data"]["api_key"] == "**REDACTED**"
+    assert (result["entry"]["data"]["line"], result["entry"]["state"]) == ("151", "loaded")
+    assert result["key_kind"] == "legacy"
+    assert result["coordinator"]["last_update_success"] is True
+    assert result["coordinator"]["current"]["departures"] > 0
+    assert result["coordinator"]["current"]["first_labels"]
+
+
+async def test_e2e_30_diagnostics_of_an_entry_that_is_not_loaded_still_work_and_hide_the_key(env):
+    entry = await env.add_entry(setup=False)
+    result = await _diagnostics(env, entry)
+    assert result["coordinator"] is None
+    assert DEFAULT_KEY not in json.dumps(result, default=str)
+
+
+async def test_e2e_30_a_token_never_appears_anywhere_in_the_diagnostics(env):
+    entry = await env.add_entry(api_key=DEFAULT_TOKEN)
+    text = json.dumps(await _diagnostics(env, entry), default=str)
+    assert DEFAULT_TOKEN not in text
+    assert not any(part in text for part in DEFAULT_TOKEN.split(".") if len(part) > 8)
+    assert '"key_kind": "token"' in text
+
+
+async def test_e2e_30_diagnostics_after_a_rejected_key_name_the_error_class_only(env):
+    entry = await env.add_entry()
+    env.city.valid_keys.clear()
+    await env.hourly_tick()
+    result = await _diagnostics(env, entry)
+    assert result["coordinator"]["api_error"] is True
+    assert result["coordinator"]["last_exception"] == "UpdateFailed"
+    assert result["coordinator"]["rejections_in_a_row"] == 1
+    assert DEFAULT_KEY not in json.dumps(result, default=str)
+
+
+async def test_e2e_30_every_spelling_of_the_key_is_redacted(env):
+    entry = await env.add_entry(data={"apikey": DEFAULT_KEY, "busstopId": 7009, "busstopNr": "01", "line": "151"}, setup=False)
+    text = json.dumps(await _diagnostics(env, entry), default=str)
+    assert DEFAULT_KEY not in text
+    assert "apikey" in text
+
+
+async def test_e2e_30_a_key_in_the_options_is_redacted_too(env):
+    entry = await env.add_entry(options={"api_key": DEFAULT_KEY, "departures": 2}, setup=False)
+    result = await _diagnostics(env, entry)
+    assert result["entry"]["options"] == {"api_key": "**REDACTED**", "departures": 2}
+
+
+async def test_e2e_30_a_key_pasted_into_the_title_is_removed_too(env):
+    """A user can rename an entry to anything, also to the key (a review finding)."""
+    entry = await env.add_entry(setup=False)
+    env.hass.config_entries.async_update_entry(entry, title=f"my bus {DEFAULT_KEY} please")
+    result = await _diagnostics(env, entry)
+    assert DEFAULT_KEY not in json.dumps(result, default=str)
+    assert result["entry"]["title"] == "my bus **REDACTED** please"
+
+
+async def test_e2e_30_a_part_of_a_token_in_the_title_is_removed_too(env):
+    entry = await env.add_entry(api_key=DEFAULT_TOKEN, setup=False)
+    part = DEFAULT_TOKEN.split(".")[1]
+    env.hass.config_entries.async_update_entry(entry, title=f"token part {part}")
+    text = json.dumps(await _diagnostics(env, entry), default=str)
+    assert part not in text
