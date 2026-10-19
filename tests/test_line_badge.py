@@ -11,7 +11,8 @@ PREFIX = "data:image/svg+xml;base64,"
 
 def _svg(line):
     badge = get_line_badge(line)
-    assert badge is not None and badge.startswith(PREFIX)
+    assert badge is not None
+    assert badge.startswith(PREFIX)
     return base64.b64decode(badge[len(PREFIX):]).decode()
 
 
