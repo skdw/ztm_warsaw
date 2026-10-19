@@ -12,6 +12,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Adopter action
 
+- **Home Assistant 2026.1 or newer**: this version needs it, and HACS will not offer the update on an older one, so you stay on 1.1.4 until you upgrade Home Assistant.
 - **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in **Configure** on each entry (until then a notice in Repairs reminds you).
 - **More departures on every sensor**: each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone.
 - **Two entries for the same stop and line?** The second one never had a sensor, so remove it when Repairs tells you.

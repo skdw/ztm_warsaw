@@ -1,12 +1,12 @@
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 ignore_missing_imports = true
 warn_unused_ignores = true
 
 [tool.ruff]
 # Production code must stay valid for the minimum supported Home Assistant
-# (2024.4.0, Python 3.12), even if CI runs a newer Python.
-target-version = "py312"
+# (2026.1.0, Python 3.13), even if CI runs a newer Python.
+target-version = "py313"
 
 [tool.ruff.lint]
 # The rules ruff applied by default before 0.16.0 (E4, E7, E9 and F), named

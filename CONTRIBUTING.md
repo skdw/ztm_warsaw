@@ -32,7 +32,7 @@ source .venv/bin/activate
 python -m pip install -r requirements_test.txt
 ```
 
-The integration itself must stay valid for Home Assistant 2024.4 and Python 3.12, even though CI
+The integration itself must stay valid for Home Assistant 2026.1 and Python 3.13, even though CI
 runs newer versions.
 
 ## Running the checks
@@ -132,10 +132,10 @@ The required checks:
 - `Documentation impact declaration`
 
 `HACS validation` is not required to merge, because it depends on the network, but it must pass
-before a release. So must `Compat smoke (minimum Home Assistant)`: it runs `tests/compat` on the
-oldest Home Assistant the integration claims (2024.4, Python 3.12; the pins are in `.github/compat/`),
-because every other job runs the newest. To run it locally, build a Python 3.12 environment and
-install `.github/compat/min-ha.txt`, then `.github/compat/min-ha-plugin.txt` with `--no-deps`. The Codecov, SonarCloud and Scorecard results are signals, not gates.
+before a release. So must `Compat smoke (minimum Home Assistant)`: it runs the whole test suite on the
+oldest Home Assistant the integration claims (2026.1, Python 3.13; the pin is in `.github/compat/`),
+because every other job runs the newest. To run it locally, build a Python 3.13 environment and
+install `.github/compat/min-ha.txt`, then `python -m pytest tests`. The Codecov, SonarCloud and Scorecard results are signals, not gates.
 
 This is a single-maintainer project. [@solarssk](https://github.com/solarssk) reviews and merges
 every pull request, including their own, once the required checks are green, and sets the `type:`

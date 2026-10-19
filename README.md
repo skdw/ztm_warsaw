@@ -51,7 +51,7 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 
 ## ⚙️ Requirements
 
-- Home Assistant 2024.4 or newer
+- Home Assistant 2026.1 or newer
 - An API key or token from the City of Warsaw (below)
 
 ---
