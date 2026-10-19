@@ -16,6 +16,7 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 - A Polish translation of the setup screen.
 - Requests to the City of Warsaw API now carry a `User-Agent` with the integration's name, version and repository address, so the operator can see which software asks. It contains nothing about you or your installation.
 - Re-authentication: when the City's old API answers "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again), Home Assistant shows the usual "re-authentication needed" notice and asks for a new key or token. The stop and the line of the entry stay, and the new key is judged by the key alone, so it is accepted even if the line does not run today. A single bad answer or an outage never starts it. The new API cannot tell a rejected token from an outage, so there a revoked token is not noticed at once: the sensor keeps the cached timetable until its service day ends and then becomes unavailable, without a prompt.
+- Diagnostics: the entry's *Download diagnostics* now works. It holds the entry (the API key or token is replaced by `**REDACTED**`) and the state of the timetable: the service day, how many departures, the first few labels, the last error's class, whether the City answered without a timetable and how many rejected keys came in a row. Attach it to a bug report; it never contains the key.
 
 ### Changed
 
