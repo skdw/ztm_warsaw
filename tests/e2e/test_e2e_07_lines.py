@@ -6,8 +6,9 @@ import importlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -15,6 +16,8 @@ from homeassistant.helpers.storage import Store
 
 from custom_components.ztm_warsaw.config_flow import ZtmWarsawConfigFlow, ZtmStopSubentryFlow
 from custom_components.ztm_warsaw.const import DOMAIN
+from custom_components.ztm_warsaw import config_flow
+from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.coordinator import ZTMStopCoordinator, store_key
 
 from .helpers import subentry_of
@@ -312,3 +315,57 @@ async def test_e2e_32_renaming_a_stop_does_not_reload_the_line(env):
         await env.settle()
     assert reload.call_count == 0
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_01") is not None
+
+
+async def test_e2e_32_a_stop_that_another_flow_added_meanwhile_is_refused_not_a_failure(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    with patch.object(env.hass.config_entries, "async_add_subentry", side_effect=HomeAssistantError("exists")):
+        result = await env.submit_flow(line=LINE, stop_nr="02")  # joins the line, but the stop is there by then
+    assert (result["type"], result["reason"]) == ("abort", "already_configured")
+    assert len(entry.subentries) == 1
+
+
+async def test_e2e_32_add_stop_refuses_a_stop_that_another_flow_added_while_the_city_was_asked(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    real = config_flow.error_for
+
+    async def another_flow_finishes_first(hass, user_input, **kwargs):
+        result = await real(hass, user_input, **kwargs)
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                subentry_type="stop",
+                title="7009/02",
+                data={"busstop_id": 7009, "busstop_nr": "02"},
+                unique_id="7009_02",
+            ),
+        )
+        return result
+
+    with patch.object(config_flow, "error_for", another_flow_finishes_first):
+        done = await manager.async_configure(form["flow_id"], {"busstop_id": 7009, "busstop_nr": "02"})
+    assert (done["type"], done["reason"]) == ("abort", "already_configured")
+    assert len(entry.subentries) == 2
+
+
+async def test_e2e_32_add_stop_on_an_entry_without_a_key_aborts(env):
+    entry = MockConfigEntry(domain=DOMAIN, version=2, title="Line 525", data={"line": LINE})
+    entry.add_to_hass(env.hass)
+    form = await env.hass.config_entries.subentries.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    assert (form["type"], form["reason"]) == ("abort", "unknown")
+
+
+async def test_e2e_32_a_stop_name_that_arrives_after_the_setup_titles_the_stop_then(env):
+    with patch.object(ZTMStopClient, "get_stop_name", AsyncMock(return_value=None)):
+        entry = await env.add_entry_via_flow(line=LINE)
+    (stop,) = entry.subentries.values()
+    assert stop.title == "7009/01"
+    (runtime,) = env.hass.data[DOMAIN][entry.entry_id]["units"].values()
+    with patch.object(ZTMStopClient, "get_stop_name", AsyncMock(return_value=None)):
+        await runtime["coordinator"].async_refresh()  # the catalogue still does not answer: nothing to show yet
+    assert stop.title == "7009/01"
+    await runtime["coordinator"].async_refresh()  # now it does
+    await env.settle()
+    assert stop.title == f"{stop_name_for('7009')} 01"
