@@ -49,9 +49,9 @@ def test_the_class_of_a_line_follows_its_series_and_letters(line, line_class):
         ("817", "#558b2f", "#ffffff", "#ffffff", "circle", True),
         ("N25", "#34479a", "#ffffff", "#ffffff", "circle", False),  # white digits on blue
         ("E-2", "#e64a19", "#ffffff", "#ffffff", "circle", True),
-        ("9", "#ffe9a8", "#2b2f36", "#f2a900", "rect", False),  # a tram: light yellow, no red (red means a fast line)
-        ("M1", "#6a1b9a", "#ffffff", "#ffffff", "rect", False),  # the metro and the urban rail are squares
-        ("S3", "#2e7d32", "#ffffff", "#ffffff", "rect", False),
+        ("9", "#ffe9a8", "#2b2f36", "#f2a900", "circle", False),  # a tram: light yellow, no red (red means a fast line)
+        ("M1", "#6a1b9a", "#ffffff", "#ffffff", "circle", False),  # the metro and the urban rail are round too: Home Assistant crops the picture to a circle
+        ("S3", "#2e7d32", "#ffffff", "#ffffff", "circle", False),
     ],
 )
 def test_badge_shows_the_line_in_the_colours_and_shape_of_its_class(line, fill, text, ring, tag, dashed):
@@ -88,3 +88,11 @@ def test_badge_is_safe_inside_an_unquoted_css_url():
     """The frontend writes the picture as `background-image: url(<picture>)` without quotes."""
     badge = get_line_badge("176")
     assert not any(c in badge for c in " ()\"'\\\n")
+
+
+@pytest.mark.parametrize("line", ["126", "327", "523", "N25", "E-2", "9", "M1", "M2", "S3", "L1", "Z1"])
+def test_every_badge_is_a_circle(line):
+    """Home Assistant crops the picture of an entity to a circle: no class of line may be drawn as a square or a rectangle."""
+    _, _, root = _parts(line)
+    assert not [el for el in root.iter() if el.tag.endswith("rect")]
+    assert [el for el in root.iter() if el.tag.endswith("circle")]
