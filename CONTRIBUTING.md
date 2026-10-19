@@ -38,6 +38,10 @@ CI installs from the hash-locked files in `.github/locks/` (Scorecard's Pinned-D
 The integration itself must stay valid for Home Assistant 2026.1 and Python 3.13, even though CI
 runs newer versions.
 
+## Translations
+
+The texts of the integration are in `custom_components/ztm_warsaw/translations/`: `en.json` is the source, and `pl`, `uk`, `ru`, `de`, `es`, `fr` and `it` are translated (all but Polish by machine, so a correction from a native speaker is a welcome pull request). A new language is a copy of `en.json` with every text translated; `tests/test_translations.py` checks that a file has exactly the keys of `en.json` and keeps every `{placeholder}`, paragraph break and link. When you add or change a text in `en.json`, add it to every language file in the same pull request. The README is in the same eight languages (`README.md` is English, the others are `README.<code>.md`); `tests/test_readmes.py` checks that they have the same sections and that every link in them works. When you change the English README, change the others too.
+
 ## Running the checks
 
 CI runs these on every pull request; run them before you open one.

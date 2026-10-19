@@ -32,9 +32,12 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
+- **More languages**: setup, notices and dialogs now also in Ukrainian, Russian, German, Spanish, French and Italian, and the README in all eight languages, with a language switch at the top. The new languages are machine-translated, so corrections are welcome.
 - **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.
 
 ### Changed
+
+- **Clearer instructions in every language**: the README and setup messages now explain configuration, API keys and errors more naturally across all eight languages.
 
 - **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
