@@ -69,7 +69,8 @@ async def test_e2e_31_the_whole_day_is_in_the_calendar_past_departures_too(env):
     starts = [datetime.fromisoformat(e["start"]).astimezone(WARSAW).strftime("%H:%M") for e in events]
     assert len(starts) == 81, "line 151 on that Friday has 81 departures"
     assert starts == sorted(starts)
-    assert starts[0] == "04:41" and starts[-1] == "23:11"
+    assert starts[0] == "04:41"
+    assert starts[-1] == "23:11"
     first = events[0]
     assert (first["summary"].startswith("151"), first["location"]) == (True, stop_name_for("7009"))
     window = await _events(env, CAL, "2026-10-16 12:00", "2026-10-16 13:00")
@@ -84,7 +85,8 @@ async def test_e2e_31_the_night_tail_of_the_previous_day_stays_in_the_calendar_a
     cal = "calendar.line_n25_from_7009_01_timetable"
     events = await _events(env, cal, "2026-10-17 03:30", "2026-10-17 05:30")
     starts = [datetime.fromisoformat(e["start"]).astimezone(WARSAW).strftime("%H:%M") for e in events]
-    assert starts[:1] == ["03:54"] and "04:54" in starts
+    assert starts[:1] == ["03:54"]
+    assert "04:54" in starts
     assert datetime.fromisoformat(env.hass.states.get(cal).attributes["start_time"]).astimezone(WARSAW).strftime("%H:%M") == "03:54"
 
 
@@ -137,4 +139,5 @@ async def test_e2e_31_a_departure_that_the_api_repeats_is_one_event_and_another_
         return_response=True,
     )
     summaries = sorted(e["summary"] for e in events[CAL]["events"])
-    assert len(summaries) == 2 and summaries[0] != summaries[1]
+    assert len(summaries) == 2
+    assert summaries[0] != summaries[1]

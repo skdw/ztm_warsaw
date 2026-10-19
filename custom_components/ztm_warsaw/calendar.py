@@ -22,7 +22,8 @@ from .sensor import _device_info, _stop_info_of
 EVENT_LENGTH = timedelta(minutes=1)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:
+# Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
+async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:  # NOSONAR
     stored = hass.data[DOMAIN][config_entry.entry_id]
     coordinator = stored["coordinator"] if isinstance(stored, dict) else stored
     async_add_entities([ZTMCalendar(coordinator)])
