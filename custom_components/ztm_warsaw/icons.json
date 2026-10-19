@@ -1,0 +1,23 @@
+{
+  "entity": {
+    "sensor": {
+      "last_update": {
+        "default": "mdi:update"
+      },
+      "next_1": {
+        "default": "mdi:numeric-1-circle-outline"
+      },
+      "next_2": {
+        "default": "mdi:numeric-2-circle-outline"
+      },
+      "next_3": {
+        "default": "mdi:numeric-3-circle-outline"
+      }
+    },
+    "calendar": {
+      "timetable": {
+        "default": "mdi:calendar-clock"
+      }
+    }
+  }
+}

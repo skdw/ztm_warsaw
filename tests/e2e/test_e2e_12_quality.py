@@ -44,3 +44,24 @@ async def test_e2e_37_the_device_of_a_1_1_x_entry_is_in_use_but_another_line_is_
 def test_e2e_37_the_platforms_do_not_limit_parallel_updates_because_they_only_read_the_coordinator(platform):
     module = importlib.import_module(f"custom_components.ztm_warsaw.{platform}")
     assert module.PARALLEL_UPDATES == 0
+
+
+async def test_e2e_37_the_entities_without_a_dynamic_icon_get_theirs_from_icons_json(env):
+    """Next 1-3, Last update and the calendar have no icon in code: each has a translation key that icons.json knows, so Home Assistant
+    does not fall back to the default eye."""
+    import json
+    from pathlib import Path
+
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    icons = json.loads((Path(__file__).resolve().parents[2] / "custom_components" / "ztm_warsaw" / "icons.json").read_text())["entity"]
+    by_suffix = {"_last_update": "last_update", "_next_1": "next_1", "_next_2": "next_2", "_next_3": "next_3", "_calendar": "timetable"}
+    seen = set()
+    for reg in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id):
+        for suffix, key in by_suffix.items():
+            if reg.unique_id.endswith(suffix):
+                assert reg.translation_key == key, reg.unique_id
+                assert icons[reg.domain][key]["default"].startswith("mdi:"), key
+                seen.add(key)
+    assert seen == set(by_suffix.values())
