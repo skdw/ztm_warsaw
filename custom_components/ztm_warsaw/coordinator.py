@@ -157,10 +157,19 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         """Whether the cached timetable is the one of the service day that ``now`` is in."""
         return self.data is not None and self.data.service_date == service_date_at(now)
 
+    def known(self) -> list:
+        """Every departure of the current and the previous answer (the past ones too), in order."""
+        known = [d for part in (self._previous, self.data) if part for d in part.departures if d.dt]
+        return sorted(known, key=lambda d: d.dt)
+
     def upcoming(self, now) -> list:
         """The departures at or after ``now`` from the current and the previous answer, in order."""
-        known = [d for part in (self._previous, self.data) if part for d in part.departures]
-        return sorted((d for d in known if d.dt and d.dt >= now), key=lambda d: d.dt)
+        return [d for d in self.known() if d.dt >= now]
+
+    def is_usable(self, now) -> bool:
+        """Whether what the coordinator holds may be shown: the last refresh worked, and the timetable is today's or has
+        late departures (27:xx) still ahead (an answer of an earlier service day is not today's timetable)."""
+        return bool(self.last_update_success) and (self.is_fresh(now) or bool(self.upcoming(now)))
 
 
     def _data_changed(self, new_data: ZTMDepartureData) -> bool:

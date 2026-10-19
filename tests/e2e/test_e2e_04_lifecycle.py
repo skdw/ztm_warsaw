@@ -30,10 +30,11 @@ def integration_timers(env) -> list[str]:
 
 
 # ===================================================================== E2E-22
-async def test_e2e_22_setup_owns_exactly_two_timers_and_unload_releases_both(env):
+async def test_e2e_22_setup_owns_exactly_four_timers_and_unload_releases_them_all(env):
     assert integration_timers(env) == []
     entry = await env.add_entry()
-    assert len(integration_timers(env)) == 2, integration_timers(env)  # hourly refresh + next-departure wake-up
+    # hourly refresh + next-departure wake-up of the sensor + the start and the end of the calendar's next event
+    assert len(integration_timers(env)) == 4, integration_timers(env)
     assert DOMAIN in env.hass.data
 
     assert await env.hass.config_entries.async_unload(entry.entry_id)
@@ -60,7 +61,7 @@ async def test_e2e_22_reloading_three_times_never_accumulates_timers_or_entities
         await env.settle()
         assert entry.state is ConfigEntryState.LOADED
         assert env.city.count("timetable") == tt + 1, f"reload {round_no}: exactly one timetable fetch"
-        assert len(integration_timers(env)) == 2, integration_timers(env)
+        assert len(integration_timers(env)) == 4, integration_timers(env)
         assert list(env.hass.data[DOMAIN]) == [entry.entry_id]
     registry_after = {e.entity_id for e in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)}
     assert registry_after == registry_before
@@ -78,10 +79,10 @@ async def test_e2e_22_removing_the_last_entry_cleans_registries(env):
     assert DOMAIN not in env.hass.data
 
 
-async def test_e2e_22_two_loaded_entries_hold_two_timers_each_and_unloading_releases_them(env):
+async def test_e2e_22_two_loaded_entries_hold_four_timers_each_and_unloading_releases_them(env):
     first = await env.add_entry(line="151")
     second = await env.add_entry(line="N25")
-    assert len(integration_timers(env)) == 4
+    assert len(integration_timers(env)) == 8
     await env.hass.config_entries.async_unload(first.entry_id)
     await env.hass.config_entries.async_unload(second.entry_id)
     await env.settle()

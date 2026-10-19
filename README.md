@@ -24,6 +24,7 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 - ✅ The next departure as a timestamp, usable in the UI and in automations; optionally up to 3 more.
 - ✅ A clear "No service" state on days when a line does not run, and an `unavailable` state when the City's API fails (see [Troubleshooting](#-troubleshooting)).
 - ✅ Set up entirely in the Home Assistant UI, in English or Polish.
+- ✅ A **calendar** entity per sensor with every departure of the day as a one-minute event: see the whole timetable in Home Assistant's calendar view, and start automations with the calendar trigger ("8 minutes before a departure") without templates.
 - ✅ Attributes with the stop, the direction, a timetable link and notes.
 
 ---

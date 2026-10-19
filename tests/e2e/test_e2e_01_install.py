@@ -185,7 +185,11 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
 
     # --- entity registry
     registered = {e.unique_id: e for e in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)}
-    assert set(registered) == {f"line_{line}_from_7009_01", f"line_{line}_from_7009_01_last_update"}
+    assert set(registered) == {
+        f"line_{line}_from_7009_01",
+        f"line_{line}_from_7009_01_last_update",
+        f"line_{line}_from_7009_01_calendar",  # added in 1.2.0: the timetable as a calendar (the other two are unchanged)
+    }
     main = registered[f"line_{line}_from_7009_01"]
     assert (main.entity_id, main.platform, main.domain) == (f"sensor.line_{slug}_from_7009_01", "ztm_warsaw", "sensor")
     assert main.original_device_class == "timestamp"
@@ -409,7 +413,7 @@ async def test_e2e_05_options_flow_changes_departures_and_reloads_the_entry(env)
     assert "Next 4, Headsign" not in attrs
     # the entity (and its registry identity) survived the reload
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
-    assert len(er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)) == 2
+    assert len(er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)) == 3
 
 
 @pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)

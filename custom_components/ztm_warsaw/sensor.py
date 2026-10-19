@@ -288,12 +288,8 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self):
         """Return if entity is available."""
-        if not (self.coordinator and self.coordinator.last_update_success):
-            return False
-        # An answer of an earlier service day is not today's timetable: only its late departures (27:xx) still count.
-        now = dt_util.utcnow()
-        return self.coordinator.is_fresh(now) or bool(self.coordinator.upcoming(now))
-        
+        return bool(self.coordinator) and self.coordinator.is_usable(dt_util.utcnow())
+
     @callback
     def _handle_coordinator_update(self):
         """Handle updated data from the coordinator."""
