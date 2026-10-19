@@ -8,8 +8,9 @@ has an old key (a token is the end of it; another old key leaves the notice, whi
 """
 from __future__ import annotations
 
+from typing import Any, cast
+
 import voluptuous as vol
-from homeassistant import data_entry_flow
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 
@@ -26,11 +27,11 @@ class LegacyKeyRepairFlow(RepairsFlow):
         super().__init__()
         self._entry_id = entry_id
 
-    async def async_step_init(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, str] | None = None) -> Any:  # the result type differs between Home Assistant versions
         """The first step: Home Assistant calls it with the data of the issue, not with a form, so it only goes on to the form."""
         return await self.async_step_token()
 
-    async def async_step_token(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_token(self, user_input: dict[str, str] | None = None) -> Any:  # the result type differs between Home Assistant versions
         """The form for the new key, or the end of the flow once the key is saved; aborts when the entry is gone."""
         entry = self.hass.config_entries.async_get_entry(self._entry_id) if self._entry_id else None
         if entry is None or not key_can_change(entry):
@@ -48,7 +49,7 @@ class LegacyKeyRepairFlow(RepairsFlow):
         line = line_of(entry) or (units[0].line if units else "")
         return self.async_show_form(
             step_id="token",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=cast("Any", vol.Schema({vol.Required(CONF_API_KEY): str})),  # Home Assistant 2026.10 types it for another schema library
             errors=errors,
             description_placeholders={"line": line, "portal": KEY_PORTAL_URL},
         )

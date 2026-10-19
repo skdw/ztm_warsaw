@@ -83,12 +83,11 @@
     },
     "legacy_key": {
       "title": "Old API key: line {line}, {stop}",
-      "description": "**The line {line} at {stop} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Press **Submit** on this notice, or open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice.",
       "fix_flow": {
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**Paste a token of the City's new API.**\n\nGet one at [dane.um.warszawa.pl/pl/key-api]({portal}). It replaces the old key of the line {line}; the stops and the line stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
             "data": {
               "api_key": "Token"
             }
@@ -112,12 +111,11 @@
     },
     "legacy_key_line": {
       "title": "Old API key: line {line}",
-      "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Press **Submit** on this notice, or open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice.",
       "fix_flow": {
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**Paste a token of the City's new API.**\n\nGet one at [dane.um.warszawa.pl/pl/key-api]({portal}). It replaces the old key of the line {line}; the stops and the line stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
             "data": {
               "api_key": "Token"
             }
