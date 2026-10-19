@@ -5,7 +5,7 @@ from urllib.parse import quote
 from homeassistant.util import dt as dt_util
 from homeassistant.util.dt import as_local
 
-from .utils import get_line_type, get_line_icon
+from .utils import get_line_badge, get_line_icon, get_line_type
 
 from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.core import callback
@@ -152,6 +152,11 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     def icon(self):
         """Return appropriate icon based on transport type."""
         return get_line_icon(self._line)
+
+    @property
+    def entity_picture(self):
+        """A badge with the line number: the map card draws it as the pin instead of the initials of the name."""
+        return get_line_badge(self._line)
 
     @property
     def extra_state_attributes(self):

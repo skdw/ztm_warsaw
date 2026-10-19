@@ -18,6 +18,7 @@ import custom_components.ztm_warsaw as integration
 from tests.contract_shapes import kv
 from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.const import DOMAIN
+from custom_components.ztm_warsaw.utils import get_line_badge
 
 from .fake_city import (
     DEFAULT_KEY,
@@ -111,6 +112,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     assert st.state not in ("unknown", "unavailable")
     assert st.attributes["Stop, Name"] == stop_name_for("7009")
     assert st.attributes["friendly_name"] == f"Line 151 {stop_name_for('7009')} 01"
+    assert st.attributes["entity_picture"] == get_line_badge("151")  # the pin on the map card shows the line
     assert "Next 3, Headsign" in st.attributes
     assert "Next 4, Headsign" not in st.attributes
 
@@ -133,6 +135,7 @@ GOLDEN_ENTITY_ATTRS_WITH_SERVICE = {
     "attribution",
     "device_class",
     "icon",
+    "entity_picture",  # added in 1.2.0: a badge with the line, the pin on the map card
     "friendly_name",
     "Upcoming, Headsign",
     "Upcoming, Departure Day",
@@ -157,6 +160,7 @@ GOLDEN_ENTITY_ATTRS_NO_SERVICE = {
     "attribution",
     "device_class",
     "icon",
+    "entity_picture",  # added in 1.2.0: a badge with the line, the pin on the map card
     "friendly_name",
     "Upcoming, Headsign",
     "Upcoming, Departure Day",
