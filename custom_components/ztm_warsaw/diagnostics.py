@@ -63,7 +63,7 @@ def _answer(data) -> dict[str, Any] | None:
     }
 
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # NOSONAR: Home Assistant awaits this platform function, so it has to be a coroutine function
     """The entry (key redacted) and the state of its coordinator, as plain data."""
     stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     coordinator = stored.get("coordinator") if isinstance(stored, dict) else None
