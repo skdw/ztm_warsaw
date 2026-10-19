@@ -108,7 +108,7 @@ async def error_for(hass, user_input, *, check_stop_number=True) -> tuple[str | 
 
 
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
-    VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is still read as it was
+    VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is converted into a line at startup (migration.py)
 
     async def _error_for(self, user_input, *, check_stop_number=True):
         """The error key for this input, or None when it is valid (see ``error_for``).

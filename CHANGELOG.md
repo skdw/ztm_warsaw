@@ -12,6 +12,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Adopter action
 
+- **Your stops are grouped by line**: each line becomes one entry with its stops under it, and your sensors keep their names, IDs and settings. There is no way back to 1.1.4 afterwards, so take a backup first if you want one.
 - **Home Assistant 2026.1 or newer**: this version needs it, and HACS will not offer the update on an older one, so you stay on 1.1.4 until you upgrade Home Assistant.
 - **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in **Configure** on each entry (until then a notice in Repairs reminds you).
 - **More departures on every sensor**: each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone.
@@ -35,7 +36,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
 - **A clearer README**: it says plainly that these are scheduled departures, not live positions.
 - **Configure fits your key**: an entry with an old key is nudged to a token with the steps to get one, while an entry that already has a token is just asked for the new one.
-- **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have keep working.
+- **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have are grouped for you.
 - **The stop's name where you look for it**: entries are titled "Line 176 from Marcelin 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
 - **One device per entry on Home Assistant 2026.10**, which no longer lets entries share a device.
 

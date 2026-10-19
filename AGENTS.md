@@ -58,6 +58,7 @@ Automations and dashboards depend on these, and the tests
 `test_e2e_02_golden_public_contract` and `test_e2e_02_golden_attributes_when_there_is_no_service`
 (in `tests/e2e/test_e2e_01_install.py`) pin them:
 
+- `migration.py` converts the entries of 1.1.x into lines at startup (before any entry is set up); every change of the contract below needs a step there, a test in `tests/e2e/test_e2e_08_migration.py` and an `### Adopter action`;
 - the domain `ztm_warsaw`, the config entry version, and the config entry data keys: a version 1 entry (1.1.x, one stop)
   has `api_key`, `busstop_id`, `busstop_nr`, `line` and `departures`; a version 2 entry is a line with `api_key`, `line` and
   `departures` (no longer asked: a new entry stores 3, an old value is ignored, the key stays so that the shape does not

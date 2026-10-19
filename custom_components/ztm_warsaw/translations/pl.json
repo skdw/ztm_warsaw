@@ -88,6 +88,10 @@
     "legacy_key_line": {
       "title": "Stary klucz API: linia {line}",
       "description": "**Linia {line} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
+    },
+    "merged_keys": {
+      "title": "Linia {line}: przystanki miały różne klucze",
+      "description": "**Przystanki linii {line} używały różnych kluczy.**\n\nTo teraz jeden wpis, więc linia używa jednego klucza: tokenu, gdy któryś z nich był tokenem, w przeciwnym razie klucza najstarszego wpisu.\n\nJeśli któryś przystanek przestanie działać, otwórz integrację, wybierz **Konfiguruj** przy tym wpisie i wpisz klucz, którego chcesz używać.\n\nTo powiadomienie można odrzucić."
     }
   },
   "config_subentries": {
