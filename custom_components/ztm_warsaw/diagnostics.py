@@ -21,6 +21,31 @@ def _redact(data) -> dict[str, Any]:
     return {k: REDACTED if k in TO_REDACT else v for k, v in dict(data).items()}
 
 
+def _secrets(entry: ConfigEntry) -> set[str]:
+    """The credentials of the entry, and the parts of a token, so that they can be removed wherever they appear."""
+    found: set[str] = set()
+    for source in (entry.data, entry.options):
+        for name in TO_REDACT:
+            value = str(source.get(name) or "").strip()
+            if value:
+                found.add(value)
+                found.update(part for part in value.split(".") if len(part) >= 8)
+    return found
+
+
+def _scrub(value: Any, secrets: set[str]) -> Any:
+    """The same structure with every credential removed from every string in it (a title a user has renamed, say)."""
+    if isinstance(value, str):
+        for secret in secrets:
+            value = value.replace(secret, REDACTED)
+        return value
+    if isinstance(value, dict):
+        return {k: _scrub(v, secrets) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_scrub(v, secrets) for v in value]
+    return value
+
+
 def _stop_name(info) -> str | None:
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     return str(name)[:100] if name else None
@@ -57,7 +82,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "current": _answer(coordinator.data),
             "previous": _answer(coordinator._previous),
         }
-    return {
+    result = {
         "entry": {
             "title": entry.title,
             "state": entry.state.value,
@@ -67,3 +92,4 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         "key_kind": key_kind(values[0]) if values else None,
         "coordinator": state,
     }
+    return _scrub(result, _secrets(entry))

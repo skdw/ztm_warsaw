@@ -317,3 +317,20 @@ async def test_e2e_30_a_key_in_the_options_is_redacted_too(env):
     entry = await env.add_entry(options={"api_key": DEFAULT_KEY, "departures": 2}, setup=False)
     result = await _diagnostics(env, entry)
     assert result["entry"]["options"] == {"api_key": "**REDACTED**", "departures": 2}
+
+
+async def test_e2e_30_a_key_pasted_into_the_title_is_removed_too(env):
+    """A user can rename an entry to anything, also to the key (a review finding)."""
+    entry = await env.add_entry(setup=False)
+    env.hass.config_entries.async_update_entry(entry, title=f"my bus {DEFAULT_KEY} please")
+    result = await _diagnostics(env, entry)
+    assert DEFAULT_KEY not in json.dumps(result, default=str)
+    assert result["entry"]["title"] == "my bus **REDACTED** please"
+
+
+async def test_e2e_30_a_part_of_a_token_in_the_title_is_removed_too(env):
+    entry = await env.add_entry(api_key=DEFAULT_TOKEN, setup=False)
+    part = DEFAULT_TOKEN.split(".")[1]
+    env.hass.config_entries.async_update_entry(entry, title=f"token part {part}")
+    text = json.dumps(await _diagnostics(env, entry), default=str)
+    assert part not in text
