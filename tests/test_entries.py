@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.ztm_warsaw.const import DOMAIN
 from custom_components.ztm_warsaw.entries import (
     StopUnit,
     _entry_values,
@@ -130,8 +129,10 @@ def test_a_line_entry_with_no_stop_left_runs_nothing_but_keeps_its_key_and_line(
     ],
 )
 def test_the_running_stops_of_an_entry_whatever_shape_they_are_kept_in(stored, expected):
-    hass = SimpleNamespace(data={DOMAIN: {"entry-1": stored} if stored is not None else {}})
-    assert runtimes(hass, _entry()) == expected
+    entry = _entry()
+    if stored is not None:
+        entry.runtime_data = stored
+    assert runtimes(entry) == expected
 
 
 @pytest.mark.parametrize("version", [1, 2])

@@ -82,7 +82,7 @@ def _coordinator_state(coordinator) -> dict[str, Any]:
 # Home Assistant awaits this platform function, so it has to be a coroutine function although it only reads memory.
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # NOSONAR
     """The entry (key redacted) and the state of its coordinators, as plain data."""
-    running = runtimes(hass, entry)
+    running = runtimes(entry)
     api_key = entry_api_key(entry)
     result: dict[str, Any] = {
         "entry": {

@@ -10,7 +10,6 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.data_entry_flow import InvalidData
 from homeassistant.util import dt as dt_util
 
-from custom_components.ztm_warsaw.const import DOMAIN
 
 pytestmark = pytest.mark.e2e
 
@@ -31,7 +30,7 @@ async def _set_walking_time(env, entry, minutes):
 
 def _coordinator(env, entry):
     """The coordinator of the one stop of a line entry."""
-    (runtime,) = env.hass.data[DOMAIN][entry.entry_id]["units"].values()
+    (runtime,) = entry.runtime_data["units"].values()
     return runtime["coordinator"]
 
 

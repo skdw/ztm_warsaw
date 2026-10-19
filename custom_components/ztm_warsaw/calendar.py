@@ -19,13 +19,16 @@ from .entries import runtimes
 from .coordinator import ZTMStopCoordinator
 from .sensor import _device_info, _stop_info_of
 
+PARALLEL_UPDATES = 0  # the entity only reads what its coordinator fetched: nothing to limit
+
+
 EVENT_LENGTH = timedelta(minutes=1)
 
 
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:  # NOSONAR
     """Add the timetable calendar of every stop the entry runs (disabled by default, see the class)."""
-    for subentry_id, runtime in runtimes(hass, config_entry).items():
+    for subentry_id, runtime in runtimes(config_entry).items():
         async_add_entities([ZTMCalendar(runtime["coordinator"])], config_subentry_id=subentry_id)
 
 

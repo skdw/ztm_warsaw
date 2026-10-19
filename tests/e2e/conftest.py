@@ -342,7 +342,7 @@ class Env:
 
     def coordinator(self, entry: ConfigEntry):
         """The coordinator the integration created for this entry (a version 1 entry only: a line keeps its coordinators by stop)."""
-        return self.hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        return entry.runtime_data["coordinator"]
 
     @property
     def entity_registry(self) -> er.EntityRegistry:
