@@ -89,6 +89,14 @@ changed once without a migration; do not repeat that.
 - `manifest.json` has `"requirements": []` on purpose: Home Assistant provides aiohttp, and hassfest
   rejects it as a requirement. Do not add a runtime requirement without discussing it first.
 
+### Docstrings
+
+- Every module, class, function and method of `custom_components/`, `scripts/` and `tests/` has a docstring, private and
+  nested ones too (`test_*` functions and dunder methods other than `__init__` are the only exceptions). It says what the thing
+  is **for** and what it promises, not what its name already says: the project is picked up again after months, by its one
+  maintainer or by someone (or an agent) who has none of the context, and the code is what has to remember why.
+  `scripts/check_docstrings.py` (also run by pytest) fails when one is missing; whether it is any good is for the review.
+
 ### Secrets
 
 - An API key, token or password never goes into a commit, a fixture, a log line, an exception
@@ -166,6 +174,7 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `tests/live/` | An opt-in check of the real API (not run in CI); `test_key_redaction.py` there needs no key and runs in every pytest run |
 | `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
 | `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `publish-wiki.yml`, `release.yml`, `scorecard.yml`, `verify-standard.yml` (the playbook's `verify-tier`, report only). A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
+| `scripts/check_docstrings.py` | Fails when a module, class or function has no docstring (also run by pytest; see Docstrings above) |
 | `docs/wiki/` | The source of the GitHub Wiki: edit the pages here, never in the wiki's web interface. `publish-wiki.yml` copies them on a push to `main`; `scripts/check_wiki_docs.py` (also run by pytest) checks that every page exists and every link resolves |
 | `CHANGELOG.md` | The source of the GitHub Release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to run the checks and open a pull request |

@@ -30,6 +30,7 @@ HEADER = "# Known mypy diagnostics.\n# A second line.\n"
 
 @pytest.fixture(scope="module")
 def baseline() -> ModuleType:
+    """The script scripts/check_mypy_baseline.py loaded as a module (it is not a package)."""
     spec = importlib.util.spec_from_file_location("check_mypy_baseline", SCRIPT)
     assert spec is not None
     assert spec.loader is not None
@@ -39,11 +40,13 @@ def baseline() -> ModuleType:
 
 
 def write_baseline(path: Path, entries: list[str], header: str = HEADER) -> Path:
+    """Write a baseline file with a header and the given entries, and return its path."""
     path.write_text(header + "".join(f"{e}\n" for e in entries), encoding="utf-8")
     return path
 
 
 def main(baseline: ModuleType, path: Path, status: int, output: str, *args: str) -> int:
+    """Run the script's `main` with a fake mypy that returns the given status and output, against the baseline at `path`."""
     return baseline.main(list(args), runner=lambda: (status, output), baseline_path=path)
 
 

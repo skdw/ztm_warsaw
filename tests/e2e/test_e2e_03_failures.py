@@ -49,11 +49,13 @@ def departing(env, line="151") -> bool:
 
 
 def shows_a_future_departure(env, line="151") -> bool:
+    """The sensor shows a departure that is not in the past."""
     shown = env.departure_local(line)
     return shown is not None and shown >= env.now.strftime("%Y-%m-%d %H:%M")
 
 
 def coordinator_of(env):
+    """The coordinator of the first config entry of the integration."""
     return env.coordinator(env.hass.config_entries.async_entries("ztm_warsaw")[0])
 
 
@@ -344,6 +346,7 @@ async def test_e2e_19_a_row_without_a_departure_time_is_ignored(env):
 
 async def test_e2e_19_a_row_with_an_unparseable_time_is_skipped_not_fatal(env):
     def garble(payload):
+        """Make the 'czas' value of the first row unparseable."""
         row = payload["result"][0]
         for item in row:
             if item["key"] == "czas":
@@ -393,6 +396,7 @@ def _guard_is_live(env, caplog) -> None:
 
 
 def _scan(caplog) -> str:
+    """The lines of the log that contain a piece of the API key, as text for the assertion message; an empty string when nothing leaked."""
     blob = log_blob(caplog)
     leaked = [frag for frag in (KEY, KEY[:8], KEY[-12:]) if frag in blob]
     return (

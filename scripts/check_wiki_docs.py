@@ -68,6 +68,7 @@ def check(wiki_dir: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    """Check the wiki source directory given as argv[1] (default docs/wiki), print every problem to stderr, and return 1 if there is one."""
     wiki_dir = Path(argv[1]).resolve() if len(argv) > 1 else DEFAULT_DIR
     if not wiki_dir.is_dir():
         print(f"Not a directory: {wiki_dir}", file=sys.stderr)

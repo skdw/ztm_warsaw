@@ -38,6 +38,7 @@ class LiveKey(str):
 
 @pytest.fixture
 def live_key() -> LiveKey:
+    """The API key from ``ZTM_LIVE_API_KEY``, wrapped so that it prints redacted."""
     return LiveKey(os.environ["ZTM_LIVE_API_KEY"].strip())
 
 

@@ -28,6 +28,7 @@ def newest_section(text: str) -> str:
 
 
 def entries_of(section: str) -> list[str]:
+    """The bullet lines of a changelog section."""
     return [line for line in section.splitlines() if line.startswith("- ")]
 
 
@@ -67,6 +68,7 @@ GOOD = "- **A calendar**: switch it on to see the day's departures."
 
 
 def section(*lines: str) -> str:
+    """A changelog section as the style check sees it: a greeting, an `### Added` heading and the given lines."""
     return "\n".join(["Unreleased]", "", "Hey everyone, a long friendly greeting is fine here.", "", "### Added", "", *lines, ""])
 
 

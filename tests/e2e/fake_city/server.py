@@ -91,15 +91,21 @@ class Call:
 
 @dataclass
 class _Rule:
+    """A scripted queue of behaviors for the calls of one endpoint and/or contract (``None`` matches any)."""
+
     endpoint: str | None
     contract: str | None
     queue: deque
     repeat_last: bool
 
     def matches(self, call: Call) -> bool:
+        """Whether this rule applies to ``call``."""
         return (self.endpoint in (None, call.endpoint)) and (self.contract in (None, call.contract))
 
     def next(self) -> Behavior | None:
+        """The next behavior to apply, or ``None`` when the queue is used up.
+
+        With ``repeat_last`` the final behavior is returned again instead of being consumed."""
         if not self.queue:
             return None
         if len(self.queue) == 1 and self.repeat_last:
@@ -108,6 +114,11 @@ class _Rule:
 
 
 class FakeCity:
+    """The fake City of Warsaw: a legacy and a new server over one shared state.
+
+    Tests script failures with ``script``/``always``, read what the integration asked with ``calls``/``count``/
+    ``matching``, and drive the service day through the clock. Start it with ``start`` and always ``stop`` it."""
+
     def __init__(
         self,
         *,
@@ -116,6 +127,8 @@ class FakeCity:
         catalogue_bytes: int = data.SMALL_CATALOGUE,
         flip_at: time = time(3, 0),
     ) -> None:
+        """``valid_keys``/``valid_tokens`` are the credentials each contract accepts; ``catalogue_bytes`` is the size
+        of the stops catalogue; ``flip_at`` is when (Warsaw time) the service day changes."""
         self.valid_keys = set(valid_keys)
         self.valid_tokens = set(valid_tokens)
         self.catalogue_bytes = catalogue_bytes
@@ -134,11 +147,13 @@ class FakeCity:
 
     # ------------------------------------------------------------------ lifecycle
     async def start(self) -> None:
+        """Start both servers on random loopback ports."""
         # access_log=None: the fake's access log would print every ?apikey=... and pollute log assertions
         await self._legacy.start_server(access_log=None)
         await self._new.start_server(access_log=None)
 
     async def stop(self) -> None:
+        """Release hanging requests, then shut both servers down (the legacy one only if still up)."""
         self.release_hangs()
         for _ in range(5):  # let released handlers finish before the runner is torn down
             await asyncio.sleep(0)
@@ -155,10 +170,12 @@ class FakeCity:
 
     @property
     def legacy_port(self) -> int:
+        """Port of the legacy server."""
         return self._legacy.port
 
     @property
     def new_port(self) -> int:
+        """Port of the new server."""
         return self._new.port
 
     # ------------------------------------------------------------------ test control
@@ -176,6 +193,7 @@ class FakeCity:
         self._rules.append(_Rule(endpoint, contract, deque(behaviors), repeat_last))
 
     def always(self, endpoint: str | None, behavior: Behavior, *, contract: str | None = None) -> None:
+        """Apply ``behavior`` to every request of ``endpoint`` until :meth:`heal`."""
         self.script(endpoint, behavior, contract=contract, repeat_last=True)
 
     def heal(self) -> None:
@@ -184,9 +202,11 @@ class FakeCity:
         self.release_hangs()
 
     def release_hangs(self) -> None:
+        """Open the gate so that every request stuck in a Hang continues."""
         self._gate.set()
 
     def rearm_hangs(self) -> None:
+        """Close the gate again so that later Hang behaviors block once more."""
         self._gate.clear()
 
     def hung_total(self) -> int:
@@ -220,9 +240,11 @@ class FakeCity:
 
     # ------------------------------------------------------------------ counting
     def count(self, endpoint: str | None = None, contract: str | None = None, **match: str) -> int:
+        """How many recorded calls :meth:`matching` selects."""
         return len(self.matching(endpoint, contract, **match))
 
     def matching(self, endpoint: str | None = None, contract: str | None = None, **match: str) -> list[Call]:
+        """The recorded calls of ``endpoint`` and ``contract`` (``None`` = any) whose parameters equal ``match``."""
         out = []
         for c in self.calls:
             if endpoint is not None and c.endpoint != endpoint:
@@ -235,16 +257,20 @@ class FakeCity:
         return out
 
     def bytes_sent(self, endpoint: str | None = None) -> int:
+        """Total response body bytes sent for ``endpoint`` (any when ``None``), as far as they were measurable."""
         return sum(c.bytes_sent for c in self.matching(endpoint))
 
     def reset_counts(self) -> None:
+        """Forget the recorded calls; scripted behaviors are kept."""
         self.calls.clear()
 
     # ------------------------------------------------------------------ service day
     def now(self) -> datetime:
+        """The current time on the test's clock, so a frozen clock drives the service day."""
         return dt_util.utcnow()
 
     def service_date(self, now: datetime | None = None) -> date:
+        """The service date at ``now``: the previous calendar date until ``flip_at`` has passed."""
         moment = now or self.now()
         local = moment.astimezone(WARSAW)
         # The flip is one instant: the first time the clock shows ``flip_at`` that night. Comparing wall times would
@@ -253,14 +279,17 @@ class FakeCity:
         return local.date() if moment >= flip else local.date() - timedelta(days=1)
 
     def day_set_for(self, d: date) -> DaySet:
+        """The day set served for service date ``d``: an override, else friday on weekdays and saturday on weekends."""
         name = self.day_overrides.get(d) or ("friday" if d.weekday() < 5 else "saturday")
         return data.day_sets()[name]
 
     def current_day_set(self) -> DaySet:
+        """The day set served right now."""
         return self.day_set_for(self.service_date())
 
     # ------------------------------------------------------------------ apps
     def _legacy_app(self) -> web.Application:
+        """The aiohttp app of the legacy contract: one GET endpoint (with and without the trailing slash), 404 for the rest."""
         app = web.Application()
         app.router.add_get("/api/action/dbtimetable_get/", self._legacy_handler)
         app.router.add_get("/api/action/dbtimetable_get", self._legacy_handler)
@@ -268,17 +297,20 @@ class FakeCity:
         return app
 
     def _new_app(self) -> web.Application:
+        """The aiohttp app of the new contract: ``/api/action/<action>`` for any method, 404 for the rest."""
         app = web.Application()
         app.router.add_route("*", "/api/action/{action}", self._new_handler)
         app.router.add_route("*", "/{tail:.*}", self._not_found)
         return app
 
     async def _not_found(self, request: web.Request) -> web.Response:
+        """Answer 404 for an unknown route and record the call as endpoint ``unknown``."""
         call = self._new_call(request, "legacy" if request.app is self._legacy.app else "new", "unknown", None, None)
         return self._finish(call, web.json_response({"message": "fake city: no such route"}, status=404))
 
     # ------------------------------------------------------------------ helpers
     def _new_call(self, request, contract, endpoint, key, body) -> Call:
+        """Record a request as a :class:`Call`, stamped with the current time and service day, and return it."""
         now = self.now()
         sd = self.service_date(now)
         call = Call(
@@ -300,6 +332,7 @@ class FakeCity:
         return call
 
     def _finish(self, call: Call, resp: web.StreamResponse) -> web.StreamResponse:
+        """Store status and body size on ``call`` and return ``resp`` unchanged."""
         call.status = resp.status
         body = getattr(resp, "body", None)
         if isinstance(body, bytes | bytearray):
@@ -307,6 +340,7 @@ class FakeCity:
         return resp
 
     def _pick_behavior(self, call: Call) -> Behavior | None:
+        """The next scripted behavior for ``call`` (first matching rule that still has one), or ``None``."""
         for rule in self._rules:
             if rule.matches(call):
                 behavior = rule.next()
@@ -315,6 +349,7 @@ class FakeCity:
         return None
 
     def _json(self, payload: Any, status: int = 200) -> web.Response:
+        """A JSON response as the legacy host sends it, with a charset in the Content-Type."""
         return web.Response(
             status=status,
             body=json.dumps(payload, ensure_ascii=self.ensure_ascii).encode("utf-8"),
@@ -332,6 +367,7 @@ class FakeCity:
 
     # ------------------------------------------------------------------ legacy contract
     async def _legacy_handler(self, request: web.Request) -> web.StreamResponse:
+        """Handle a legacy request: record it, apply a scripted behavior if any, else answer normally (then mutate)."""
         q = request.query
         dataset = q.get("id")
         endpoint = {LEGACY_TIMETABLE_ID: "timetable", LEGACY_LINES_ID: "lines", LEGACY_STOPS_ID: "stops"}.get(
@@ -353,6 +389,7 @@ class FakeCity:
         return self._finish(call, resp)
 
     async def _legacy_answer(self, call: Call, q) -> web.Response:
+        """The normal legacy answer: bad key, stops catalogue, lines, or timetable; ``q`` is the query."""
         if call.key not in self.valid_keys:
             call.behavior = "bad_key"
             return await BadKey().respond(self, call, None)  # type: ignore[arg-type]
@@ -380,6 +417,7 @@ class FakeCity:
 
     # ------------------------------------------------------------------ new contract
     async def _new_handler(self, request: web.Request) -> web.StreamResponse:
+        """Handle a new-contract request: record it with its decoded JSON body, apply a scripted behavior if any, else answer normally."""
         action = request.match_info["action"]
         endpoint = {NEW_ACTION_TIMETABLE: "timetable", NEW_ACTION_LINES: "lines", NEW_ACTION_STOPS: "stops"}.get(
             action, "unknown"

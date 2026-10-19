@@ -31,6 +31,7 @@ LINE = "525"  # runs at 7009/01, 7009/02 and 7013/01 in the fake city
 
 
 async def _line_with_three_stops(env):
+    """Create the entry of line 525 through the flow and add its other two stops through the flow too; returns the entry."""
     entry = await env.add_entry_via_flow(line=LINE)
     for stop_id, stop_nr in (("7009", "02"), ("7013", "01")):
         result = await env.submit_flow(line=LINE, stop_id=stop_id, stop_nr=stop_nr)
@@ -244,6 +245,7 @@ async def test_e2e_32_a_stop_the_city_does_not_answer_for_does_not_hold_back_the
     original = ZTMStopCoordinator.async_config_entry_first_refresh
 
     async def second_stop_fails(self):
+        """First refresh that fails like an unanswered City for stop 02 and behaves normally for the others."""
         if self.stop_nr == "02":
             raise ConfigEntryNotReady("The City of Warsaw did not answer in time")
         await original(self)
@@ -270,6 +272,7 @@ async def test_e2e_32_a_rejected_key_on_one_stop_is_the_lines_to_solve(env):
     original = ZTMStopCoordinator.async_config_entry_first_refresh
 
     async def second_stop_is_rejected(self):
+        """First refresh that fails like a rejected key for stop 02 and behaves normally for the others."""
         if self.stop_nr == "02":
             raise ConfigEntryAuthFailed("rejected")
         await original(self)
@@ -332,6 +335,7 @@ async def test_e2e_32_add_stop_refuses_a_stop_that_another_flow_added_while_the_
     real = config_flow.error_for
 
     async def another_flow_finishes_first(hass, user_input, **kwargs):
+        """Check the stop as usual, then add the same stop as another flow would have, before this flow finishes."""
         result = await real(hass, user_input, **kwargs)
         hass.config_entries.async_add_subentry(
             entry,

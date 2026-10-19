@@ -1,3 +1,11 @@
+"""The dialogs of the integration: adding a line and its first stop, adding another stop, changing the key.
+
+Every key typed here is checked with the City before anything is saved, and a key is never logged or put into an
+error. ``ZtmWarsawConfigFlow`` creates a line entry (or adds a stop to the one that exists), ``ZtmStopSubentryFlow``
+is *Add stop* on an entry, ``ZtmWarsawOptionsFlow`` is *Configure* (a new key for the whole line), and the reauth
+step asks for a new key when the City rejects the old one.
+"""
+
 import logging
 import re
 
@@ -49,6 +57,9 @@ async def _check_lines(client, line):
 
 
 async def _check_timetable(client):
+    """The timetable must come back with departures: ``ValueError`` for the error key to show, ``KeyWorks`` when the City
+    accepted the key but the line has no departures today. A rejected key is passed on as ``ZTMAuthError``.
+    """
     try:
         data = await client.get(fetch_stop_name=False)
     except ZTMAuthError:
@@ -108,6 +119,8 @@ async def error_for(hass, user_input, *, check_stop_number=True) -> tuple[str | 
 
 
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+    """The dialog that adds a line (or, for a line that is set up, one more stop of it)."""
+
     VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is converted into a line at startup (migration.py)
 
     async def _error_for(self, user_input, *, check_stop_number=True):
@@ -117,6 +130,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         return error
 
     def _is_configured(self, key):
+        """Whether a stop, pole and line is already run by an entry (a 1.1.x entry or a line); a second sensor for it could not exist."""
         return any(key in stop_keys(entry) for entry in self._async_current_entries())
 
     def _entry_of_line(self, line):
@@ -150,6 +164,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         )
 
     async def async_step_user(self, user_input=None):
+        """The form of the line, its first stop and the key: checked with the City, then an entry with the stop, or one more stop in the line's entry."""
         errors = {}
 
         if user_input is not None:
@@ -174,6 +189,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         )
 
     async def async_step_reauth(self, entry_data):
+        """Home Assistant starts this when the City rejects the key of an entry: it asks for a new key."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input=None):
@@ -201,16 +217,19 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
+        """Home Assistant asks for the *Configure* dialog of an entry here."""
         return ZtmWarsawOptionsFlow(config_entry)
 
     @classmethod
     @callback
     def async_get_supported_subentry_types(cls, config_entry):
+        """The subentry dialogs of an entry: *Add stop* on a line; an entry of 1.1.x (one stop) has no stops to add."""
         # Only a line has stops to add; an entry of 1.1.x is one stop and has no "Add stop".
         return {SUBENTRY_STOP: ZtmStopSubentryFlow} if is_line_entry(config_entry) else {}
 
 
 def _subentry(stop: ConfigSubentryData) -> ConfigSubentry:
+    """The ``ConfigSubentry`` of a stop from its description (the dialog creates the entry with the description, an added stop needs the object)."""
     return ConfigSubentry(
         subentry_type=stop["subentry_type"],
         title=stop["title"],
@@ -220,6 +239,7 @@ def _subentry(stop: ConfigSubentryData) -> ConfigSubentry:
 
 
 def _stop_unique_id(stop_id, stop_nr) -> str:
+    """The unique ID of a stop's subentry: ``<stop id>_<pole number>``, which is also what makes a stop impossible to add twice."""
     return f"{stop_id}_{stop_nr}"
 
 
@@ -283,9 +303,11 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
     """*Configure*: replace the API key or token of the entry, e.g. an old key by a token of the new API."""
 
     def __init__(self, config_entry):
+        """Keep the entry whose key is changed."""
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
+        """The step of *Configure* for an entry with an old (UUID) key: the form for the new key, nudging to a token. An entry that has a token gets ``async_step_token``; both go through ``_change_key``."""
         return await self._change_key(user_input)
 
     async def async_step_token(self, user_input=None):
@@ -293,6 +315,10 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
         return await self._change_key(user_input)
 
     async def _change_key(self, user_input):
+        """Ask for the new key (the nudge to a token for an old key, a plain form for a token), check it with the City and save it.
+
+        The entry reloads once with the new key; a reauth that was waiting for it is closed.
+        """
         entry = self._config_entry
         api_key = entry_api_key(entry)
         if api_key is None or not _key_can_change(entry):
@@ -323,6 +349,7 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
     """*Add stop*: another stop (and pole) of the line, asked with the key the line already has."""
 
     async def async_step_user(self, user_input=None):
+        """Ask for the stop and pole to add to the line, check them with the line's key, and add them as a subentry."""
         entry = self._get_entry()
         api_key, line = entry_api_key(entry), line_of(entry)
         if api_key is None or line is None:

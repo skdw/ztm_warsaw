@@ -108,6 +108,7 @@ def check(root: Path, tag: str | None) -> str:
 
 
 def main(env: Mapping[str, str] | None = None, root: Path | None = None) -> int:
+    """Run the check for the CI or release workflow, using RELEASE_TAG from the environment, and write the notes to NOTES_OUT if that is set; 0 if everything agrees, 1 with a message if not. The environment and root are parameters so that tests can replace them."""
     env = os.environ if env is None else env
     # Unset means a pull request run. Set but empty is passed on as-is and fails the
     # tag comparison, so an empty expression in a release workflow cannot skip the check.

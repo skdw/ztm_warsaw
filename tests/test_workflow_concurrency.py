@@ -16,6 +16,7 @@ WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
 
 
 def concurrency_of(name: str) -> dict:
+    """The top-level concurrency block of a workflow file; asserts that there is one."""
     workflow = yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
     assert "concurrency" in workflow, f"{name} has no top-level concurrency block (the playbook's verify-tier wants one)"
     return workflow["concurrency"]

@@ -208,6 +208,7 @@ def main(
     event_path: str | None = None,
     changed_files: Callable[[str, str], list[str]] = git_changed_files,
 ) -> int:
+    """Check the Documentation impact declaration of the pull request in the event file; 0 if it is consistent with the diff (or the run is not a pull request or is Dependabot's), 1 if not. The event path and the diff source are parameters so that tests can replace them."""
     event_path = event_path if event_path is not None else os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
         return 0

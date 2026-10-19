@@ -37,18 +37,24 @@ class NetworkBlocked(Exception):  # deliberately NOT an AssertionError: xfail(ra
 
 @contextmanager
 def route_to_fake_city(fake) -> Iterator[None]:
+    """Point the aiohttp client at ``fake`` for the duration of the ``with`` block.
+
+    Requests to the two city hosts are rewritten to the fake's loopback ports; any other destination raises
+    ``NetworkBlocked`` and is recorded in ``fake.blocked``."""
     origin_ports = {LEGACY_HOST: fake.legacy_port, NEW_HOST: fake.new_port}
     fake_ports = set(origin_ports.values())
     original = aiohttp.ClientSession._request
     original_resolve = aiohttp.TCPConnector._resolve_host
 
     def block(destination: str) -> NetworkBlocked:
+        """Record the refused ``destination`` and return the exception to raise for it."""
         # The integration wraps requests in broad ``except Exception``, so also record the attempt:
         # the ``fake_city`` fixture fails the test at teardown if this list is not empty.
         fake.blocked.append(destination)
         return NetworkBlocked(f"test tried to reach {destination!r}; only the fake city is allowed")
 
     async def _request(self, method, str_or_url, **kwargs):
+        """Rewrite the origin of a city URL to its fake port, refuse anything else, then do the real request."""
         url = URL(str_or_url)
         if url.host in origin_ports:
             url = url.with_scheme("http").with_host(LOOPBACK).with_port(origin_ports[url.host])
@@ -57,6 +63,7 @@ def route_to_fake_city(fake) -> Iterator[None]:
         return await original(self, method, url, **kwargs)
 
     async def _resolve_host(self, host, port, traces=None):
+        """Refuse every connection that is not to a fake city port, before any DNS lookup; this also covers redirects."""
         if host != LOOPBACK or port not in fake_ports:
             raise block(f"{host}:{port}")
         return await original_resolve(self, host, port, traces)

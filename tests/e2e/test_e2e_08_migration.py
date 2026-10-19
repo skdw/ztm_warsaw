@@ -47,6 +47,7 @@ async def _restart(env):
 
 
 def _lines(env):
+    """The converted (version 2) entries, by line."""
     return {e.data["line"]: e for e in env.hass.config_entries.async_entries(DOMAIN) if e.version == 2}
 
 

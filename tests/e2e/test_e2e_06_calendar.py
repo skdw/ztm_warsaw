@@ -36,7 +36,9 @@ async def _add_entry(env, **kwargs):
 
 
 async def _events(env, entity_id, start: str, end: str):
+    """The events the calendar entity returns for the given Warsaw wall-clock range, through the real ``calendar.get_events`` service."""
     def moment(text: str) -> datetime:
+        """A Warsaw wall-clock time from ISO text."""
         return datetime.fromisoformat(text).replace(tzinfo=WARSAW)
 
     answer = await env.hass.services.async_call(

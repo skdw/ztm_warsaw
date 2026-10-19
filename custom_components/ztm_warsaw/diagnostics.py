@@ -46,6 +46,7 @@ def _scrub(value: Any, secrets: set[str]) -> Any:
 
 
 def _stop_name(info) -> str | None:
+    """The name of a stop for the diagnostics: a string of at most 100 characters, or None."""
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     return str(name)[:100] if name else None
 
@@ -63,6 +64,7 @@ def _answer(data) -> dict[str, Any] | None:
 
 
 def _coordinator_state(coordinator) -> dict[str, Any]:
+    """The state of one coordinator as plain data: how its last refresh went (the class of an error, never its text), the failure marker and the answers it holds."""
     error = coordinator.last_exception
     return {
         "last_update_success": coordinator.last_update_success,

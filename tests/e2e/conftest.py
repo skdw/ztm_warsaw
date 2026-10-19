@@ -57,6 +57,7 @@ def process_tz() -> Iterator[Callable[[str], None]]:
     previous = os.environ.get("TZ")
 
     def _set(name: str) -> None:
+        """Switch the process time zone to ``name`` and make the C library notice."""
         os.environ["TZ"] = name
         time_module.tzset()
 
@@ -80,6 +81,7 @@ def clock(request, process_tz) -> Iterator[Any]:
     real_astimezone = freezegun_api.real_datetime.astimezone
 
     def production_astimezone(self, tz=None):
+        """``astimezone`` as production sees it: the real fixed-offset behaviour, with the result wrapped back into freezegun's fake datetime."""
         return freezegun_api.datetime_to_fakedatetime(real_astimezone(self, tz))
 
     patched = []
@@ -109,12 +111,14 @@ def _keep_1_1_x_entries(request) -> Iterator[None]:
 
 @pytest.fixture
 def city_options(request) -> dict[str, Any]:
+    """The keyword arguments of ``@pytest.mark.city(...)`` on the test (empty without the mark), passed on to the fake city."""
     marker = request.node.get_closest_marker("city")
     return dict(marker.kwargs) if marker else {}
 
 
 @pytest.fixture
 async def fake_city(clock, socket_enabled, city_options) -> AsyncIterator[FakeCity]:
+    """A started fake City of Warsaw with the integration's HTTP routed to it; fails the test if the code under test tried to reach anything else."""
     city = FakeCity(**{"catalogue_bytes": SMALL_CATALOGUE, **city_options})
     await city.start()
     try:
@@ -142,7 +146,9 @@ def sleeps(monkeypatch) -> Sleeps:
     rec = Sleeps()
 
     class _AsyncioProxy:
+        """Stands in for the ``asyncio`` module inside the client: ``sleep`` is recorded and skipped, everything else is the real thing."""
         async def sleep(self, delay, *args, **kwargs):
+            """Record the requested delay and return at once, so back-off sleeps cost no time."""
             rec.requested.append(delay)
             await asyncio.sleep(0)
 
@@ -159,6 +165,7 @@ class Env:
     """What a test needs, in one object."""
 
     def __init__(self, hass: HomeAssistant, clock: Any, city: FakeCity, sleeps: Sleeps) -> None:
+        """Bundle the pieces of one test: the Home Assistant instance, the frozen clock, the fake city and the recorded sleeps."""
         self.hass = hass
         self.clock = clock
         self.city = city
@@ -166,6 +173,7 @@ class Env:
 
     # -- time -------------------------------------------------------------------------
     async def settle(self) -> None:
+        """Let everything that is already scheduled or running finish, background tasks included."""
         await self.hass.async_block_till_done(wait_background_tasks=True)
 
     def move_to(self, when: str | datetime) -> None:
@@ -210,6 +218,7 @@ class Env:
 
     @property
     def now(self) -> datetime:
+        """The current (frozen) time in Warsaw."""
         return datetime.now(WARSAW)
 
     async def drive_timeouts(self, task: asyncio.Future, *, tick: float = 21.0, max_requests: int = 6) -> Any:
@@ -272,6 +281,7 @@ class Env:
         return result
 
     async def add_entry_via_flow(self, **kwargs: Any) -> ConfigEntry:
+        """Run the config flow to the end and return the entry it created; a flow that ends any other way is a harness error."""
         result = await self.submit_flow(**kwargs)
         if result["type"] != "create_entry":
             raise HarnessError(f"the config flow did not create an entry: {result.get('errors') or result}")
@@ -313,9 +323,11 @@ class Env:
     # -- reading ----------------------------------------------------------------------
     @staticmethod
     def entity_id(line: str, stop_id: int | str = 7009, stop_nr: str = "01", *, diag: bool = False) -> str:
+        """The entity ID the integration gives the sensor of this line at this pole (or its diagnostic sensor with ``diag=True``)."""
         return f"sensor.line_{line.lower()}_from_{stop_id}_{stop_nr}" + ("_last_update" if diag else "")
 
     def state(self, line: str = "151", stop_id: int | str = 7009, stop_nr: str = "01", *, diag: bool = False) -> State:
+        """The state of that sensor; a harness error if Home Assistant has none, so a typo cannot read as 'no state'."""
         st = self.hass.states.get(self.entity_id(line, stop_id, stop_nr, diag=diag))
         if st is None:
             raise HarnessError(f"no state for {self.entity_id(line, stop_id, stop_nr, diag=diag)}")
@@ -329,14 +341,17 @@ class Env:
         return datetime.fromisoformat(st.state).astimezone(WARSAW).strftime("%Y-%m-%d %H:%M")
 
     def coordinator(self, entry: ConfigEntry):
+        """The coordinator the integration created for this entry (a version 1 entry only: a line keeps its coordinators by stop)."""
         return self.hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     @property
     def entity_registry(self) -> er.EntityRegistry:
+        """Home Assistant's entity registry."""
         return er.async_get(self.hass)
 
     @property
     def device_registry(self) -> dr.DeviceRegistry:
+        """Home Assistant's device registry."""
         return dr.async_get(self.hass)
 
 

@@ -117,6 +117,7 @@ NEW_KEY = "22222222-3333-4444-8555-666666666666"  # gitleaks:allow  (synthetic)
 
 
 def _reauth_flows(env):
+    """The reauthentication flows currently in progress for the integration."""
     return env.hass.config_entries.flow.async_progress_by_handler(DOMAIN, match_context={"source": "reauth"})
 
 
@@ -277,6 +278,7 @@ async def test_e2e_30_diagnostics_download_redacts_the_api_key(env):
 
 
 async def _diagnostics(env, entry):
+    """The integration's diagnostics for ``entry``, as Home Assistant would build them."""
     module = importlib.import_module("custom_components.ztm_warsaw.diagnostics")
     return await module.async_get_config_entry_diagnostics(env.hass, entry)
 

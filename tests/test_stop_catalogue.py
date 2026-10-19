@@ -13,6 +13,7 @@ UUID = "11111111-2222-4333-8444-555555555555"  # synthetic
 
 
 def rec(zespol, slupek, **more):
+    """A stop record in the shape the API returns (a `values` list of key/value pairs); the pole is left out when `slupek` is None."""
     values = [{"key": "zespol", "value": zespol}]
     if slupek is not None:
         values.append({"key": "slupek", "value": slupek})
@@ -26,9 +27,11 @@ class Stub:
     uses_token = False
 
     def __init__(self, rows):
+        """Keep the rows to answer with and start the download count at zero."""
         self.rows, self.downloads = rows, 0
 
     async def _stop_info_rows(self):
+        """Count a download and return the rows, as the real client would after fetching them."""
         self.downloads += 1
         return self.rows
 
@@ -77,7 +80,9 @@ async def test_the_minute_counts_from_the_end_of_the_download(monkeypatch):
     monkeypatch.setattr(time, "monotonic", lambda: clock[0])
 
     class Slow(Stub):
+        """A client whose download takes 42 seconds of the fake clock and then fails."""
         async def _stop_info_rows(self):
+            """Move the fake clock 42 seconds and fail (return None)."""
             clock[0] += 42  # a download that takes 42 s and fails
             return None
 
@@ -113,7 +118,9 @@ async def test_a_client_that_is_alone_keeps_nothing():
 
 async def test_a_skipped_catalogue_is_not_a_failed_attempt_of_the_entry():
     class Skipped:
+        """A catalogue that did not look (the answer a fresh failure gives), so there is no result either way."""
         async def find(self, *_):
+            """Answer (None, None): the catalogue did not look, so nothing is known."""
             return None, None
 
     client = ZTMStopClient(None, UUID, "7009", "01", "151", catalogue=Skipped())
@@ -126,7 +133,9 @@ async def test_a_slow_host_does_not_hold_up_the_other_one():
     release = asyncio.Event()
 
     class Blocked(Stub):
+        """A client whose download waits until the test sets `release`."""
         async def _stop_info_rows(self):
+            """Wait for `release`, then return the rows (without counting the download)."""
             await release.wait()
             return self.rows
 
@@ -144,7 +153,9 @@ async def test_two_entries_of_one_host_still_wait_for_one_download():
     release = asyncio.Event()
 
     class Blocked(Stub):
+        """A client whose download counts itself and then waits until the test sets `release`."""
         async def _stop_info_rows(self):
+            """Count the download, wait for `release`, then return the rows."""
             self.downloads += 1
             await release.wait()
             return self.rows

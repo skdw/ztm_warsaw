@@ -24,6 +24,7 @@ TEMPLATE_BODY = """## Documentation impact
 
 @pytest.fixture(scope="module")
 def docs_impact() -> ModuleType:
+    """The script scripts/check_pr_docs_impact.py loaded as a module (it is not a package)."""
     spec = importlib.util.spec_from_file_location("check_pr_docs_impact", SCRIPT)
     assert spec is not None
     assert spec.loader is not None
@@ -33,6 +34,7 @@ def docs_impact() -> ModuleType:
 
 
 def body(docs_updated: bool = False, no_update: str | None = None, newline: str = "\n") -> str:
+    """A pull request body with the Documentation impact section: which box is ticked, with which reason, and which line ending."""
     lines = [
         "## Documentation impact",
         "",
@@ -43,10 +45,12 @@ def body(docs_updated: bool = False, no_update: str | None = None, newline: str 
 
 
 def in_section(text: str) -> str:
+    """The given text placed under the Documentation impact heading."""
     return f"## Documentation impact\n\n{text}"
 
 
 def write_event(path: Path, pr_body: str | None, login: str = "solarssk") -> str:
+    """Write a GitHub pull request event file (body, author, base and head SHA) and return its path as a string."""
     event = {
         "pull_request": {
             "body": pr_body,
@@ -180,6 +184,7 @@ def test_main_diffs_base_and_head_from_the_event(docs_impact: ModuleType, tmp_pa
     seen: list[tuple[str, str]] = []
 
     def fake_diff(base: str, head: str) -> list[str]:
+        """A stand-in for the git diff that records the base and head it is asked about and lists README.md as changed."""
         seen.append((base, head))
         return ["README.md"]
 
@@ -206,6 +211,7 @@ def test_main_messages_are_constants_and_say_how_to_fix(
 
 @pytest.fixture
 def git_repo(docs_impact: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An empty git repository in a temporary directory, made the working directory, with the script pointed at the real git."""
     git = shutil.which("git")
     assert git is not None
     monkeypatch.setattr(docs_impact, "GIT", git)
@@ -217,6 +223,7 @@ def git_repo(docs_impact: ModuleType, tmp_path: Path, monkeypatch: pytest.Monkey
 
 
 def run_git(*args: str) -> str:
+    """Run git with a throwaway identity and no signing, and return its stripped output; a failure raises."""
     git = shutil.which("git")
     assert git is not None
     identity = ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false"]
@@ -224,6 +231,7 @@ def run_git(*args: str) -> str:
 
 
 def commit(repo: Path, files: dict[str, str | None], message: str) -> str:
+    """Write (or, for None, remove) the given files, commit them, and return the new commit's SHA."""
     for name, content in files.items():
         target = repo / name
         if content is None:

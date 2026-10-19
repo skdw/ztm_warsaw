@@ -71,6 +71,7 @@ async def _call(key: str, what: str, **params: str) -> tuple[int, bytes]:
 
 
 def _json(body: bytes):
+    """Parse ``body`` as JSON; anything else fails the test without echoing the body."""
     try:
         return json.loads(body)
     except ValueError:

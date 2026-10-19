@@ -10,6 +10,7 @@ PREFIX = "data:image/svg+xml;base64,"
 
 
 def _svg(line):
+    """The SVG text of the badge of a line, decoded from its data URI."""
     badge = get_line_badge(line)
     assert badge is not None
     assert badge.startswith(PREFIX)

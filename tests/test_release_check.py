@@ -38,6 +38,7 @@ CHANGELOG = """# Changelog
 
 @pytest.fixture(scope="module")
 def release_check() -> ModuleType:
+    """The script scripts/release_check.py loaded as a module (it is not a package)."""
     spec = importlib.util.spec_from_file_location("release_check", SCRIPT)
     assert spec is not None
     assert spec.loader is not None
@@ -47,6 +48,7 @@ def release_check() -> ModuleType:
 
 
 def make_repo(root: Path, version: str, changelog: str | None = CHANGELOG) -> Path:
+    """A minimal repository in `root`: a manifest.json with the version and, unless None, the CHANGELOG.md; returns `root`."""
     manifest = root / "custom_components" / "ztm_warsaw" / "manifest.json"
     manifest.parent.mkdir(parents=True)
     manifest.write_text(json.dumps({"domain": "ztm_warsaw", "version": version}), encoding="utf-8")

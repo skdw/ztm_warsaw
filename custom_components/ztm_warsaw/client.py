@@ -1,4 +1,13 @@
 # -*- coding: utf-8 -*-
+"""The client of the City of Warsaw open-data API, for both hosts it runs on.
+
+The old host (``api.um.warszawa.pl``: GET, a UUID key in the query, answers ``{"result": ...}``) and the new one
+(``dane.um.warszawa.pl``: POST, a JWT token in the ``Authorization`` header, bare lists, every rejected request answered with the same 500) are told
+apart by the shape of the key, and a key is only ever sent to the host that accepts it. ``ZTMStopClient`` asks for the
+timetable, the lines and the name of one stop; ``StopCatalogue`` shares the 1.6 MB list of stops between entries.
+Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; no message carries the key.
+"""
+
 import asyncio
 import time
 import logging
@@ -74,6 +83,7 @@ class StopCatalogue:
     ``retry_after`` seconds, so a City that is down is asked once, not once per entry."""
 
     def __init__(self, ttl: float = 86400, retry_after: float = 60):
+        """Set how long the index of the catalogue is kept (``ttl``) and how long a failed download is not repeated (``retry_after``)."""
         self._ttl = ttl
         self._retry_after = retry_after
         self._locks: dict[bool, asyncio.Lock] = {}  # one per kind of host: a slow host does not hold up the other
@@ -158,6 +168,7 @@ def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str
         line = params.get("line") if line is None else line
 
     def _safe(v: str | None) -> str:
+        """Reduce a value to letters, digits, ``_`` and ``-`` (anything else becomes ``*``), so it is safe in a log line."""
         if v is None:
             return ""
         # Keep only alphanumerics and a few safe characters; mask the rest
@@ -189,6 +200,12 @@ def _ctxp(params: dict | None) -> str:
 
 # Client for interacting with the Warsaw ZTM public transport API
 class ZTMStopClient:
+    """Asks the City of Warsaw for the timetable, the lines and the name of one line at one pole.
+
+    One client belongs to one stop unit. Which host it talks to follows from the key it is given (see ``key_kind``);
+    it never sends the key anywhere else.
+    """
+
     def __init__(
         self,
         session: aiohttp.ClientSession,
@@ -200,6 +217,11 @@ class ZTMStopClient:
         user_agent: str | None = None,
         catalogue: StopCatalogue | None = None,
     ):
+        """Prepare the requests for this stop; nothing is sent until ``get``, ``get_lines`` or ``get_stop_name`` is called.
+
+        ``timeout`` is in seconds (20 by default); ``catalogue`` is the shared list of stops (a private one, which keeps
+        nothing, when none is given).
+        """
         api_key = api_key.strip()
         self._user_agent = user_agent
         self._catalogue = catalogue or StopCatalogue(ttl=0)  # alone: nothing is kept
@@ -250,6 +272,7 @@ class ZTMStopClient:
 
     @property
     def uses_token(self) -> bool:
+        """Whether the key is a token of the new host (and not an old key); the shared catalogue keeps one index per kind."""
         return not self._legacy
 
     async def get_lines(self) -> list[str] | None:
@@ -396,6 +419,11 @@ class ZTMStopClient:
             _LOGGER.debug("Stop-info attempt %d failed; next retry in %d seconds for %s", self._stop_info_attempts, delay, where)
 
     async def get(self, *, fetch_stop_name: bool = True) -> Optional[ZTMDepartureData]:
+        """The timetable of the stop today, or None when the request failed.
+
+        The stop's name is fetched once on the way (``fetch_stop_name``; it respects its own back-off, so it never hammers
+        the API). Raises ``ZTMApiError`` for an answer that is not a timetable, and ``ZTMAuthError`` for a rejected key.
+        """
         try:
             # Ensure stop name is fetched once on first use.
             # This will not spam the API: get_stop_name() respects backoff and permanent-missing.

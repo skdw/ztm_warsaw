@@ -84,6 +84,8 @@ def departure_datetime(service_date: date, czas) -> Optional[datetime]:
 
 @dataclass
 class ZTMDepartureDataReading:
+    """One departure as the City describes it (direction, the label of the time, the brigade ...) with the moment it departs."""
+
     kierunek: str = field(default="unknown")
     czas: Optional[str] = field(default=None)
     symbol_1: Optional[str] = field(default=None)
@@ -94,6 +96,7 @@ class ZTMDepartureDataReading:
 
     @classmethod
     def from_dict(cls, data, service_date: date):
+        """A reading built from the City's key/value pairs; ``dt`` is the moment of ``czas`` on ``service_date`` (None when it has no usable time)."""
         czas = data.get("czas")
         return cls(
             kierunek=data.get("kierunek", "unknown"),
@@ -108,6 +111,8 @@ class ZTMDepartureDataReading:
 
 @dataclass
 class ZTMDepartureData:
+    """The timetable of one stop for one service day: its departures in order and what the City says about the stop."""
+
     departures: list[ZTMDepartureDataReading]
     stop_info: Optional[dict] = field(default_factory=dict)
     service_date: Optional[date] = None  # the service day of the answer; None only in tests that do not care
