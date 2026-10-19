@@ -200,6 +200,9 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert diag.entity_id == f"sensor.line_{slug}_from_7009_01_last_update"
     assert diag.entity_category == "diagnostic"
     assert diag.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default
+    calendar = registered[f"line_{line}_from_7009_01_calendar"]
+    assert calendar.entity_id == f"calendar.line_{slug}_from_7009_01_timetable"
+    assert calendar.disabled_by == er.RegistryEntryDisabler.INTEGRATION  # off by default: it holds every departure of the day
 
     # --- device registry: one device per LINE (shared by every stop of that line)
     devices = dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)

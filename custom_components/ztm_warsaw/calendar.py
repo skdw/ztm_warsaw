@@ -32,6 +32,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
 class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
     """The departures of one line at one pole, as calendar events."""
 
+    # Off by default: a calendar is a lot of events (every departure of the day), and it is for those who want them.
+    _attr_entity_registry_enabled_default = False
+
     def __init__(self, coordinator: ZTMStopCoordinator):
         super().__init__(coordinator)
         line, stop_id, stop_nr = coordinator.line, coordinator.stop_id, coordinator.stop_nr
