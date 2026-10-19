@@ -53,6 +53,11 @@ async def async_migrate_to_lines(hass: HomeAssistant) -> None:
         except Exception:  # noqa: BLE001
             # One line that cannot be grouped must not stop the others, or the setup.
             _LOGGER.exception("The entries of line %s could not be grouped; they keep working as they are", line)
+    # A line whose last 1.1.x entry was converted by an earlier run that was cut short before its clean-up: nothing is left
+    # to group, so the clean-up is done here, for every line that is there (it does nothing when there is nothing to clean).
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if is_line_entry(entry) and (converted_line := line_of(entry)):
+            await _clean_up(hass, entry, converted_line, [], set())
 
 
 def _stop_title(entry: ConfigEntry, unit: StopUnit) -> str:

@@ -383,3 +383,21 @@ async def test_e2e_33_a_device_that_is_gone_carries_nothing_over(env):
     (device,) = find_devices(env.device_registry, {(DOMAIN, "line_151")})
     _carry_over(env.device_registry, "no-such-device", device.id)  # no crash, no change
     assert (device.area_id, device.name_by_user) == (None, None)
+
+
+async def test_e2e_33_what_a_cut_short_run_left_on_a_line_with_no_legacy_entry_left_is_cleaned_at_the_next_start(env):
+    (old,) = await _as_1_1_x_left_them(env, line="151")
+    await _restart(env)  # converted: there is no 1.1.x entry of the line any more
+    # what a run cut short before its clean-up would have left on the line: the old device and the old stored answers
+    leftover = env.device_registry.async_get_or_create(
+        config_entry_id=old.entry_id,
+        config_subentry_id=next(iter(old.subentries)),
+        identifiers={(DOMAIN, "line_151")},
+        name="Line 151",
+    )
+    await Store(env.hass, 1, store_key(old.entry_id)).async_save({"answers": []})
+    await async_migrate_to_lines(env.hass)
+    assert find_devices(env.device_registry, {(DOMAIN, "line_151")}) == []
+    assert env.device_registry.async_get(leftover.id) is None
+    assert await Store(env.hass, 1, store_key(old.entry_id)).async_load() is None
+    assert find_devices(env.device_registry, {(DOMAIN, "line_151_7009_01")}), "the stop's own device stays"
