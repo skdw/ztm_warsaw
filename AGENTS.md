@@ -59,7 +59,7 @@ Automations and dashboards depend on these, and the tests
 (in `tests/e2e/test_e2e_01_install.py`) pin them:
 
 - the domain `ztm_warsaw`, the config entry version, and the config entry data keys `api_key`,
-  `busstop_id`, `busstop_nr`, `line` and `departures`;
+  `busstop_id`, `busstop_nr`, `line` and `departures` (no longer asked: a new entry stores 3, an old value is ignored, the key stays so that the shape does not change);
 - the entity `unique_id` `line_<LINE>_from_<STOP>_<POLE>` and the entity ID
   `sensor.line_<line in lower case>_from_<STOP>_<POLE>`, and the diagnostic sensor's `_last_update`
   suffix;

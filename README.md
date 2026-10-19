@@ -22,10 +22,11 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 
 - ✅ Buses, trams, metro, night, cemetery, express and local lines.
 - ✅ Several instances: monitor as many stops and lines as you like.
-- ✅ The next departure as a timestamp, usable in the UI and in automations; optionally up to 3 more.
+- ✅ The next departure as a timestamp, usable in the UI and in automations, and the three after it as attributes (`Next 1` ... `Next 3`).
 - ✅ A clear "No service" state on days when a line does not run, and an `unavailable` state when the City's API fails (see [Troubleshooting](#-troubleshooting)).
 - ✅ Set up entirely in the Home Assistant UI, in English or Polish.
-- ✅ Attributes with the stop, the direction, a timetable link and notes.
+- ✅ Attributes with the stop (its name and position, so it shows as a pin on the map card), the direction, a timetable link and notes.
+- ✅ Change the API key or token of an entry at any time in **Configure**, for example from the City's old API to the new one.
 
 ---
 
@@ -61,7 +62,7 @@ The City runs two portals, and the integration accepts the key of either one:
 - **New (recommended):** on [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) enter a nick, accept the terms and download your own token. It is a long text in three parts separated by dots.
 - **Old:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Existing old keys still work when this was written, but the City publishes no date or promise for how long, so move to a token when you can.
 
-The integration recognises which one you pasted and talks only to the matching API. To move an existing entry to a token, **remove the old entry first** and then add the integration again with the token: two entries for the same stop, pole and line cannot coexist, and the second one would silently have no sensor.
+The integration recognises which one you pasted and talks only to the matching API. To move an existing entry to a token, use **Configure** on that entry and enter the token (the stop and the line stay); do not add a second entry for it, because two entries for the same stop, pole and line cannot coexist and the setup refuses the second one.
 
 ---
 
@@ -89,10 +90,9 @@ The integration recognises which one you pasted and talks only to the matching A
 3. Fill in:
    - **API key or token** (see above),
    - **Stop ID** and **stop number** (for example 7009 and 01),
-   - **Line number** (for example 151),
-   - **Number of departures to show**.
+   - **Line number** (for example 151).
 
-The entity is named after the stop and the line, for example `sensor.line_151_from_7009_01`. You can change the number of upcoming departures at any time in **Settings → Devices & Services → Warsaw Public Transport → Configure**.
+The entity is named after the stop and the line, for example `sensor.line_151_from_7009_01`. To replace the API key or token of an entry (to move from an old key to a token, say), use **Settings → Devices & Services → Warsaw Public Transport → Configure** on that entry; the stop and the line stay. An entry that still uses an old key shows a dismissible notice in **Settings → Repairs** that says so.
 
 **Stop ID and stop number** are not the same thing: the stop ID is shared by all poles of a stop, and the stop number (usually 01, 02, ...) is the number painted on the sign of the pole (*słupek*). A stop with several directions has a different number for each.
 
@@ -102,7 +102,7 @@ The entity is named after the stop and the line, for example `sensor.line_151_fr
 
 - **The state is `unknown` and the attribute says "No service".** The line does not run today, or its last departure has passed. This is not an error: check [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
 - **The sensor is `unavailable`.** The City's API answered, but not with a timetable: the key or token was rejected, the stop, pole and line are not known to the API, or the answer was in a format the integration does not understand. If the very first load fails (not because of a rejected key, see below), the integration is shown as *retrying setup* and Home Assistant retries by itself. The error is in the Home Assistant log (the key is never logged), and the sensor recovers by itself when the API answers properly again; if it does not, check the key and the stop, pole and line in the settings.
-- **Home Assistant asks for a new key (re-authentication).** The old API answered "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again). Enter a new key or token in the prompt; the stop and the line stay as they are, and a key is accepted even if the line does not run today. Until you do, the sensor stays `unavailable`. The new API answers every rejected request alike, so a rejected token cannot be told from an outage there: the sensor keeps the cached timetable until its service day ends, then becomes `unavailable`, and no prompt appears; if you revoked the token, remove the entry and add it again with a new one.
+- **Home Assistant asks for a new key (re-authentication).** The old API answered "rejected key" three times in a row (the retries of a setup count too; an outage in between starts the count again). Enter a new key or token in the prompt; the stop and the line stay as they are, and a key is accepted even if the line does not run today. Until you do, the sensor stays `unavailable`. The new API answers every rejected request alike, so a rejected token cannot be told from an outage there: the sensor keeps the cached timetable until its service day ends, then becomes `unavailable`, and no prompt appears; if you revoked the token, enter a new one in **Configure** on the entry.
 - **Reporting a problem.** Open the integration's entry, use *Download diagnostics* and attach the file to the issue: it shows the entry and the state of the timetable, with the key or token replaced by `**REDACTED**`.
 - **The data look stale during an outage.** A timeout, a network error or a server error (HTTP 5xx) after a successful load does **not** make the sensor `unavailable`: it keeps the last timetable it got and tries again every hour, because the timetable is planned data that does not change within a day. The diagnostic sensor **Last update** (disabled by default; enable it in the entity settings) shows when the data were last fetched successfully.
 - **Setup says the line was not found.** The API lists only the lines that run today. A line that does not run today (for example a weekday-only line on a Sunday) cannot be added until the day it runs.

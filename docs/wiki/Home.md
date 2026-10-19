@@ -9,7 +9,7 @@ This wiki is the user manual. The project's front page, with the features and sc
 | Page | What is in it |
 |---|---|
 | [Installation](0.-Installation) | HACS or manual installation |
-| [Configuration](1.-Configuration) | Getting a key or token, adding a sensor, the options |
+| [Configuration](1.-Configuration) | Getting a key or token, adding a sensor, changing the key later |
 | [Concepts](2.-Concepts) | Stop ID and pole, the service day, night lines, what the sensor shows |
 | [Troubleshooting](3.-Troubleshooting) | States, messages, re-authentication, diagnostics, known behaviour |
 | [Roadmap](4.-Roadmap) | Where plans and changes are written down |
