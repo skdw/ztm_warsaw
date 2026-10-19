@@ -36,7 +36,8 @@ _NAME_LENGTH = 60
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+# Home Assistant awaits this function with these two arguments, so it has to be a coroutine function that takes both.
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:  # NOSONAR
     """Before any entry is set up: the entries of 1.1.x (one stop each) become lines (see migration.py)."""
     await async_migrate_to_lines(hass)
     return True

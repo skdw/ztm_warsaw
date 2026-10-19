@@ -10,12 +10,13 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.storage import Store
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ztm_warsaw.const import DOMAIN
 from custom_components.ztm_warsaw.coordinator import store_key
-from custom_components.ztm_warsaw.migration import async_migrate_to_lines
+from custom_components.ztm_warsaw.migration import _carry_over, async_migrate_to_lines
 
 from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN
 from .helpers import find_devices, subentry_of
@@ -222,6 +223,8 @@ async def test_e2e_33_a_run_that_was_cut_short_is_finished_by_the_next(env):
     await _restart(env)
     assert env.hass.config_entries.async_entries(DOMAIN) == [old]
     assert len(old.subentries) == 2, "the stop that was added already is not added twice"
+    assert find_devices(env.device_registry, {(DOMAIN, "line_525")}) == [], "the line's old device is cleaned up too"
+    assert await Store(env.hass, 1, store_key(old.entry_id)).async_load() is None, "and the answers saved under its old name"
     for stop_nr in ("01", "02"):
         assert env.state("525", "7009", stop_nr).state not in ("unknown", "unavailable")
 
@@ -319,7 +322,8 @@ async def test_e2e_33_a_line_that_is_switched_off_keeps_the_stops_that_are_on_ap
     with patch(NO_MIGRATION, AsyncMock()):
         late = await env.add_entry(line="525", stop_id=7013)  # a 1.1.x entry of the line that appears later
     await async_migrate_to_lines(env.hass)
-    assert late.version == 1 and late in env.hass.config_entries.async_entries(DOMAIN)
+    assert late.version == 1
+    assert late in env.hass.config_entries.async_entries(DOMAIN)
     assert len(first.subentries) == 2
 
 
@@ -361,3 +365,21 @@ async def test_e2e_33_a_disk_that_fails_before_the_registries_are_touched_leaves
     await _restart(env)  # and the next start does it
     assert env.hass.config_entries.async_entries(DOMAIN) == [old]
     assert env.state("525", "7009", "02").state not in ("unknown", "unavailable")
+
+
+async def test_e2e_33_the_labels_and_the_off_switch_of_a_device_carry_over(env):
+    (old,) = await _as_1_1_x_left_them(env, line="151")
+    label = lr.async_get(env.hass).async_create("Commute")
+    (device,) = find_devices(env.device_registry, {(DOMAIN, "line_151")})
+    env.device_registry.async_update_device(device.id, labels={label.label_id}, disabled_by=dr.DeviceEntryDisabler.USER)
+    await async_migrate_to_lines(env.hass)
+    (new,) = find_devices(env.device_registry, {(DOMAIN, "line_151_7009_01")})
+    assert new.labels == {label.label_id}
+    assert new.disabled_by is dr.DeviceEntryDisabler.USER
+
+
+async def test_e2e_33_a_device_that_is_gone_carries_nothing_over(env):
+    (old,) = await _as_1_1_x_left_them(env, line="151")
+    (device,) = find_devices(env.device_registry, {(DOMAIN, "line_151")})
+    _carry_over(env.device_registry, "no-such-device", device.id)  # no crash, no change
+    assert (device.area_id, device.name_by_user) == (None, None)

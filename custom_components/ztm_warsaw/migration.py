@@ -50,7 +50,8 @@ async def async_migrate_to_lines(hass: HomeAssistant) -> None:
     for line, members in groups.items():
         try:
             await _merge_line(hass, line, members, entries)
-        except Exception:  # noqa: BLE001 - one line that cannot be grouped must not stop the others, or the setup
+        except Exception:  # noqa: BLE001
+            # One line that cannot be grouped must not stop the others, or the setup.
             _LOGGER.exception("The entries of line %s could not be grouped; they keep working as they are", line)
 
 
@@ -82,6 +83,28 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
     chosen = _chosen_key(keys)
 
     # 1. a subentry for every stop (the same stop twice, a duplicate of 1.1.x, is one)
+    stops, units = _add_stops(hass, parent, members)
+
+    # 2. the stored answers of every stop, copied under the name of its subentry first: the step that can fail on disk
+    #    comes before the registries are touched, and the old ones are removed only at the end
+    for member in members:
+        await _copy_store(hass, member.entry_id, stops[member.entry_id], reset_flags=entry_api_key(member) != chosen)
+
+    # 3. the entities and the devices of the stops
+    old_devices = _move_entities_and_devices(hass, parent, line, members, stops, units)
+
+    # 4. the entry of the line
+    _convert_parent(hass, parent, line, chosen, differing_keys=len(set(keys)) > 1)
+
+    # 5. the entries that were stops of the line are gone, with their notices
+    for sibling in siblings:
+        await hass.config_entries.async_remove(sibling.entry_id)
+
+    # 6. what the old entries left behind (also the parent's own, when an earlier run was cut short after step 4)
+    await _clean_up(hass, parent, line, members, old_devices)
+
+
+def _add_stops(hass: HomeAssistant, parent: ConfigEntry, members: list[ConfigEntry]):
     stops: dict[str, str] = {}  # the entry id of a member -> the id of the subentry of its stop
     units: dict[str, StopUnit] = {}
     for member in members:
@@ -99,16 +122,11 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
             hass.config_entries.async_add_subentry(parent, subentry)
             subentry_id = subentry.subentry_id
         stops[member.entry_id] = subentry_id
+    return stops, units
 
-    # 2. the stored answers of every stop, copied under the name of its subentry first: the step that can fail on disk
-    #    comes before the registries are touched, and the old ones are removed only at the end
-    for member in members:
-        await _copy_store(hass, member.entry_id, stops[member.entry_id], reset_flags=entry_api_key(member) != chosen)
 
-    # 3. the entities and the devices of the stops
-    old_devices = _move_entities_and_devices(hass, parent, line, members, stops, units)
-
-    # 4. the entry of the line (a title the user gave it stays)
+def _convert_parent(hass: HomeAssistant, parent: ConfigEntry, line: str, chosen: str, *, differing_keys: bool) -> None:
+    """The entry becomes the line: its key and line only, the stops being subentries (a title the user gave it stays)."""
     title = parent.title
     if not is_line_entry(parent) and parent.title.startswith(f"Line {line} from "):
         title = f"Line {line}"
@@ -119,7 +137,7 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
         options={k: v for k, v in parent.options.items() if k not in _MOVED_FIELDS},
         version=LINE_ENTRY_VERSION,
     )
-    if len(set(keys)) > 1:
+    if differing_keys:
         ir.async_create_issue(
             hass,
             DOMAIN,
@@ -133,18 +151,18 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
     ir.async_delete_issue(hass, DOMAIN, f"legacy_key_{parent.entry_id}")  # the notice of the line replaces it
     ir.async_delete_issue(hass, DOMAIN, f"duplicate_{parent.entry_id}")
 
-    # 5. the entries that were stops of the line are gone, with their notices
-    for sibling in siblings:
-        await hass.config_entries.async_remove(sibling.entry_id)
 
-    # 6. the answers saved under the old names are no longer needed
-    for member in members:
-        await Store(hass, 1, store_key(member.entry_id)).async_remove()
-
-    # 7. a device that nothing uses any more
+async def _clean_up(hass: HomeAssistant, parent: ConfigEntry, line: str, members: list[ConfigEntry], old_devices: set[str]) -> None:
+    """The answers saved under the old names, and the devices that nothing uses any more."""
+    for entry_id in {parent.entry_id, *(m.entry_id for m in members)}:
+        await Store(hass, 1, store_key(entry_id)).async_remove()
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
-    for device_id in old_devices:
+    line_device = (DOMAIN, f"line_{line}")  # the device a 1.1.x entry had, which a cut-short run may have left on the parent
+    candidates = set(old_devices) | {
+        d.id for d in dr.async_entries_for_config_entry(device_registry, parent.entry_id) if line_device in d.identifiers
+    }
+    for device_id in candidates:
         if device_registry.async_get(device_id) and not er.async_entries_for_device(
             entity_registry, device_id, include_disabled_entities=True
         ):
@@ -164,7 +182,7 @@ def _move_entities_and_devices(hass, parent, line, members, stops, units) -> set
     for member in members:
         subentry_id = stops[member.entry_id]
         unit = units[member.entry_id]
-        for entity in list(er.async_entries_for_config_entry(entity_registry, member.entry_id)):
+        for entity in er.async_entries_for_config_entry(entity_registry, member.entry_id):
             device_id = new_devices.get(subentry_id)
             if device_id is None:
                 device = device_registry.async_get_or_create(
