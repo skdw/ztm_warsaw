@@ -34,6 +34,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
 - **A clearer README**: it says plainly that these are scheduled departures, not live positions.
+- **The stop's name where you look for it**: entries are titled "Line 176 from Marcelin 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
 - **One device per entry on Home Assistant 2026.10**, which no longer lets entries share a device.
 
 ### Fixed

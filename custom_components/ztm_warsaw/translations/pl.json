@@ -70,12 +70,12 @@
   },
   "issues": {
     "duplicate_entry": {
-      "title": "Już skonfigurowane",
-      "description": "Linia {line} na przystanku {stop} jest skonfigurowana dwa razy. Home Assistant może pokazać dla niej tylko jeden czujnik, więc drugi wpis go nie ma. Usuń jeden z dwóch wpisów (Ustawienia > Urządzenia i usługi > Warsaw Public Transport)."
+      "title": "Już skonfigurowane: linia {line}, {stop}",
+      "description": "**Linia {line} na przystanku {stop} jest skonfigurowana dwa razy.**\n\nHome Assistant może pokazać dla niej tylko jeden czujnik, więc drugi wpis go nie ma.\n\nUsuń jeden z dwóch wpisów: **Ustawienia > Urządzenia i usługi > Warsaw Public Transport**."
     },
     "legacy_key": {
-      "title": "Używany stary klucz API",
-      "description": "Linia {line} na przystanku {stop} nadal używa klucza starego API miasta (api.um.warszawa.pl). Działa, ale miasto nie podało daty jego zakończenia, a nowe API z tokenem (dane.um.warszawa.pl/pl/key-api) to aktualna usługa. Aby przejść, otwórz integrację, wybierz Konfiguruj przy tym wpisie i wpisz token. To powiadomienie można odrzucić."
+      "title": "Stary klucz API: linia {line}, {stop}",
+      "description": "**Linia {line} na przystanku {stop} nadal używa klucza starego API miasta.**\n\nDziała, ale miasto nie podało daty jego zakończenia. Nowe API z tokenem to aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Otwórz integrację i wybierz **Konfiguruj** przy tym wpisie.\n3. Wklej token.\n\nTo powiadomienie można odrzucić."
     }
   }
 }
