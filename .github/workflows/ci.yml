@@ -31,7 +31,7 @@ permissions:
 env:
   # Matches pytest-homeassistant-custom-component in requirements_test.txt (it
   # pins the Home Assistant release, and with it the minimum Python). The
-  # integration itself must stay valid for Home Assistant 2024.4 (Python 3.12).
+  # integration itself must stay valid for Home Assistant 2026.1 (Python 3.13).
   PYTHON_VERSION: "3.14"
 
 jobs:
@@ -198,11 +198,11 @@ jobs:
 
   compat-min:
     name: Compat smoke (minimum Home Assistant)
-    # The integration claims Home Assistant 2024.4 (hacs.json) and Python 3.12; every other job runs
-    # the newest release. Not required to merge (it installs an old Home Assistant tree), but a release
-    # needs it: see REQUIRED in scripts/release_preflight.py. The full end-to-end suite cannot run on
-    # that release (it needs the newest test plugin), so this runs only tests/compat. To move the
-    # minimum, edit .github/compat/ together with hacs.json and CHANGELOG.md.
+    # The integration claims Home Assistant 2026.1 (hacs.json) and Python 3.13; every other job runs
+    # the newest release. Not required to merge, but a release needs it: see REQUIRED in
+    # scripts/release_preflight.py. The test plugin of that release pins it, so the whole suite runs
+    # there, not only tests/compat. To move the minimum, edit .github/compat/ together with hacs.json
+    # and CHANGELOG.md.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -211,14 +211,11 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: "3.12"
+          python-version: "3.13"
       - name: Install the oldest supported Home Assistant and its test plugin
-        run: |
-          set -euo pipefail
-          python -m pip install -r .github/compat/min-ha.txt
-          python -m pip install --no-deps -r .github/compat/min-ha-plugin.txt
-      - name: Smoke test
-        run: python -m pytest tests/compat -p no:cacheprovider
+        run: python -m pip install -r .github/compat/min-ha.txt
+      - name: Run the tests on the oldest supported Home Assistant
+        run: python -m pytest tests -p no:cacheprovider
 
   audit:
     name: Dependency audit (pip-audit)

@@ -73,11 +73,15 @@ changed once without a migration; do not repeat that.
 
 ### Compatibility and dependencies
 
-- The integration must stay valid for Home Assistant 2024.4 and Python 3.12 (`hacs.json`, the ruff
+- The integration must stay valid for Home Assistant 2026.1 and Python 3.13 (`hacs.json`, the ruff
   `target-version`). CI runs newer: the Home Assistant release and the Python version that
   `pytest-homeassistant-custom-component` in `requirements_test.txt` pins. Do not use an API that
-  Home Assistant 2024.4 lacks without checking.
-  The job `Compat smoke (minimum Home Assistant)` runs `tests/compat` on 2024.4 and Python 3.12 (pins in
+  Home Assistant 2026.1 lacks without checking.
+  The minimum moves once a year: it is the first release of the current year (2026.1 now), raised in
+  January's first minor release together with `hacs.json`, `.github/compat/`, the docs and an
+  `### Adopter action` entry. Home Assistant itself calls a Core older than 24 months unsupported, so the
+  minimum is never older than that.
+  The job `Compat smoke (minimum Home Assistant)` runs the whole suite on 2026.1 and Python 3.13 (pin in
   `.github/compat/`); it is not required to merge, but a release needs it.
 - `manifest.json` has `"requirements": []` on purpose: Home Assistant provides aiohttp, and hassfest
   rejects it as a requirement. Do not add a runtime requirement without discussing it first.

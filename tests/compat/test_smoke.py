@@ -1,10 +1,9 @@
-"""A smoke test that runs on the OLDEST and the NEWEST Home Assistant the integration claims to support.
+"""The shortest check that the integration installs and unloads on the OLDEST and the NEWEST Home Assistant it claims.
 
-The full end-to-end suite in ``tests/e2e`` leans on test tooling of the newest Home Assistant (a frozen clock
-that needs the current ``pytest-homeassistant-custom-component``), so it cannot run on 2024.4. This file uses
-only what both ends have: the real integration, the real config flow and a real Home Assistant, talking to the
-fake City of Warsaw on loopback, in real time. It asks the questions a user would: does it install, does the
-sensor appear, does it unload. CI runs it on both stacks (job ``Compat smoke``); see CONTRIBUTING.md.
+It uses only what both ends have: the real integration, the real config flow and a real Home Assistant, talking
+to the fake City of Warsaw on loopback, in real time. It asks the questions a user would: does it install, does
+the sensor appear, does it unload. The job ``Compat smoke`` runs the whole suite on the oldest release, so this
+file is also the first thing to read when that job goes red; see CONTRIBUTING.md.
 """
 
 from __future__ import annotations
