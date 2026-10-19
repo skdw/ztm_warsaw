@@ -1,0 +1,208 @@
+{
+  "title": "Öffentlicher Nahverkehr Warschau",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Gib die Daten der Linie an, die du verfolgen möchtest. Weitere Hilfe findest du in der Dokumentation auf GitHub.",
+        "data": {
+          "api_key": "API-Schlüssel (alte API) oder Token (neue API) vom Open-Data-Portal der Stadt Warschau",
+          "busstop_id": "Haltestellen-ID (z. B. 3044)",
+          "busstop_nr": "Mastnummer (z. B. 02)",
+          "line": "Liniennummer (z. B. N31)"
+        }
+      },
+      "reauth_confirm": {
+        "description": "Die API der Stadt Warschau akzeptiert den API-Schlüssel oder das Token dieses Eintrags nicht mehr. Gib einen neuen vom Open-Data-Portal ein; Haltestelle und Linie bleiben unverändert.",
+        "data": {
+          "api_key": "API-Schlüssel (alte API) oder Token (neue API) vom Open-Data-Portal der Stadt Warschau"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Die angegebene Mastnummer ist ungültig. Sie muss aus zwei Ziffern bestehen (z. B. „01“).",
+      "invalid_api_key": "Das ist kein gültiger API-Schlüssel oder Token. Bitte prüfe, was du vom Open-Data-Portal der Stadt Warschau kopiert hast.",
+      "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
+      "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
+      "line_not_found": "Die angegebene Linie wurde für die gewählte Haltestellen-ID und Mastnummer nicht gefunden.",
+      "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
+      "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+      "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
+      "invalid_stop_id": "Die angegebene Haltestellen-ID ist ungültig. Sie muss eine Zahl sein (z. B. „3044“)."
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
+      "reauth_successful": "Der API-Schlüssel wurde aktualisiert und der Eintrag neu geladen.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+      "already_configured": "Diese Haltestelle, dieser Mast und diese Linie sind bereits eingerichtet.",
+      "stop_added": "Die Haltestelle wurde dem Eintrag hinzugefügt, der diese Linie schon betreibt, mit dem Schlüssel dieses Eintrags (um den Schlüssel zu ändern, nutze „Konfigurieren“)."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Öffentlicher Nahverkehr Warschau",
+        "description": "**Dieser Eintrag nutzt die alte API der Stadt ({current}).**\n\nSie funktioniert, aber die Stadt hat kein Ende angekündigt, und die neue API ist der aktuelle Dienst.\n\nSo wechselst du:\n\n1. Hole dir ein Token unter [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Füge es unten ein.\n\nHaltestelle und Linie bleiben unverändert.",
+        "data": {
+          "api_key": "API-Schlüssel oder Token"
+        }
+      },
+      "token": {
+        "title": "Öffentlicher Nahverkehr Warschau",
+        "description": "**Ersetze das Token dieses Eintrags.**\n\nFüge das neue Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein, zum Beispiel wenn das alte abgelaufen ist.\n\nHaltestelle und Linie bleiben unverändert.",
+        "data": {
+          "api_key": "Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Die angegebene Mastnummer ist ungültig. Sie muss aus zwei Ziffern bestehen (z. B. „01“).",
+      "invalid_api_key": "Das ist kein gültiger API-Schlüssel oder Token. Bitte prüfe, was du vom Open-Data-Portal der Stadt Warschau kopiert hast.",
+      "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
+      "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
+      "line_not_found": "Die angegebene Linie wurde für die gewählte Haltestellen-ID und Mastnummer nicht gefunden.",
+      "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
+      "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+      "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
+    },
+    "abort": {
+      "unknown": "Ein unbekannter Fehler ist aufgetreten."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ztm_warsaw": {
+        "name": "ZTM-Linie"
+      }
+    }
+  },
+  "issues": {
+    "duplicate_entry": {
+      "title": "Bereits eingerichtet: Linie {line}, {stop}",
+      "description": "**Die Linie {line} an {stop} ist doppelt eingerichtet.**\n\nHome Assistant kann dafür nur einen Sensor anzeigen, deshalb hat der zweite Eintrag keinen.\n\nEntferne einen der beiden Einträge: **Einstellungen > Geräte & Dienste > Öffentlicher Nahverkehr Warschau**."
+    },
+    "legacy_key": {
+      "title": "Alter API-Schlüssel: Linie {line}, {stop}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Alten Schlüssel ersetzen",
+            "description": "**Die Linie {line} nutzt noch einen Schlüssel der alten API der Stadt.**\n\nEr funktioniert, aber die Stadt hat kein Ende angekündigt. Die neue API mit Token ist der aktuelle Dienst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein; es ersetzt den alten Schlüssel, und die Haltestellen bleiben unverändert.",
+            "data": {
+              "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Alter API-Schlüssel",
+            "description": "**Die Linie {line} nutzt noch einen Schlüssel der alten API der Stadt.**\n\nEr funktioniert, aber die Stadt hat kein Ende angekündigt. Die neue API mit Token ist der aktuelle Dienst.\n\nHole dir ein Token unter [dane.um.warszawa.pl/pl/key-api]({portal}); es ersetzt den alten Schlüssel, und die Haltestellen bleiben unverändert. Du kannst auch vorerst beim alten Schlüssel bleiben und diesen Hinweis ignorieren.",
+            "menu_options": {
+              "token": "Token einfügen",
+              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Die angegebene Mastnummer ist ungültig. Sie muss aus zwei Ziffern bestehen (z. B. „01“).",
+          "invalid_api_key": "Das ist kein gültiger API-Schlüssel oder Token. Bitte prüfe, was du vom Open-Data-Portal der Stadt Warschau kopiert hast.",
+          "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
+          "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
+          "line_not_found": "Die angegebene Linie wurde für die gewählte Haltestellen-ID und Mastnummer nicht gefunden.",
+          "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
+          "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
+          "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
+        },
+        "abort": {
+          "unknown": "Der Eintrag dieses Hinweises existiert nicht mehr oder kann nicht geändert werden.",
+          "ignored": "Der Hinweis wird ignoriert. Wenn du es dir anders überlegst, öffne ihn unter Reparaturen bei *Ignorierte Probleme* und wähle *Nicht mehr ignorieren*."
+        }
+      }
+    },
+    "legacy_key_line": {
+      "title": "Alter API-Schlüssel: Linie {line}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Alten Schlüssel ersetzen",
+            "description": "**Die Linie {line} nutzt noch einen Schlüssel der alten API der Stadt.**\n\nEr funktioniert, aber die Stadt hat kein Ende angekündigt. Die neue API mit Token ist der aktuelle Dienst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein; es ersetzt den alten Schlüssel, und die Haltestellen bleiben unverändert.",
+            "data": {
+              "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Alter API-Schlüssel",
+            "description": "**Die Linie {line} nutzt noch einen Schlüssel der alten API der Stadt.**\n\nEr funktioniert, aber die Stadt hat kein Ende angekündigt. Die neue API mit Token ist der aktuelle Dienst.\n\nHole dir ein Token unter [dane.um.warszawa.pl/pl/key-api]({portal}); es ersetzt den alten Schlüssel, und die Haltestellen bleiben unverändert. Du kannst auch vorerst beim alten Schlüssel bleiben und diesen Hinweis ignorieren.",
+            "menu_options": {
+              "token": "Token einfügen",
+              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Die angegebene Mastnummer ist ungültig. Sie muss aus zwei Ziffern bestehen (z. B. „01“).",
+          "invalid_api_key": "Das ist kein gültiger API-Schlüssel oder Token. Bitte prüfe, was du vom Open-Data-Portal der Stadt Warschau kopiert hast.",
+          "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
+          "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
+          "line_not_found": "Die angegebene Linie wurde für die gewählte Haltestellen-ID und Mastnummer nicht gefunden.",
+          "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
+          "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
+          "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
+        },
+        "abort": {
+          "unknown": "Der Eintrag dieses Hinweises existiert nicht mehr oder kann nicht geändert werden.",
+          "ignored": "Der Hinweis wird ignoriert. Wenn du es dir anders überlegst, öffne ihn unter Reparaturen bei *Ignorierte Probleme* und wähle *Nicht mehr ignorieren*."
+        }
+      }
+    },
+    "merged_keys": {
+      "title": "Linie {line}: Die Haltestellen nutzten verschiedene Schlüssel",
+      "description": "**Die Haltestellen der Linie {line} nutzten verschiedene Schlüssel.**\n\nSie sind jetzt ein Eintrag, deshalb nutzt die Linie einen Schlüssel: ein Token, wenn eines davon ein Token war, sonst den Schlüssel des ältesten Eintrags.\n\nWenn eine Haltestelle nicht mehr funktioniert, öffne die Integration, wähle bei diesem Eintrag **Konfigurieren** und gib den gewünschten Schlüssel ein.\n\nDu kannst diesen Hinweis schließen."
+    }
+  },
+  "config_subentries": {
+    "stop": {
+      "title": "Haltestelle",
+      "initiate_flow": {
+        "user": "Haltestelle hinzufügen",
+        "reconfigure": "Haltestelle neu konfigurieren"
+      },
+      "entry_type": "Haltestelle",
+      "step": {
+        "user": {
+          "title": "Haltestelle der Linie {line} hinzufügen",
+          "description": "Eine weitere Haltestelle und ein weiterer Mast der Linie {line}. Es wird der Schlüssel dieses Eintrags verwendet.",
+          "data": {
+            "busstop_id": "Haltestellen-ID (z. B. 3044)",
+            "busstop_nr": "Mastnummer (z. B. 02)"
+          }
+        },
+        "reconfigure": {
+          "title": "Gehzeit zu {stop}",
+          "description": "Wie viele Minuten brauchst du zu Fuß zu dieser Haltestelle? Der Sensor überspringt dann Abfahrten, die früher liegen, weil du sie nicht erreichen kannst. 0 bedeutet keine Gehzeit.",
+          "data": {
+            "walking_time": "Gehzeit (Minuten)"
+          }
+        }
+      },
+      "error": {
+        "invalid_stop_number": "Die angegebene Mastnummer ist ungültig. Sie muss aus zwei Ziffern bestehen (z. B. „01“).",
+        "invalid_api_key": "Das ist kein gültiger API-Schlüssel oder Token. Bitte prüfe, was du vom Open-Data-Portal der Stadt Warschau kopiert hast.",
+        "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
+        "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
+        "line_not_found": "Die angegebene Linie wurde für die gewählte Haltestellen-ID und Mastnummer nicht gefunden.",
+        "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
+        "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
+        "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+        "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
+        "invalid_stop_id": "Die angegebene Haltestellen-ID ist ungültig. Sie muss eine Zahl sein (z. B. „3044“)."
+      },
+      "abort": {
+        "already_configured": "Diese Haltestelle, dieser Mast und diese Linie sind bereits eingerichtet.",
+        "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+        "reconfigure_successful": "Die Gehzeit wurde gespeichert."
+      }
+    }
+  }
+}

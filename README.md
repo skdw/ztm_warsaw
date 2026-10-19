@@ -1,5 +1,7 @@
 # 🚍 ZTM Warsaw Integration for Home Assistant
 
+**English** · [Polski](README.pl.md)
+
 [![CI](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml/badge.svg)](https://github.com/solarssk/ztm_warsaw/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub release](https://img.shields.io/github/v/release/solarssk/ztm_warsaw)](https://github.com/solarssk/ztm_warsaw/releases)
@@ -24,7 +26,7 @@ It shows the **timetable**, not live vehicles. What it does **not** do:
 - ✅ Several instances: monitor as many stops and lines as you like.
 - ✅ The next departure as a timestamp, usable in the UI and in automations, and the three after it as attributes (`Next 1` ... `Next 3`).
 - ✅ A clear "No service" state on days when a line does not run, and an `unavailable` state when the City's API fails (see [Troubleshooting](#-troubleshooting)).
-- ✅ Set up entirely in the Home Assistant UI, in English or Polish.
+- ✅ Set up entirely in the Home Assistant UI, in English, Polish, Ukrainian, Russian, German, Spanish, French or Italian (the texts other than English and Polish are machine-translated: corrections are welcome as pull requests).
 - ✅ Attributes with the stop (its name and position, so it shows as a pin on the map card), the direction, a timetable link and notes.
 - ✅ Change the API key or token of an entry at any time in **Configure**, for example from the City's old API to the new one.
 - ✅ A **calendar** entity per sensor (off by default: enable it in the entity settings) with every departure of the day as a one-minute event: see the whole timetable in Home Assistant's calendar view, and start automations with the calendar trigger ("8 minutes before a departure") without templates.

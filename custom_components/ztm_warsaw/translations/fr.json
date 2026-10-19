@@ -1,0 +1,208 @@
+{
+  "title": "Transports publics de Varsovie",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Indiquez les informations de la ligne que vous souhaitez suivre. Pour plus d’aide, consultez la documentation sur GitHub.",
+        "data": {
+          "api_key": "Clé API (ancienne API) ou jeton (nouvelle API) du portail de données ouvertes de la ville de Varsovie",
+          "busstop_id": "ID de l’arrêt (p. ex. 3044)",
+          "busstop_nr": "Numéro du poteau (p. ex. 02)",
+          "line": "Numéro de la ligne (p. ex. N31)"
+        }
+      },
+      "reauth_confirm": {
+        "description": "L’API de la ville de Varsovie n’accepte plus la clé API ni le jeton de cette entrée. Saisissez-en un nouveau depuis le portail de données ouvertes ; l’arrêt et la ligne restent inchangés.",
+        "data": {
+          "api_key": "Clé API (ancienne API) ou jeton (nouvelle API) du portail de données ouvertes de la ville de Varsovie"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Le numéro de poteau indiqué est incorrect. Il doit comporter deux chiffres (p. ex. « 01 »).",
+      "invalid_api_key": "Ce n’est pas une clé API ni un jeton valide. Vérifiez ce que vous avez copié depuis le portail de données ouvertes de la ville de Varsovie.",
+      "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
+      "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
+      "line_not_found": "La ligne indiquée est introuvable pour l’ID d’arrêt et le numéro de poteau sélectionnés.",
+      "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
+      "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
+      "unknown": "Une erreur inconnue s’est produite.",
+      "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
+      "invalid_stop_id": "L’ID d’arrêt indiqué est incorrect. Il doit s’agir d’un nombre (p. ex. « 3044 »)."
+    },
+    "abort": {
+      "single_instance_allowed": "Une seule instance est autorisée.",
+      "reauth_successful": "La clé API a été mise à jour et l’entrée rechargée.",
+      "unknown": "Une erreur inconnue s’est produite.",
+      "already_configured": "Cet arrêt, ce poteau et cette ligne sont déjà configurés.",
+      "stop_added": "L’arrêt a été ajouté à l’entrée qui gère déjà cette ligne, avec la clé de cette entrée (pour changer la clé, utilisez « Configurer »)."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Transports publics de Varsovie",
+        "description": "**Cette entrée utilise l’ancienne API de la ville ({current}).**\n\nElle fonctionne, mais la ville n’a annoncé aucune date de fin, et la nouvelle API est le service actuel.\n\nPour basculer :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le ci-dessous.\n\nL’arrêt et la ligne restent inchangés.",
+        "data": {
+          "api_key": "Clé API ou jeton"
+        }
+      },
+      "token": {
+        "title": "Transports publics de Varsovie",
+        "description": "**Remplacez le jeton de cette entrée.**\n\nCollez le nouveau jeton depuis [dane.um.warszawa.pl/pl/key-api]({portal}), par exemple quand l’ancien a expiré.\n\nL’arrêt et la ligne restent inchangés.",
+        "data": {
+          "api_key": "Jeton"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "Le numéro de poteau indiqué est incorrect. Il doit comporter deux chiffres (p. ex. « 01 »).",
+      "invalid_api_key": "Ce n’est pas une clé API ni un jeton valide. Vérifiez ce que vous avez copié depuis le portail de données ouvertes de la ville de Varsovie.",
+      "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
+      "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
+      "line_not_found": "La ligne indiquée est introuvable pour l’ID d’arrêt et le numéro de poteau sélectionnés.",
+      "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
+      "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
+      "unknown": "Une erreur inconnue s’est produite.",
+      "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
+    },
+    "abort": {
+      "unknown": "Une erreur inconnue s’est produite."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ztm_warsaw": {
+        "name": "Ligne ZTM"
+      }
+    }
+  },
+  "issues": {
+    "duplicate_entry": {
+      "title": "Déjà configuré : ligne {line}, {stop}",
+      "description": "**La ligne {line} à {stop} est configurée en double.**\n\nHome Assistant ne peut afficher qu’un seul capteur pour elle, donc la seconde entrée n’en a pas.\n\nSupprimez l’une des deux entrées : **Paramètres > Appareils et services > Transports publics de Varsovie**."
+    },
+    "legacy_key": {
+      "title": "Ancienne clé API : ligne {line}, {stop}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Remplacer l’ancienne clé",
+            "description": "**La ligne {line} utilise encore une clé de l’ancienne API de la ville.**\n\nElle fonctionne, mais la ville n’a annoncé aucune date de fin. La nouvelle API avec jeton est le service actuel.\n\nCollez ci-dessous un jeton de [dane.um.warszawa.pl/pl/key-api]({portal}) ; il remplace l’ancienne clé et les arrêts restent inchangés.",
+            "data": {
+              "api_key": "Jeton"
+            }
+          },
+          "init": {
+            "title": "Ancienne clé API",
+            "description": "**La ligne {line} utilise encore une clé de l’ancienne API de la ville.**\n\nElle fonctionne, mais la ville n’a annoncé aucune date de fin. La nouvelle API avec jeton est le service actuel.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}) ; il remplace l’ancienne clé et les arrêts restent inchangés. Vous pouvez aussi garder l’ancienne clé pour l’instant et ignorer cet avis.",
+            "menu_options": {
+              "token": "Coller un jeton",
+              "ignore": "Garder l’ancienne clé et ignorer cet avis"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Le numéro de poteau indiqué est incorrect. Il doit comporter deux chiffres (p. ex. « 01 »).",
+          "invalid_api_key": "Ce n’est pas une clé API ni un jeton valide. Vérifiez ce que vous avez copié depuis le portail de données ouvertes de la ville de Varsovie.",
+          "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
+          "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
+          "line_not_found": "La ligne indiquée est introuvable pour l’ID d’arrêt et le numéro de poteau sélectionnés.",
+          "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
+          "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
+          "unknown": "Une erreur inconnue s’est produite.",
+          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
+        },
+        "abort": {
+          "unknown": "L’entrée de cet avis n’existe plus ou ne peut pas être modifiée.",
+          "ignored": "L’avis est ignoré. Si vous changez d’avis, ouvrez-le dans Réparations sous *Problèmes ignorés* et choisissez *Ne plus ignorer*."
+        }
+      }
+    },
+    "legacy_key_line": {
+      "title": "Ancienne clé API : ligne {line}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Remplacer l’ancienne clé",
+            "description": "**La ligne {line} utilise encore une clé de l’ancienne API de la ville.**\n\nElle fonctionne, mais la ville n’a annoncé aucune date de fin. La nouvelle API avec jeton est le service actuel.\n\nCollez ci-dessous un jeton de [dane.um.warszawa.pl/pl/key-api]({portal}) ; il remplace l’ancienne clé et les arrêts restent inchangés.",
+            "data": {
+              "api_key": "Jeton"
+            }
+          },
+          "init": {
+            "title": "Ancienne clé API",
+            "description": "**La ligne {line} utilise encore une clé de l’ancienne API de la ville.**\n\nElle fonctionne, mais la ville n’a annoncé aucune date de fin. La nouvelle API avec jeton est le service actuel.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}) ; il remplace l’ancienne clé et les arrêts restent inchangés. Vous pouvez aussi garder l’ancienne clé pour l’instant et ignorer cet avis.",
+            "menu_options": {
+              "token": "Coller un jeton",
+              "ignore": "Garder l’ancienne clé et ignorer cet avis"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "Le numéro de poteau indiqué est incorrect. Il doit comporter deux chiffres (p. ex. « 01 »).",
+          "invalid_api_key": "Ce n’est pas une clé API ni un jeton valide. Vérifiez ce que vous avez copié depuis le portail de données ouvertes de la ville de Varsovie.",
+          "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
+          "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
+          "line_not_found": "La ligne indiquée est introuvable pour l’ID d’arrêt et le numéro de poteau sélectionnés.",
+          "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
+          "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
+          "unknown": "Une erreur inconnue s’est produite.",
+          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
+        },
+        "abort": {
+          "unknown": "L’entrée de cet avis n’existe plus ou ne peut pas être modifiée.",
+          "ignored": "L’avis est ignoré. Si vous changez d’avis, ouvrez-le dans Réparations sous *Problèmes ignorés* et choisissez *Ne plus ignorer*."
+        }
+      }
+    },
+    "merged_keys": {
+      "title": "Ligne {line} : les arrêts utilisaient des clés différentes",
+      "description": "**Les arrêts de la ligne {line} utilisaient des clés différentes.**\n\nIls ne forment plus qu’une entrée, donc la ligne utilise une seule clé : un jeton si l’une d’elles en était un, sinon la clé de l’entrée la plus ancienne.\n\nSi un arrêt cesse de fonctionner, ouvrez l’intégration, choisissez **Configurer** sur cette entrée et saisissez la clé voulue.\n\nVous pouvez fermer cet avis."
+    }
+  },
+  "config_subentries": {
+    "stop": {
+      "title": "Arrêt",
+      "initiate_flow": {
+        "user": "Ajouter un arrêt",
+        "reconfigure": "Reconfigurer l’arrêt"
+      },
+      "entry_type": "Arrêt",
+      "step": {
+        "user": {
+          "title": "Ajouter un arrêt de la ligne {line}",
+          "description": "Un autre arrêt et poteau de la ligne {line}. Il utilise la clé de cette entrée.",
+          "data": {
+            "busstop_id": "ID de l’arrêt (p. ex. 3044)",
+            "busstop_nr": "Numéro du poteau (p. ex. 02)"
+          }
+        },
+        "reconfigure": {
+          "title": "Temps de marche jusqu’à {stop}",
+          "description": "Combien de minutes vous faut-il pour marcher jusqu’à cet arrêt ? Le capteur ignore alors les départs plus proches que ce délai, car vous ne pouvez pas les attraper. 0 signifie aucun temps de marche.",
+          "data": {
+            "walking_time": "Temps de marche (minutes)"
+          }
+        }
+      },
+      "error": {
+        "invalid_stop_number": "Le numéro de poteau indiqué est incorrect. Il doit comporter deux chiffres (p. ex. « 01 »).",
+        "invalid_api_key": "Ce n’est pas une clé API ni un jeton valide. Vérifiez ce que vous avez copié depuis le portail de données ouvertes de la ville de Varsovie.",
+        "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
+        "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
+        "line_not_found": "La ligne indiquée est introuvable pour l’ID d’arrêt et le numéro de poteau sélectionnés.",
+        "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
+        "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
+        "unknown": "Une erreur inconnue s’est produite.",
+        "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
+        "invalid_stop_id": "L’ID d’arrêt indiqué est incorrect. Il doit s’agir d’un nombre (p. ex. « 3044 »)."
+      },
+      "abort": {
+        "already_configured": "Cet arrêt, ce poteau et cette ligne sont déjà configurés.",
+        "unknown": "Une erreur inconnue s’est produite.",
+        "reconfigure_successful": "Le temps de marche a été enregistré."
+      }
+    }
+  }
+}
