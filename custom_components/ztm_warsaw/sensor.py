@@ -17,6 +17,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import NEXT_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
+from .entries import runtimes
 from .models import WARSAW, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
@@ -371,37 +372,29 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up ZTM sensor from a config entry."""
+    """Set up the ZTM sensors of a config entry: two for every stop it runs."""
     try:
-        stored = hass.data[DOMAIN][config_entry.entry_id]
-        coordinator: ZTMStopCoordinator = stored["coordinator"] if isinstance(stored, dict) else stored
+        for subentry_id, runtime in runtimes(hass, config_entry).items():
+            coordinator: ZTMStopCoordinator = runtime["coordinator"]
+            stop_id, stop_number, line = coordinator.stop_id, coordinator.stop_nr, coordinator.line
 
-        departures = NEXT_DEPARTURES
+            entity = ZTMSensor(
+                coordinator=coordinator,
+                entry_id=subentry_id or config_entry.entry_id,
+                stop_id=stop_id,
+                stop_number=stop_number,
+                line=line,
+                max_departures=NEXT_DEPARTURES,
+            )
+            diag_sensor = ZTMLastUpdateSensor(
+                coordinator=coordinator,
+                line=line,
+                stop_id=stop_id,
+                stop_number=stop_number,
+            )
+            async_add_entities([entity, diag_sensor], config_subentry_id=subentry_id)
 
-        stop_id = coordinator.stop_id
-        stop_number = coordinator.stop_nr
-        line = coordinator.line
-
-        entity = ZTMSensor(
-            coordinator=coordinator,
-            entry_id=config_entry.entry_id,
-            stop_id=stop_id,
-            stop_number=stop_number,
-            line=line,
-            max_departures=departures,
-        )
-
-        diag_sensor = ZTMLastUpdateSensor(
-            coordinator=coordinator,
-            line=line,
-            stop_id=stop_id,
-            stop_number=stop_number,
-        )
-
-        async_add_entities([entity, diag_sensor])
-
-        _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s",
-                    line, stop_id, stop_number)
+            _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s", line, stop_id, stop_number)
 
     except Exception:
         _LOGGER.exception("Failed to set up ZTM sensor")

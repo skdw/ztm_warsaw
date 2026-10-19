@@ -73,6 +73,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         await self._load_stop_name()
         self._schedule_flip_refresh()
 
+    def start_without_timetable(self):
+        """The first refresh of this stop failed while the other stops of its line answered: the stop starts anyway, its
+        entities are unavailable, and the hourly refresh (and the one after the service day changes) brings the timetable."""
+        self._started = True
+        self._schedule_flip_refresh()
+
     async def _load_stop_name(self):
         """The stop's name, once at startup (the client keeps it), on a short leash and never inside the City's update;
         a failure only means the sensors have no name for it."""

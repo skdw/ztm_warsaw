@@ -8,10 +8,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .client import key_kind
-from .const import DOMAIN
-from . import _entry_values
+from .entries import entry_api_key, is_line_entry, runtimes
 
-# Every spelling of the key the setup accepts (see _entry_values); the value of each is replaced.
+# Every spelling of the key the setup accepts (see entries.py); the value of each is replaced.
 TO_REDACT = {"api_key", "apikey", "apiKey"}
 REDACTED = "**REDACTED**"
 
@@ -63,34 +62,47 @@ def _answer(data) -> dict[str, Any] | None:
     }
 
 
+def _coordinator_state(coordinator) -> dict[str, Any]:
+    error = coordinator.last_exception
+    return {
+        "last_update_success": coordinator.last_update_success,
+        "last_update_success_time": (
+            coordinator.last_update_success_time.isoformat() if coordinator.last_update_success_time else None
+        ),
+        "last_exception": type(error).__name__ if error else None,  # the class only: a text could carry the URL
+        "api_error": coordinator._api_error,
+        "rejections_in_a_row": coordinator._rejections,
+        "current": _answer(coordinator.data),
+        "previous": _answer(coordinator._previous),
+    }
+
+
 # Home Assistant awaits this platform function, so it has to be a coroutine function although it only reads memory.
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # NOSONAR
-    """The entry (key redacted) and the state of its coordinator, as plain data."""
-    stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    coordinator = stored.get("coordinator") if isinstance(stored, dict) else None
-    values = _entry_values(entry, log=False)
-    state: dict[str, Any] | None = None
-    if coordinator is not None:
-        error = coordinator.last_exception
-        state = {
-            "last_update_success": coordinator.last_update_success,
-            "last_update_success_time": (
-                coordinator.last_update_success_time.isoformat() if coordinator.last_update_success_time else None
-            ),
-            "last_exception": type(error).__name__ if error else None,  # the class only: a text could carry the URL
-            "api_error": coordinator._api_error,
-            "rejections_in_a_row": coordinator._rejections,
-            "current": _answer(coordinator.data),
-            "previous": _answer(coordinator._previous),
-        }
-    result = {
+    """The entry (key redacted) and the state of its coordinators, as plain data."""
+    running = runtimes(hass, entry)
+    api_key = entry_api_key(entry)
+    result: dict[str, Any] = {
         "entry": {
             "title": entry.title,
             "state": entry.state.value,
             "data": _redact(entry.data),
             "options": _redact(entry.options),
         },
-        "key_kind": key_kind(values[0]) if values else None,
-        "coordinator": state,
+        "key_kind": key_kind(api_key) if api_key else None,
     }
+    if is_line_entry(entry):
+        result["stops"] = [
+            {
+                "title": subentry.title,
+                "data": dict(subentry.data),
+                "coordinator": (
+                    _coordinator_state(running[sid]["coordinator"]) if sid in running else None
+                ),
+            }
+            for sid, subentry in entry.subentries.items()
+        ]
+    else:
+        coordinator = running.get(None, {}).get("coordinator")
+        result["coordinator"] = _coordinator_state(coordinator) if coordinator is not None else None
     return _scrub(result, _secrets(entry))

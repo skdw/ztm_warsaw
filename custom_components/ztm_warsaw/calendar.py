@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .entries import runtimes
 from .coordinator import ZTMStopCoordinator
 from .sensor import _device_info, _stop_info_of
 
@@ -24,9 +24,8 @@ EVENT_LENGTH = timedelta(minutes=1)
 
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities) -> None:  # NOSONAR
-    stored = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator = stored["coordinator"] if isinstance(stored, dict) else stored
-    async_add_entities([ZTMCalendar(coordinator)])
+    for subentry_id, runtime in runtimes(hass, config_entry).items():
+        async_add_entities([ZTMCalendar(runtime["coordinator"])], config_subentry_id=subentry_id)
 
 
 class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):

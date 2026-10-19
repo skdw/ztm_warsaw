@@ -3,13 +3,17 @@ import re
 
 import voluptuous as vol
 
+from types import MappingProxyType
+
 from homeassistant import config_entries
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.config_entries import ConfigSubentry, ConfigSubentryData, ConfigSubentryFlow
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
-from . import _entry_values, stop_key
+from .entries import SUBENTRY_STOP, entry_api_key, is_line_entry, line_of, stop_keys, stop_units
 from .const import KEY_PORTAL_URL, NEXT_DEPARTURES, DOMAIN, CONF_API_KEY, CONF_BUSSTOP_ID, CONF_BUSSTOP_NR, CONF_LINE, CONF_DEPARTURES
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,7 +108,7 @@ async def error_for(hass, user_input, *, check_stop_number=True) -> tuple[str | 
 
 
 class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
-    VERSION = 1
+    VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is still read as it was
 
     async def _error_for(self, user_input, *, check_stop_number=True):
         """The error key for this input, or None when it is valid (see ``error_for``).
@@ -113,7 +117,11 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         return error
 
     def _is_configured(self, key):
-        return any(stop_key(entry) == key for entry in self._async_current_entries())
+        return any(key in stop_keys(entry) for entry in self._async_current_entries())
+
+    def _entry_of_line(self, line):
+        """The line entry that already runs this line, if any: a new stop of the line goes into it."""
+        return next((e for e in self._async_current_entries() if is_line_entry(e) and line_of(e) == line), None)
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -123,13 +131,36 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             new_key = (str(user_input[CONF_BUSSTOP_ID]), user_input[CONF_BUSSTOP_NR], user_input[CONF_LINE])
             if self._is_configured(new_key):
                 return self.async_abort(reason="already_configured")  # a second sensor of the same stop, pole and line cannot exist
+            existing = self._entry_of_line(user_input[CONF_LINE])
+            if existing is not None:  # one more stop of a line that is set up: it is asked with the key that line has
+                user_input = {**user_input, CONF_API_KEY: entry_api_key(existing) or user_input[CONF_API_KEY]}
             error = await self._error_for(user_input)
             if error is None:
                 if self._is_configured(new_key):  # another flow may have finished while the City was being asked
                     return self.async_abort(reason="already_configured")
-                title = f"Line {user_input[CONF_LINE]} from {user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}"
+                stop = ConfigSubentryData(
+                    subentry_type=SUBENTRY_STOP,
+                    title=f"{user_input[CONF_BUSSTOP_ID]}/{user_input[CONF_BUSSTOP_NR]}",  # the stop's name replaces it once known
+                    data={CONF_BUSSTOP_ID: user_input[CONF_BUSSTOP_ID], CONF_BUSSTOP_NR: user_input[CONF_BUSSTOP_NR]},
+                    unique_id=_stop_unique_id(user_input[CONF_BUSSTOP_ID], user_input[CONF_BUSSTOP_NR]),
+                )
+                existing = self._entry_of_line(user_input[CONF_LINE])
+                if existing is not None:  # the line is set up already: this is one more stop of it
+                    try:
+                        self.hass.config_entries.async_add_subentry(existing, _subentry(stop))
+                    except HomeAssistantError:  # another flow added the same stop while the City was being asked
+                        return self.async_abort(reason="already_configured")
+                    return self.async_abort(reason="stop_added")
                 # The number of departures is no longer asked (3 are always listed); the key stays in the data as it was.
-                return self.async_create_entry(title=title, data={**user_input, CONF_DEPARTURES: NEXT_DEPARTURES})
+                return self.async_create_entry(
+                    title=f"Line {user_input[CONF_LINE]}",
+                    data={
+                        CONF_API_KEY: user_input[CONF_API_KEY],
+                        CONF_LINE: user_input[CONF_LINE],
+                        CONF_DEPARTURES: NEXT_DEPARTURES,
+                    },
+                    subentries=[stop],
+                )
             errors["base"] = error
 
         return self.async_show_form(
@@ -144,17 +175,12 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
     async def async_step_reauth_confirm(self, user_input=None):
         """Ask for a new API key or token for an entry whose key the City rejects; the rest of the entry stays."""
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        values = _entry_values(entry) if entry else None
-        if entry is None or values is None:
+        if entry is None or not _key_can_change(entry):
             return self.async_abort(reason="unknown")
-        _, stop_id, stop_nr, line = values
         errors = {}
         if user_input is not None:
             key = user_input[CONF_API_KEY].strip()
-            error = await self._error_for(
-                {CONF_API_KEY: key, CONF_BUSSTOP_ID: stop_id, CONF_BUSSTOP_NR: stop_nr, CONF_LINE: line},
-                check_stop_number=False,  # an old entry keeps the number it has; only the key is asked for here
-            )
+            error, self.key_works = await _key_error(self.hass, entry, key)
             if error is None or self.key_works:  # that the line does not run today is not the key's fault
                 loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
                 changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
@@ -172,6 +198,44 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
     @callback
     def async_get_options_flow(config_entry):
         return ZtmWarsawOptionsFlow(config_entry)
+
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(cls, config_entry):
+        # Only a line has stops to add; an entry of 1.1.x is one stop and has no "Add stop".
+        return {SUBENTRY_STOP: ZtmStopSubentryFlow} if is_line_entry(config_entry) else {}
+
+
+def _subentry(stop: ConfigSubentryData) -> ConfigSubentry:
+    return ConfigSubentry(
+        subentry_type=stop["subentry_type"],
+        title=stop["title"],
+        data=MappingProxyType(stop["data"]),
+        unique_id=stop.get("unique_id"),
+    )
+
+
+def _stop_unique_id(stop_id, stop_nr) -> str:
+    return f"{stop_id}_{stop_nr}"
+
+
+def _key_can_change(entry) -> bool:
+    """An entry whose data cannot be read is not changed blindly: a 1.1.x entry needs its stop, a line needs only its key."""
+    return entry_api_key(entry) is not None and (is_line_entry(entry) or bool(stop_units(entry)))
+
+
+async def _key_error(hass, entry, key: str) -> tuple[str | None, bool]:
+    """``(error key, key works)`` for a new key of this entry (see ``error_for``): the City is asked with the entry's stop,
+    or with the first stop of a line. A line that has no stop left has only the shape of the key to check."""
+    units = stop_units(entry)
+    if not units:
+        return (None, True) if key_kind(key) is not None else ("invalid_api_key", False)
+    unit = units[0]
+    return await error_for(
+        hass,
+        {CONF_API_KEY: key, CONF_BUSSTOP_ID: unit.stop_id, CONF_BUSSTOP_NR: unit.stop_nr, CONF_LINE: unit.line},
+        check_stop_number=False,  # an old entry keeps the number it has; only the key is asked for here
+    )
 
 
 def _host_of(api_key: str) -> str:
@@ -226,18 +290,13 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
 
     async def _change_key(self, user_input):
         entry = self._config_entry
-        values = _entry_values(entry, log=False)
-        if values is None:
+        api_key = entry_api_key(entry)
+        if api_key is None or not _key_can_change(entry):
             return self.async_abort(reason="unknown")
-        api_key, stop_id, stop_nr, line = values
         errors = {}
         if user_input is not None:
             key = user_input[CONF_API_KEY].strip()
-            error, works = await error_for(
-                self.hass,
-                {CONF_API_KEY: key, CONF_BUSSTOP_ID: stop_id, CONF_BUSSTOP_NR: stop_nr, CONF_LINE: line},
-                check_stop_number=False,  # an old entry keeps the number it has
-            )
+            error, works = await _key_error(self.hass, entry, key)
             if error is None or works:  # that the line does not run today is not the key's fault
                 loaded = entry.state is config_entries.ConfigEntryState.LOADED  # read first: the update may start a reload
                 changed = self.hass.config_entries.async_update_entry(entry, **_with_key(entry, key))
@@ -253,4 +312,37 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
+        )
+
+
+class ZtmStopSubentryFlow(ConfigSubentryFlow):
+    """*Add stop*: another stop (and pole) of the line, asked with the key the line already has."""
+
+    async def async_step_user(self, user_input=None):
+        entry = self._get_entry()
+        api_key, line = entry_api_key(entry), line_of(entry)
+        if api_key is None or line is None:
+            return self.async_abort(reason="unknown")
+        errors = {}
+        if user_input is not None:
+            stop_id, stop_nr = user_input[CONF_BUSSTOP_ID], user_input[CONF_BUSSTOP_NR].strip()  # the stop id is an int
+            if any((str(stop_id), stop_nr, line) in stop_keys(e) for e in self.hass.config_entries.async_entries(DOMAIN)):
+                return self.async_abort(reason="already_configured")
+            error, _ = await error_for(
+                self.hass, {CONF_API_KEY: api_key, CONF_BUSSTOP_ID: stop_id, CONF_BUSSTOP_NR: stop_nr, CONF_LINE: line}
+            )
+            if error is None:
+                if any((str(stop_id), stop_nr, line) in stop_keys(e) for e in self.hass.config_entries.async_entries(DOMAIN)):
+                    return self.async_abort(reason="already_configured")  # added by another flow while the City was asked
+                return self.async_create_entry(
+                    title=f"{stop_id}/{stop_nr}",
+                    data={CONF_BUSSTOP_ID: stop_id, CONF_BUSSTOP_NR: stop_nr},
+                    unique_id=_stop_unique_id(stop_id, stop_nr),
+                )
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({vol.Required(CONF_BUSSTOP_ID): vol.Coerce(int), vol.Required(CONF_BUSSTOP_NR): str}),
+            errors=errors,
+            description_placeholders={"line": line or ""},
         )

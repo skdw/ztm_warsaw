@@ -41,7 +41,10 @@ async def test_the_config_flow_creates_an_entry_that_loads(hass, enable_custom_i
     await hass.async_block_till_done()
     assert result["type"] == "create_entry", result.get("errors")
     assert result["result"].state is ConfigEntryState.LOADED
-    assert dict(result["result"].data) == {**ENTRY_DATA, "departures": 3}
+    entry = result["result"]
+    assert dict(entry.data) == {"api_key": ENTRY_DATA["api_key"], "line": "151", "departures": 3}  # a line ...
+    (stop,) = entry.subentries.values()  # ... and its stop
+    assert dict(stop.data) == {"busstop_id": 7009, "busstop_nr": "01"}
 
 
 async def test_a_sensor_appears_and_is_removed_with_the_entry(hass, enable_custom_integrations, city):

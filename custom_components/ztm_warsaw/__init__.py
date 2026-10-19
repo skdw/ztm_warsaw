@@ -1,14 +1,14 @@
 """Home Assistant setup for the Warsaw Public Transport custom integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from collections.abc import Mapping
 
 from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS
 from .client import StopCatalogue, ZTMStopClient, key_kind, user_agent
@@ -16,127 +16,126 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
 from .coordinator import ZTMStopCoordinator, store_key
+from .entries import (  # noqa: F401 - _entry_values and stop_key are used by the config flow and the diagnostics
+    StopUnit,
+    _entry_values,
+    _first_nonempty,
+    entry_api_key,
+    is_line_entry,
+    line_of,
+    runtimes,
+    stop_keys,
+    stop_units,
+)
 
 _LOGGER = logging.getLogger(__name__)
 _NAME_LENGTH = 60
 
 
-def _first_nonempty(merged: Mapping[str, Any], *keys: str) -> str | None:
-    """The first of ``keys`` that holds a value, as a string without surrounding spaces."""
-    for k in keys:
-        v = merged.get(k)
-        if v is None:
-            continue
-        text = str(v).strip()
-        if text:
-            return text
-    return None
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """A version 1 entry (one stop) keeps working as it is; the line entry of version 2 is what new setups create."""
+    return entry.version <= 2
 
 
-def _entry_values(entry: ConfigEntry, *, log: bool = True) -> tuple[str, str, str, str] | None:
-    """The (api_key, stop_id, stop_nr, line) of the entry, or None when one is missing (logged, key never named)."""
-    # Merge data and options (options override data) for robustness
-    merged: dict[str, Any] = {}
-    if isinstance(entry.data, Mapping):
-        merged.update(entry.data)
-    if isinstance(entry.options, Mapping):
-        merged.update(entry.options)
-
-    api_key = _first_nonempty(merged, "api_key", "apikey", "apiKey")
-    stop_id = _first_nonempty(merged, "stop_id", "busstop_id", "busstopId", "busstopID", "stopId", "zespol")
-    stop_nr = _first_nonempty(merged, "stop_nr", "busstop_nr", "busstopNr", "stopNr", "slupek")
-    line = _first_nonempty(merged, "line", "linia")
-
-    if api_key is None or stop_id is None or stop_nr is None or line is None:
-        if not log:
-            return None
-        missing = [name for name, val in [("stop_id", stop_id), ("stop_nr", stop_nr), ("line", line)] if val is None]
-        if api_key is not None:
-            # No sensitive field missing: safe to list them
-            _LOGGER.error("Missing required config: %s", ", ".join(missing))
-        else:
-            # The key is missing: keep ERROR generic and never name or print sensitive fields
-            _LOGGER.error("Missing required configuration. Please reconfigure this integration.")
-            _LOGGER.debug(
-                "Some required fields are missing (at least one is sensitive). Provided non-sensitive keys: %s",
-                ", ".join(sorted(k for k in merged if k not in ("api_key", "apikey", "apiKey"))),
-            )
-        return None
-    return api_key, stop_id, stop_nr, line
+async def _first_refresh(coordinators: list[ZTMStopCoordinator]) -> None:
+    """Raises ConfigEntryNotReady when the City answers for none of the stops: Home Assistant then retries the setup by
+    itself and stops the coordinators of the entry (each one is registered for it). The stops of a line ask together;
+    when only some answer, the line starts and the others catch up with their hourly refresh."""
+    if len(coordinators) == 1:
+        await coordinators[0].async_config_entry_first_refresh()
+        return
+    results = await asyncio.gather(*(c.async_config_entry_first_refresh() for c in coordinators), return_exceptions=True)
+    failures = [r for r in results if isinstance(r, BaseException)]
+    for failure in failures:  # the key is rejected, or the setup itself was cancelled: that is the entry's, not one stop's
+        if isinstance(failure, (ConfigEntryAuthFailed, asyncio.CancelledError)):
+            raise failure
+    if failures and len(failures) == len(coordinators):
+        raise failures[0]
+    for coordinator, result in zip(coordinators, results):  # a stop the City does not answer for does not hold back the others
+        if isinstance(result, BaseException):
+            coordinator.start_without_timetable()
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    values = _entry_values(entry)
-    if values is None:
-        return False
-    api_key, stop_id, stop_nr, line = values
+    if not is_line_entry(entry) and _entry_values(entry) is None:
+        return False  # said in the log, without the key
+    units = stop_units(entry)
 
     session = async_get_clientsession(hass)
+    agent = await user_agent(hass)
+    catalogue = hass.data.setdefault(f"{DOMAIN}_catalogue", StopCatalogue())  # one for all the entries
 
-    client = ZTMStopClient(
-        session=session,
-        user_agent=await user_agent(hass),
-        catalogue=hass.data.setdefault(f"{DOMAIN}_catalogue", StopCatalogue()),  # one for all the entries
-        api_key=api_key,
-        stop_id=stop_id,
-        stop_number=stop_nr,
-        line=line,
-    )
-
-    coordinator = ZTMStopCoordinator(
-        hass=hass,
-        client=client,
-        stop_id=stop_id,
-        stop_nr=stop_nr,
-        line=line,
-        entry_id=entry.entry_id,
-    )
+    built: dict[str | None, dict] = {}
+    for unit in units:
+        client = ZTMStopClient(
+            session=session,
+            user_agent=agent,
+            catalogue=catalogue,
+            api_key=unit.api_key,
+            stop_id=unit.stop_id,
+            stop_number=unit.stop_nr,
+            line=unit.line,
+        )
+        coordinator = ZTMStopCoordinator(
+            hass=hass,
+            client=client,
+            stop_id=unit.stop_id,
+            stop_nr=unit.stop_nr,
+            line=unit.line,
+            entry_id=unit.ref,
+        )
+        built[unit.subentry_id] = {"coordinator": coordinator, "client": client}
 
     _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most
-    # Raises ConfigEntryNotReady when the City does not answer: Home Assistant then retries the setup by itself.
-    await coordinator.async_config_entry_first_refresh()
+    await _first_refresh([rt["coordinator"] for rt in built.values()])
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "client": client,
-    }
+    # A version 1 entry keeps the shape it always had; a line has its stops by subentry.
+    hass.data[DOMAIN][entry.entry_id] = {"units": built} if is_line_entry(entry) else built[None]
 
-    def _show_stop_name() -> None:
+    def _show_stop_names() -> None:
         _update_duplicate_issue(hass, entry)
         _update_legacy_issue(hass, entry)  # again, now that the stop's name is known
-        _use_stop_name_in_title(hass, entry, values)
+        _use_stop_name_in_title(hass, entry)
 
-    _show_stop_name()
-    named = _stop_name_of(hass, entry) is not None
+    _show_stop_names()
+    waiting = {sid for sid in built if _stop_name_of(hass, entry, sid) is None}
 
     def _on_update() -> None:
-        """The name can arrive after the setup (the catalogue failed once and a later refresh got it): show it then."""
-        nonlocal named
-        if not named and _stop_name_of(hass, entry) is not None:
-            named = True
-            _show_stop_name()
+        """A name can arrive after the setup (the catalogue failed once and a later refresh got it): show it then."""
+        arrived = {sid for sid in waiting if _stop_name_of(hass, entry, sid) is not None}
+        if arrived:
+            waiting.difference_update(arrived)
+            _show_stop_names()
 
-    if not named:
-        entry.async_on_unload(coordinator.async_add_listener(_on_update))
+    for sid in waiting:
+        entry.async_on_unload(built[sid]["coordinator"].async_add_listener(_on_update))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    seen = (dict(entry.data), dict(entry.options))
+    seen = _snapshot(entry)
+    seen_refs = {unit.ref for unit in units}
 
     async def _reload_if_changed(hass: HomeAssistant, changed: ConfigEntry) -> None:
-        """Reload when the data or the options differ from the ones this setup used (a rename or such does not)."""
-        if (dict(changed.data), dict(changed.options)) != seen:
+        """Reload when the data, the options or the stops differ from the ones this setup used (a rename or such does not)."""
+        if _snapshot(changed) != seen:
             await hass.config_entries.async_reload(changed.entry_id)
+            # After the reload: the unload of the old coordinators saves their answers once more.
+            for gone in seen_refs - {unit.ref for unit in stop_units(changed)}:  # a stop that was removed
+                await Store(hass, 1, store_key(gone)).async_remove()
 
     entry.async_on_unload(entry.add_update_listener(_reload_if_changed))
     return True
 
 
-def _stop_name_of(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
+def _snapshot(entry: ConfigEntry) -> tuple:
+    """What a setup depends on: the data, the options and the data of every stop (not any title)."""
+    return dict(entry.data), dict(entry.options), {sid: dict(sub.data) for sid, sub in entry.subentries.items()}
+
+
+def _stop_name_of(hass: HomeAssistant, entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
     """The stop's name, once the entry has loaded and the City has given it (the coordinator holds it)."""
-    stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    coordinator = stored.get("coordinator") if isinstance(stored, dict) else None
+    coordinator = runtimes(hass, entry).get(subentry_id, {}).get("coordinator")
     info = getattr(getattr(coordinator, "data", None), "stop_info", None)
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     if not isinstance(name, str):
@@ -155,18 +154,26 @@ def _stop_text(stop_id: str, pole: str, name: str | None) -> str:
     return f"{plain} {pole} ({stop_id}/{pole})" if plain else f"{stop_id}/{pole}"
 
 
-def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry, values: tuple[str, str, str, str]) -> None:
-    """Title an entry "Line 176 from Marcelin 15" instead of "Line 176 from 1085/15", unless the user gave it their own."""
-    _, stop_id, pole, line = values
-    name = _stop_name_of(hass, entry)
-    if name and entry.title == f"Line {line} from {stop_id}/{pole}":
-        hass.config_entries.async_update_entry(entry, title=f"Line {line} from {name} {pole}")
+def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Title a stop "Line 176 from Marcelin 15" instead of "Line 176 from 1085/15" (a version 1 entry), or "Marcelin 15"
+    instead of "1085/15" (the subentry of a line), unless the user gave it their own."""
+    for unit in stop_units(entry):
+        name = _stop_name_of(hass, entry, unit.subentry_id)
+        if not name:
+            continue
+        if unit.subentry_id is None:
+            if entry.title == f"Line {unit.line} from {unit.stop_id}/{unit.stop_nr}":
+                hass.config_entries.async_update_entry(entry, title=f"Line {unit.line} from {name} {unit.stop_nr}")
+            continue
+        subentry = entry.subentries[unit.subentry_id]
+        if subentry.title == f"{unit.stop_id}/{unit.stop_nr}":
+            hass.config_entries.async_update_subentry(entry, subentry, title=f"{name} {unit.stop_nr}")
 
 
 def stop_key(entry: ConfigEntry) -> tuple[str, str, str] | None:
-    """What makes two entries the same sensor: the stop, the pole and the line, as the sensor's unique ID is built from them."""
-    values = _entry_values(entry, log=False)
-    return None if values is None else (values[1], values[2], values[3])
+    """The stop, the pole and the line of a version 1 entry (see ``stop_keys`` for any entry)."""
+    keys = stop_keys(entry)
+    return next(iter(keys)) if len(keys) == 1 and not is_line_entry(entry) else None
 
 
 def _duplicate_issue_id(entry: ConfigEntry) -> str:
@@ -175,7 +182,8 @@ def _duplicate_issue_id(entry: ConfigEntry) -> str:
 
 def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: str | None = None) -> None:
     """Tell the user (Repairs) when another entry already covers the same stop, pole and line; the second sensor of
-    such a pair cannot exist, and removing one of the entries is the user's call."""
+    such a pair cannot exist, and removing one of the entries is the user's call. Only a version 1 entry can be that
+    second one: a line refuses the same stop twice when it is added."""
     key = stop_key(entry)
     earlier = []  # the entries added before this one: the first of a pair keeps its sensor, the later one has none
     for other in hass.config_entries.async_entries(DOMAIN):
@@ -183,7 +191,7 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
             break
         if other.entry_id != removed:  # Home Assistant before 2026.10 still lists an entry while it is being removed
             earlier.append(other)
-    twin = key is not None and any(stop_key(other) == key for other in earlier)
+    twin = key is not None and any(key in stop_keys(other) for other in earlier)
     if key is not None and twin:
         ir.async_create_issue(
             hass,
@@ -201,40 +209,48 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
 def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """A notice (Repairs, can be dismissed) for an entry that still uses a key of the City's old API: it works, but the
     City publishes no date for its end and the token of the new API is its current service. Configure changes the key."""
-    values = _entry_values(entry, log=False)
+    api_key = entry_api_key(entry)
     issue_id = f"legacy_key_{entry.entry_id}"
-    if values is not None and key_kind(values[0]) == "legacy":
+    units = stop_units(entry)
+    if api_key is None or key_kind(api_key) != "legacy" or (not units and not is_line_entry(entry)):
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    if is_line_entry(entry):  # the key is the line's, whether it has stops left or not
         ir.async_create_issue(
             hass,
             DOMAIN,
             issue_id,
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
-            translation_key="legacy_key",
-            translation_placeholders={
-                "line": values[3],
-                "stop": _stop_text(values[1], values[2], _stop_name_of(hass, entry)),
-                "portal": KEY_PORTAL_URL,  # hassfest wants no URL inside a translated text
-            },
+            translation_key="legacy_key_line",
+            translation_placeholders={"line": line_of(entry) or "", "portal": KEY_PORTAL_URL},
         )
-    else:
-        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    unit = units[0]
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="legacy_key",
+        translation_placeholders={
+            "line": unit.line,
+            "stop": _stop_text(unit.stop_id, unit.stop_nr, _stop_name_of(hass, entry)),
+            "portal": KEY_PORTAL_URL,  # hassfest wants no URL inside a translated text
+        },
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    stored = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    if isinstance(stored, dict):
-        coord = stored.get("coordinator")
-    elif isinstance(stored, ZTMStopCoordinator):
-        coord = stored
-    else:
-        coord = None
-    if coord:
+    running = runtimes(hass, entry)
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+    for runtime in running.values():
         try:
-            await coord.async_shutdown()
+            await runtime["coordinator"].async_shutdown()
         except Exception:  # noqa: BLE001 - shutdown should not crash unload
             _LOGGER.debug("Coordinator shutdown raised; ignoring", exc_info=True)
 
@@ -245,7 +261,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete the answers stored for a removed entry, and the notice about it or about its twin."""
-    await Store(hass, 1, store_key(entry.entry_id)).async_remove()
+    for ref in (entry.entry_id, *entry.subentries):
+        await Store(hass, 1, store_key(ref)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
     ir.async_delete_issue(hass, DOMAIN, f"legacy_key_{entry.entry_id}")
     for other in hass.config_entries.async_entries(DOMAIN):

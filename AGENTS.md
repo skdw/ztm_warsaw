@@ -58,8 +58,10 @@ Automations and dashboards depend on these, and the tests
 `test_e2e_02_golden_public_contract` and `test_e2e_02_golden_attributes_when_there_is_no_service`
 (in `tests/e2e/test_e2e_01_install.py`) pin them:
 
-- the domain `ztm_warsaw`, the config entry version, and the config entry data keys `api_key`,
-  `busstop_id`, `busstop_nr`, `line` and `departures` (no longer asked: a new entry stores 3, an old value is ignored, the key stays so that the shape does not change);
+- the domain `ztm_warsaw`, the config entry version, and the config entry data keys: a version 1 entry (1.1.x, one stop)
+  has `api_key`, `busstop_id`, `busstop_nr`, `line` and `departures`; a version 2 entry is a line with `api_key`, `line` and
+  `departures` (no longer asked: a new entry stores 3, an old value is ignored, the key stays so that the shape does not
+  change) and every stop is a subentry of type `stop` with `busstop_id` and `busstop_nr` and the unique ID `<id>_<nr>`;
 - the entity `unique_id` `line_<LINE>_from_<STOP>_<POLE>` and the entity ID
   `sensor.line_<line in lower case>_from_<STOP>_<POLE>`, and the diagnostic sensor's `_last_update`
   suffix; the calendar's unique_id suffix `_calendar` and entity ID `calendar.line_<line in lower case>_from_<STOP>_<POLE>_timetable`;
