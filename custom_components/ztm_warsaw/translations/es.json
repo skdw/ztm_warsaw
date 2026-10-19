@@ -1,0 +1,208 @@
+{
+  "title": "Transporte público de Varsovia",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Indica la línea y la parada cuyas salidas quieres mostrar. Encontrarás instrucciones detalladas en la documentación de GitHub.",
+        "data": {
+          "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia",
+          "busstop_id": "ID de la parada (p. ej. 3044)",
+          "busstop_nr": "Número del punto de parada (p. ej. 02)",
+          "line": "Número de línea (p. ej. N31)"
+        }
+      },
+      "reauth_confirm": {
+        "description": "La API de la ciudad de Varsovia está rechazando la clave API o el token guardado. Introduce una nueva clave o un nuevo token del portal de datos abiertos. Se conservarán los ajustes de la línea y de las paradas.",
+        "data": {
+          "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
+      "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
+      "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
+      "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
+      "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
+      "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
+      "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
+      "unknown": "Se ha producido un error desconocido.",
+      "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
+      "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»)."
+    },
+    "abort": {
+      "single_instance_allowed": "Solo se permite una instancia.",
+      "reauth_successful": "Se han guardado las nuevas credenciales y se ha vuelto a cargar la configuración.",
+      "unknown": "Se ha producido un error desconocido.",
+      "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",
+      "stop_added": "La parada se ha añadido a la configuración existente de la línea. Utilizará las credenciales guardadas para esa línea. Para cambiarlas, selecciona **Configurar**."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Transporte público de Varsovia",
+        "description": "**Esta configuración utiliza la API antigua de la ciudad de Varsovia ({current}).**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPara cambiar a la nueva API:\n\n1. Obtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Pégalo en el campo de abajo.\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "data": {
+          "api_key": "Clave API o token"
+        }
+      },
+      "token": {
+        "title": "Transporte público de Varsovia",
+        "description": "**Cambia el token de acceso a la API.**\n\nSi el token actual ha caducado o quieres sustituirlo, pega un nuevo token de [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "data": {
+          "api_key": "Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
+      "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
+      "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
+      "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
+      "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
+      "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
+      "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
+      "unknown": "Se ha producido un error desconocido.",
+      "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde."
+    },
+    "abort": {
+      "unknown": "Se ha producido un error desconocido."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ztm_warsaw": {
+        "name": "Línea ZTM"
+      }
+    }
+  },
+  "issues": {
+    "duplicate_entry": {
+      "title": "Configuración duplicada: línea {line}, {stop}",
+      "description": "**La línea {line} en {stop} tiene dos configuraciones.**\n\nHome Assistant solo puede crear un sensor para esta línea y parada. No se ha creado ningún sensor para la segunda configuración.\n\nElimina una de las configuraciones duplicadas en **Configuración > Dispositivos y servicios > Transporte público de Varsovia**."
+    },
+    "legacy_key": {
+      "title": "Clave API antigua: línea {line}, {stop}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Sustituir la clave antigua por un token",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
+            "data": {
+              "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Clave API antigua",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
+            "menu_options": {
+              "token": "Pegar un token",
+              "ignore": "Conservar la clave antigua e ignorar este aviso"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
+          "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
+          "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
+          "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
+          "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
+          "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
+          "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
+          "unknown": "Se ha producido un error desconocido.",
+          "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde."
+        },
+        "abort": {
+          "unknown": "La configuración asociada a este aviso se ha eliminado o no se puede modificar.",
+          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**."
+        }
+      }
+    },
+    "legacy_key_line": {
+      "title": "Clave API antigua: línea {line}",
+      "fix_flow": {
+        "step": {
+          "token": {
+            "title": "Sustituir la clave antigua por un token",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
+            "data": {
+              "api_key": "Token"
+            }
+          },
+          "init": {
+            "title": "Clave API antigua",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
+            "menu_options": {
+              "token": "Pegar un token",
+              "ignore": "Conservar la clave antigua e ignorar este aviso"
+            }
+          }
+        },
+        "error": {
+          "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
+          "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
+          "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
+          "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
+          "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
+          "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
+          "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
+          "unknown": "Se ha producido un error desconocido.",
+          "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde."
+        },
+        "abort": {
+          "unknown": "La configuración asociada a este aviso se ha eliminado o no se puede modificar.",
+          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**."
+        }
+      }
+    },
+    "merged_keys": {
+      "title": "Línea {line}: credenciales compartidas",
+      "description": "**Las paradas de la línea {line} utilizaban distintas claves API o tokens.**\n\nLas paradas se han agrupado en una sola configuración y ahora toda la línea comparte las mismas credenciales. Si alguna parada tenía un token guardado, se ha elegido ese token. En caso contrario, se ha conservado la clave de la configuración más antigua.\n\nSi una parada deja de funcionar, abre la integración y selecciona **Configurar** en esta línea para introducir la clave API o el token correcto.\n\nPuedes cerrar este aviso."
+    }
+  },
+  "config_subentries": {
+    "stop": {
+      "title": "Parada",
+      "initiate_flow": {
+        "user": "Añadir parada",
+        "reconfigure": "Reconfigurar parada"
+      },
+      "entry_type": "Parada",
+      "step": {
+        "user": {
+          "title": "Añadir una parada de la línea {line}",
+          "description": "Indica el ID de la parada y el número del punto de parada para la línea {line}. La nueva parada utilizará las credenciales guardadas para esta línea.",
+          "data": {
+            "busstop_id": "ID de la parada (p. ej. 3044)",
+            "busstop_nr": "Número del punto de parada (p. ej. 02)"
+          }
+        },
+        "reconfigure": {
+          "title": "Tiempo a pie hasta {stop}",
+          "description": "Indica cuántos minutos tardas en llegar a pie a la parada. El sensor omitirá las salidas a las que no puedas llegar en ese tiempo. Introduce 0 para no tener en cuenta el tiempo a pie.",
+          "data": {
+            "walking_time": "Tiempo a pie (minutos)"
+          }
+        }
+      },
+      "error": {
+        "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
+        "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
+        "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
+        "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
+        "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
+        "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
+        "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
+        "unknown": "Se ha producido un error desconocido.",
+        "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
+        "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»)."
+      },
+      "abort": {
+        "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",
+        "unknown": "Se ha producido un error desconocido.",
+        "reconfigure_successful": "Se guardó el tiempo a pie."
+      }
+    }
+  }
+}
