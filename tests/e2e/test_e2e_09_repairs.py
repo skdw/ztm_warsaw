@@ -221,7 +221,8 @@ async def test_e2e_34_ignoring_the_notice_keeps_the_old_key_and_the_notice_stays
     done = await manager.async_configure(menu["flow_id"], {"next_step_id": "ignore"})
     assert (done["type"], done["reason"]) == ("abort", "ignored")
     notice = _notice(env, entry)
-    assert notice is not None and notice.dismissed_version is not None
+    assert notice is not None, "an ignored notice is kept, not deleted"
+    assert notice.dismissed_version is not None
     assert entry.data["api_key"] == DEFAULT_KEY
     await env.hass.config_entries.async_reload(entry.entry_id)  # the notice is created again on a reload: it stays ignored
     await env.settle()
