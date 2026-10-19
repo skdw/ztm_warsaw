@@ -27,7 +27,8 @@
       "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
       "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
       "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
-      "unknown": "Wystąpił nieznany błąd."
+      "unknown": "Wystąpił nieznany błąd.",
+      "invalid_stop_id": "Podany numer zespołu przystankowego jest nieprawidłowy. Musi być liczbą (np. „3044”)."
     },
     "abort": {
       "single_instance_allowed": "Dozwolona jest tylko jedna instancja.",
@@ -168,7 +169,8 @@
         "line_not_found": "Nie znaleziono podanej linii dla wybranego zespołu przystankowego i słupka.",
         "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
         "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
-        "unknown": "Wystąpił nieznany błąd."
+        "unknown": "Wystąpił nieznany błąd.",
+        "invalid_stop_id": "Podany numer zespołu przystankowego jest nieprawidłowy. Musi być liczbą (np. „3044”)."
       },
       "abort": {
         "already_configured": "Ten przystanek, słupek i linia są już skonfigurowane.",

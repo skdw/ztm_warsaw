@@ -27,7 +27,8 @@
       "no_departures": "There are no departures scheduled for this line at the selected stop today.",
       "no_valid_times": "No valid departure times returned by the API.",
       "unknown": "An unknown error occurred.",
-      "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+      "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
+      "invalid_stop_id": "Provided stop ID is incorrect. It must be a number (e.g. “3044”)."
     },
     "abort": {
       "single_instance_allowed": "Only one instance is allowed.",
@@ -168,7 +169,8 @@
         "no_departures": "There are no departures scheduled for this line at the selected stop today.",
         "no_valid_times": "No valid departure times returned by the API.",
         "unknown": "An unknown error occurred.",
-        "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+        "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
+        "invalid_stop_id": "Provided stop ID is incorrect. It must be a number (e.g. “3044”)."
       },
       "abort": {
         "already_configured": "This stop, pole and line are already set up.",
