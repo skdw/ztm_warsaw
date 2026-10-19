@@ -40,9 +40,16 @@
     "step": {
       "init": {
         "title": "Warsaw Public Transport",
-        "description": "Zmień klucz API lub token tego wpisu (teraz: {current}). Przystanek i linia zostają bez zmian. Nowe API (token z dane.um.warszawa.pl/pl/key-api) to aktualna usługa miasta.",
+        "description": "**Ten wpis używa starego API miasta ({current}).**\n\nDziała, ale miasto nie podało daty jego zakończenia, a nowe API to jego aktualna usługa.\n\nAby przejść:\n\n1. Pobierz token na [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go poniżej.\n\nPrzystanek i linia zostają bez zmian.",
         "data": {
-          "api_key": "Klucz API (stare API) lub token (nowe API)"
+          "api_key": "Klucz API lub token"
+        }
+      },
+      "token": {
+        "title": "Warsaw Public Transport",
+        "description": "**Wymień token tego wpisu.**\n\nWklej nowy token z [dane.um.warszawa.pl/pl/key-api]({portal}), na przykład gdy poprzedni wygasł.\n\nPrzystanek i linia zostają bez zmian.",
+        "data": {
+          "api_key": "Token"
         }
       }
     },

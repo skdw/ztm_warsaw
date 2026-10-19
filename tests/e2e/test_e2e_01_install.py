@@ -396,6 +396,19 @@ async def test_e2e_04_user_input_cannot_inject_query_parameters(env):
 
 # ===================================================================== E2E-05
 NEW_KEY = "22222222-3333-4444-8555-666666666666"  # gitleaks:allow  (synthetic)
+NEW_TOKEN = DEFAULT_TOKEN + "2"  # another synthetic token of the same shape
+
+
+async def test_e2e_05_the_token_form_replaces_a_token(env):
+    token = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
+    flow = env.hass.config_entries.options
+    form = await flow.async_init(token.entry_id)
+    assert (form["type"], form["step_id"]) == ("form", "token")  # not the form that nudges an old key to a token
+    env.city.valid_tokens.add(NEW_TOKEN)
+    done = await flow.async_configure(form["flow_id"], {"api_key": f" {NEW_TOKEN} "})
+    await env.settle()
+    assert done["type"] == "create_entry", done.get("errors")
+    assert token.data["api_key"] == NEW_TOKEN
 
 
 async def test_e2e_05_the_options_flow_asks_for_a_key_and_says_which_kind_is_in_use(env):
@@ -403,7 +416,7 @@ async def test_e2e_05_the_options_flow_asks_for_a_key_and_says_which_kind_is_in_
     form = await env.hass.config_entries.options.async_init(entry.entry_id)
     assert (form["type"], form["step_id"]) == ("form", "init")
     assert [str(k) for k in form["data_schema"].schema] == ["api_key"]
-    assert form["description_placeholders"] == {"current": "api.um.warszawa.pl"}
+    assert form["description_placeholders"] == {"current": "api.um.warszawa.pl", "portal": "https://dane.um.warszawa.pl/pl/key-api"}
 
 
 async def test_e2e_05_a_new_key_replaces_the_old_one_and_reloads_the_entry_once(env):
@@ -433,7 +446,8 @@ async def test_e2e_05_a_token_replaces_an_old_key(env):
     assert entry.data["api_key"] == DEFAULT_TOKEN
     assert env.city.count(contract="new") > 0, "the entry talks to the new API now"
     form = await flow.async_init(entry.entry_id)
-    assert form["description_placeholders"] == {"current": "dane.um.warszawa.pl"}
+    assert (form["type"], form["step_id"]) == ("form", "token")  # a token is not asked to move to a token
+    assert form["description_placeholders"] == {"current": "dane.um.warszawa.pl", "portal": "https://dane.um.warszawa.pl/pl/key-api"}
 
 
 async def test_e2e_05_a_key_the_city_rejects_is_refused_and_the_entry_keeps_its_own(env):
@@ -442,6 +456,7 @@ async def test_e2e_05_a_key_the_city_rejects_is_refused_and_the_entry_keeps_its_
     form = await flow.async_init(entry.entry_id)
     done = await flow.async_configure(form["flow_id"], {"api_key": NEW_KEY})  # not among the valid keys
     assert (done["type"], done["errors"]) == ("form", {"base": "invalid_api_key"})
+    assert done["step_id"] == "init"  # an old key that is refused stays on the form that nudges to a token
     assert entry.data["api_key"] == DEFAULT_KEY
 
 

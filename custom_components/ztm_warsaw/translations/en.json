@@ -40,9 +40,16 @@
     "step": {
       "init": {
         "title": "Warsaw Public Transport",
-        "description": "Replace the API key or token of this entry (it now uses {current}). The stop and the line stay as they are. The new API (a token from dane.um.warszawa.pl/pl/key-api) is the City's current service.",
+        "description": "**This entry uses the City's old API ({current}).**\n\nIt works, but the City has published no date for its end, and the new API is its current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it below.\n\nThe stop and the line stay as they are.",
         "data": {
-          "api_key": "API key (old API) or token (new API)"
+          "api_key": "API key or token"
+        }
+      },
+      "token": {
+        "title": "Warsaw Public Transport",
+        "description": "**Replace the token of this entry.**\n\nPaste the new token from [dane.um.warszawa.pl/pl/key-api]({portal}), for example when the old one has expired.\n\nThe stop and the line stay as they are.",
+        "data": {
+          "api_key": "Token"
         }
       }
     },
