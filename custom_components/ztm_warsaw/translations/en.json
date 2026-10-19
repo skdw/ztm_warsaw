@@ -88,6 +88,10 @@
     "legacy_key_line": {
       "title": "Old API key: line {line}",
       "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nTo switch:\n\n1. Get a token at [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Open the integration and choose **Configure** on this entry.\n3. Paste the token.\n\nYou can dismiss this notice."
+    },
+    "merged_keys": {
+      "title": "Line {line}: the stops used different keys",
+      "description": "**The stops of line {line} used different keys.**\n\nThey are one entry now, so the line uses one key: a token when one of them was a token, otherwise the key of the oldest entry.\n\nIf a stop stops working, open the integration, choose **Configure** on this entry and enter the key you want.\n\nYou can dismiss this notice."
     }
   },
   "config_subentries": {

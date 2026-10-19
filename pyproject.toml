@@ -45,5 +45,6 @@ markers = [
     "start(when): start the frozen clock at this Warsaw wall-clock instant before Home Assistant is created",
     "city(**options): FakeCity constructor options for this test",
     "live: validates the REAL City of Warsaw API; needs ZTM_LIVE_API_KEY; never run in PR CI",
+    "migrate: runs the real conversion of 1.1.x entries into lines at startup (the other e2e tests keep their 1.1.x entries as they are)",
     "compat: smoke test that must run on the oldest and the newest supported Home Assistant (tests/compat)",
 ]

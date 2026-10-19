@@ -17,6 +17,7 @@ from collections.abc import AsyncIterator, Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import freezegun
 import pytest
@@ -95,6 +96,17 @@ def clock(request, process_tz) -> Iterator[Any]:
 
 
 # ----------------------------------------------------------------------------- fake city
+@pytest.fixture(autouse=True)
+def _keep_1_1_x_entries(request) -> Iterator[None]:
+    """The tests that add a 1.1.x entry (one stop) test that shape; the conversion into lines is not run for them unless
+    the test is marked ``migrate``."""
+    if request.node.get_closest_marker("migrate"):
+        yield
+        return
+    with patch("custom_components.ztm_warsaw.async_migrate_to_lines", AsyncMock()):
+        yield
+
+
 @pytest.fixture
 def city_options(request) -> dict[str, Any]:
     marker = request.node.get_closest_marker("city")

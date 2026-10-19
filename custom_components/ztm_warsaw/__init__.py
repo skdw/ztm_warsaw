@@ -8,6 +8,7 @@ import re
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS
@@ -16,6 +17,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
 from .coordinator import ZTMStopCoordinator, store_key
+from .migration import async_migrate_to_lines, merged_keys_issue_id
 from .entries import (  # noqa: F401 - _entry_values and stop_key are used by the config flow and the diagnostics
     StopUnit,
     _entry_values,
@@ -31,10 +33,20 @@ from .entries import (  # noqa: F401 - _entry_values and stop_key are used by th
 _LOGGER = logging.getLogger(__name__)
 _NAME_LENGTH = 60
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+# Home Assistant awaits this function with these two arguments, so it has to be a coroutine function that takes both.
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:  # NOSONAR
+    """Before any entry is set up: the entries of 1.1.x (one stop each) become lines (see migration.py)."""
+    await async_migrate_to_lines(hass)
+    return True
+
 
 # Home Assistant awaits this function with these two arguments, so it has to be a coroutine function that takes both.
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # NOSONAR
-    """A version 1 entry (one stop) keeps working as it is; the line entry of version 2 is what new setups create."""
+    """A version 1 entry (one stop) that the conversion into a line left (it cannot be read, or its line could not be
+    grouped) keeps working as it is; the line entry of version 2 is what the conversion and new setups make."""
     return entry.version <= 2
 
 
@@ -267,6 +279,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         await Store(hass, 1, store_key(ref)).async_remove()
     ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
     ir.async_delete_issue(hass, DOMAIN, f"legacy_key_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, merged_keys_issue_id(entry.entry_id))
     for other in hass.config_entries.async_entries(DOMAIN):
         if other.entry_id != entry.entry_id:
             _update_duplicate_issue(hass, other, removed=entry.entry_id)
