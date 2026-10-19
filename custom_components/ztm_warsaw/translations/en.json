@@ -88,7 +88,7 @@
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nTo keep the old key for now, close this window; the notice stays in Repairs, where you can choose *Ignore*.",
             "data": {
               "api_key": "Token"
             }
@@ -116,7 +116,7 @@
         "step": {
           "token": {
             "title": "Replace the old key",
-            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nYou can also choose *Ignore* to keep the old key for now.",
+            "description": "**The line {line} still uses a key of the City's old API.**\n\nIt works, but the City has published no date for its end. The new API with a token is the current service.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below; it replaces the old key and the stops stay as they are.\n\nTo keep the old key for now, close this window; the notice stays in Repairs, where you can choose *Ignore*.",
             "data": {
               "api_key": "Token"
             }
