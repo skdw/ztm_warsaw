@@ -51,12 +51,12 @@ def get_line_icon(line: str) -> str:
 
 @dataclass(frozen=True)
 class BadgeStyle:
-    """How the badge of one class of line looks: its colours, its shape and whether the line is a periodic one."""
+    """How the badge of one class of line looks: its colours and whether the line is a periodic one. Every badge is a circle:
+    Home Assistant crops a picture of an entity to a circle, so a square or a rounded rectangle lost its corners."""
 
     fill: str
     text: str = "#ffffff"
     ring: str = "#ffffff"
-    shape: str = "circle"  # "circle" for a bus, "rect" for a tram, "square" for the metro and the urban rail
     dashed: bool = False  # a dashed ring: a periodic line (3xx, 4xx, 8xx, E-x)
     moon: bool = False  # a night line
 
@@ -76,9 +76,9 @@ _STYLES = {
     "night": BadgeStyle(fill="#34479a", moon=True),
     "express": BadgeStyle(fill="#e64a19", dashed=True),  # E-x
     "local": BadgeStyle(fill="#00838f"),  # L-x
-    "tram": BadgeStyle(fill="#ffe9a8", text="#2b2f36", ring="#f2a900", shape="rect"),
-    "metro": BadgeStyle(fill="#6a1b9a", shape="square"),
-    "rail": BadgeStyle(fill="#2e7d32", shape="square"),
+    "tram": BadgeStyle(fill="#ffe9a8", text="#2b2f36", ring="#f2a900"),
+    "metro": BadgeStyle(fill="#6a1b9a"),
+    "rail": BadgeStyle(fill="#2e7d32"),
 }
 _SERIES = {"1": "ordinary", "2": "ordinary", "3": "periodic", "4": "fast periodic", "5": "fast", "7": "zone", "8": "zone periodic", "9": "special"}
 _LETTERS = {"N": "night", "E": "express", "L": "local", "Z": "special", "C": "special"}
@@ -99,8 +99,8 @@ def get_line_class(line: str) -> str:
 
 def get_line_badge(line: str) -> str | None:
     """A small badge with the line number as a data URI, for the pin on the map card (which draws the first letters of the
-    entity's name, such as "L1M", unless the entity has a picture). The colour is the class of the line, the shape the kind of
-    vehicle (see ``BadgeStyle``). None for a line that is not a plain number or code, so nothing from the configuration is
+    entity's name, such as "L1M", unless the entity has a picture). The colour is the class of the line (see ``BadgeStyle``);
+    the badge is always a circle. None for a line that is not a plain number or code, so nothing from the configuration is
     written into the image unchecked."""
     if not re.fullmatch(r"[0-9A-Za-z-]{1,4}", line):
         return None
@@ -108,12 +108,7 @@ def get_line_badge(line: str) -> str | None:
     code = line.upper()
     size = {1: 26, 2: 22, 3: 17}.get(len(code), 13)
     stroke = f'stroke="{style.ring}" stroke-width="3"' + (' stroke-dasharray="5 3"' if style.dashed else "")
-    if style.shape == "rect":
-        body = f'<rect x="2" y="9" width="44" height="30" rx="9" fill="{style.fill}" {stroke}/>'
-    elif style.shape == "square":
-        body = f'<rect x="3" y="3" width="42" height="42" rx="5" fill="{style.fill}" {stroke}/>'
-    else:
-        body = f'<circle cx="24" cy="24" r="22" fill="{style.fill}" {stroke}/>'
+    body = f'<circle cx="24" cy="24" r="22" fill="{style.fill}" {stroke}/>'
     moon = '<path transform="translate(7 0) scale(.8)" d="M38 7a6 6 0 1 0 4 9a5 5 0 1 1-4-9z" fill="#ffd54f"/>' if style.moon else ""
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
