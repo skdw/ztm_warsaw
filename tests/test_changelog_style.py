@@ -13,12 +13,24 @@ CHANGELOG = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 MAX_TEXT = 190  # characters of an entry without its links
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
 PULL_LINK = re.compile(r"\[#\d+\]\(https://github\.com/solarssk/ztm_warsaw/pull/\d+\)")
-# An entry starts with a verb, not with a noun phrase ("The integration now ...") or a condition ("If you ...").
-NOT_A_VERB = {"the", "a", "an", "this", "that", "these", "those", "it", "its", "there", "now", "if", "when", "our", "your", "no", "all", "every", "each", "some"}
+# An entry starts with one of these verbs (add yours when a new one is needed: the list is what makes "starts with a verb"
+# a checkable rule, a denylist of noun openers cannot be).
+VERBS = {
+    "accept", "add", "allow", "apply", "ask", "block", "bump", "change", "check", "clear", "close", "compute", "convert",
+    "count", "create", "delete", "detect", "disable", "document", "download", "drop", "enable", "ensure", "expect",
+    "extend", "fail", "fix", "give", "handle", "hide", "improve", "include", "install", "keep", "let", "limit", "list",
+    "load", "log", "make", "mark", "match", "merge", "migrate", "move", "name", "open", "pin", "prevent", "publish",
+    "raise", "read", "record", "refresh", "refuse", "reject", "release", "reload", "remove", "rename", "replace",
+    "report", "require", "resolve", "restore", "retry", "return", "revert", "rewrite", "run", "save", "scan", "send",
+    "set", "share", "show", "simplify", "skip", "split", "start", "stop", "strip", "support", "switch", "take", "test",
+    "trim", "turn", "update", "use", "validate", "verify", "wait", "warn", "write",
+}
 
 
 def newest_section(text: str) -> str:
-    return re.split(r"^## \[", text, flags=re.MULTILINE)[1]
+    """The first section with entries: [Unreleased], or after a stable cut (it is empty then) the version just released."""
+    sections = re.split(r"^## \[", text, flags=re.MULTILINE)[1:]
+    return next(sec for sec in sections if entries_of(sec))
 
 
 def problems_of(section: str) -> list[str]:
@@ -38,8 +50,8 @@ def problems_of(section: str) -> list[str]:
             problems.append(f"no link to the pull request with the details: {line}")
         if re.search(r"\. [A-Z]", text):
             problems.append(f"more than one sentence: {line}")
-        if not words or words[0].lower() in NOT_A_VERB:
-            problems.append(f"does not start with a verb: {line}")
+        if not words or words[0].lower() not in VERBS:
+            problems.append(f"does not start with a verb of the list in tests/test_changelog_style.py: {line}")
     return problems
 
 
@@ -73,15 +85,23 @@ def test_a_continuation_line_is_reported():
         assert problems[0].startswith("an entry is one line")
 
 
-def test_a_noun_phrase_or_a_condition_is_not_a_verb():
-    for start in ("The integration now adds", "A calendar entity", "If you use", "Now every sensor has"):
+def test_anything_that_is_not_a_listed_verb_is_rejected():
+    for start in ("The integration now adds", "A calendar entity", "If you use", "Calendar entities are supported", "Fast"):
         line = f"- {start} a calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
-        assert problems_of(section(line)) == [f"does not start with a verb: {line}"]
+        assert len(problems_of(section(line))) == 1, start
+        assert "does not start with a verb" in problems_of(section(line))[0]
+
+
+def test_a_stable_cut_leaves_an_empty_unreleased_and_the_released_section_is_checked():
+    text = "# Changelog\n\n## [Unreleased]\n\n## [1.2.0] - 2026-11-01\n\n### Added\n\n" + GOOD + "\n\n## [1.1.4]\n\n- Old long entry\n"
+    assert newest_section(text).startswith("1.2.0]")
+    assert problems_of(newest_section(text)) == []
 
 
 def test_bold_markup_does_not_hide_the_first_word():
     line = "- **The** calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))"
     assert any("does not start with a verb" in p for p in problems_of(section(line)))
+    assert problems_of(section("- **Add** a calendar ([#70](https://github.com/solarssk/ztm_warsaw/pull/70))")) == []
 
 
 def test_long_unlinked_or_two_sentence_entries_are_reported():
