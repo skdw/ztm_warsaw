@@ -271,10 +271,17 @@ async def test_e2e_32_a_rejected_key_on_one_stop_is_the_lines_to_solve(env):
             raise ConfigEntryAuthFailed("rejected")
         await original(self)
 
-    with patch.object(ZTMStopCoordinator, "async_config_entry_first_refresh", second_stop_is_rejected):
+    with (
+        patch.object(ZTMStopCoordinator, "async_config_entry_first_refresh", second_stop_is_rejected),
+        patch.object(
+            ZTMStopCoordinator, "async_shutdown", autospec=True, side_effect=ZTMStopCoordinator.async_shutdown
+        ) as shutdown,
+    ):
         assert not await env.hass.config_entries.async_setup(entry.entry_id)
         await env.settle()
     assert entry.state is ConfigEntryState.SETUP_ERROR
+    stopped = {call.args[0].stop_nr for call in shutdown.await_args_list}
+    assert stopped == {"01", "02"}, "the stop that answered is stopped too, not left running without an entry"
 
 
 async def test_e2e_32_a_line_without_stops_still_changes_its_key_and_keeps_its_notice(env):
