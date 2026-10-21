@@ -240,16 +240,16 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "Warsaw's open data service did not respond in time. Home Assistant will try again."
+      "message": "Warsaw City Hall's open data service did not respond in time. Home Assistant will try again."
     },
     "city_not_ready": {
-      "message": "Warsaw's open data service is not responding properly right now: {error}. Home Assistant will try again."
+      "message": "Warsaw City Hall's open data service is not responding properly right now: {error}. Home Assistant will try again."
     },
     "city_rejected": {
-      "message": "Warsaw's open data service refused the request: {error}. If it is about the key, check your API key or token."
+      "message": "Warsaw City Hall's open data service refused the request: {error}. If it is about the key, check your API key or token."
     },
     "city_swapping": {
-      "message": "Warsaw's open data service is replacing its timetables for the new day (about 02:10–03:05). The integration will ask again after 03:05."
+      "message": "Warsaw City Hall's open data service is replacing its timetables for the new day (about 02:10–03:05). The integration will ask again after 03:05."
     },
     "no_cached_timetable": {
       "message": "The timetable could not be downloaded, and there is no earlier one saved to fall back on."

@@ -240,16 +240,16 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "Serwer danych Warszawy nie odpowiedział w wyznaczonym czasie. Home Assistant spróbuje ponownie."
+      "message": "Serwer API Urzędu Miasta Warszawy nie odpowiedział w wyznaczonym czasie. Home Assistant spróbuje ponownie."
     },
     "city_not_ready": {
-      "message": "Serwer danych Warszawy na razie nie odpowiada poprawnie: {error}. Home Assistant spróbuje ponownie."
+      "message": "Serwer API Urzędu Miasta Warszawy na razie nie odpowiada poprawnie: {error}. Home Assistant spróbuje ponownie."
     },
     "city_rejected": {
-      "message": "Serwer danych Warszawy odrzucił zapytanie: {error}. Jeśli chodzi o klucz, sprawdź klucz API lub token."
+      "message": "Serwer API Urzędu Miasta Warszawy odrzucił zapytanie: {error}. Jeśli chodzi o klucz, sprawdź klucz API lub token."
     },
     "city_swapping": {
-      "message": "Serwer danych Warszawy wymienia rozkłady na nową dobę (ok. 2:10–3:05). Integracja zapyta ponownie po 3:05."
+      "message": "Serwer API Urzędu Miasta Warszawy wymienia rozkłady na nową dobę (ok. 2:10–3:05). Integracja zapyta ponownie po 3:05."
     },
     "no_cached_timetable": {
       "message": "Nie udało się pobrać rozkładu i nie ma wcześniej zapisanego, z którego można by skorzystać."

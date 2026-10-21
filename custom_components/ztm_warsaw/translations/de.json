@@ -240,16 +240,16 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "Der Open-Data-Dienst von Warschau hat nicht rechtzeitig geantwortet. Home Assistant versucht es erneut."
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau hat nicht rechtzeitig geantwortet. Home Assistant versucht es erneut."
     },
     "city_not_ready": {
-      "message": "Der Open-Data-Dienst von Warschau antwortet gerade nicht richtig: {error}. Home Assistant versucht es erneut."
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau antwortet gerade nicht richtig: {error}. Home Assistant versucht es erneut."
     },
     "city_rejected": {
-      "message": "Der Open-Data-Dienst von Warschau hat die Anfrage abgelehnt: {error}. Falls es um den Schlüssel geht, prüfe deinen API-Schlüssel oder dein Token."
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau hat die Anfrage abgelehnt: {error}. Falls es um den Schlüssel geht, prüfe deinen API-Schlüssel oder dein Token."
     },
     "city_swapping": {
-      "message": "Der Open-Data-Dienst von Warschau tauscht seine Fahrpläne für den neuen Tag aus (etwa 02:10–03:05). Die Integration fragt nach 03:05 erneut an."
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau tauscht seine Fahrpläne für den neuen Tag aus (etwa 02:10–03:05). Die Integration fragt nach 03:05 erneut an."
     },
     "no_cached_timetable": {
       "message": "Der Fahrplan konnte nicht heruntergeladen werden, und es gibt keinen früheren gespeicherten, auf den man zurückgreifen könnte."

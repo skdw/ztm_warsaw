@@ -240,16 +240,16 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "Il servizio di dati aperti di Varsavia non ha risposto in tempo. Home Assistant riproverà."
+      "message": "Il servizio di dati aperti del Comune di Varsavia non ha risposto in tempo. Home Assistant riproverà."
     },
     "city_not_ready": {
-      "message": "Il servizio di dati aperti di Varsavia al momento non risponde correttamente: {error}. Home Assistant riproverà."
+      "message": "Il servizio di dati aperti del Comune di Varsavia al momento non risponde correttamente: {error}. Home Assistant riproverà."
     },
     "city_rejected": {
-      "message": "Il servizio di dati aperti di Varsavia ha rifiutato la richiesta: {error}. Se riguarda la chiave, controlla la tua chiave API o il token."
+      "message": "Il servizio di dati aperti del Comune di Varsavia ha rifiutato la richiesta: {error}. Se riguarda la chiave, controlla la tua chiave API o il token."
     },
     "city_swapping": {
-      "message": "Il servizio di dati aperti di Varsavia sta sostituendo i suoi orari per il nuovo giorno (verso le 02:10–03:05). L’integrazione chiederà di nuovo dopo le 03:05."
+      "message": "Il servizio di dati aperti del Comune di Varsavia sta sostituendo i suoi orari per il nuovo giorno (verso le 02:10–03:05). L’integrazione chiederà di nuovo dopo le 03:05."
     },
     "no_cached_timetable": {
       "message": "Non è stato possibile scaricare l’orario e non ce n’è uno precedente salvato a cui ripiegare."
