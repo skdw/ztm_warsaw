@@ -39,8 +39,9 @@ def test_e2e_42_every_exception_key_has_a_text_in_every_language():
 async def test_e2e_42_a_rejected_key_raises_a_translated_update_failed_and_the_text_never_holds_the_key(env):
     entry = await env.add_entry_via_flow(line=LINE)
     coordinator = _coordinator(entry)
+    answer = ZTMApiError("the City answered with something else")
     with pytest.raises(UpdateFailed) as failure:
-        coordinator._api_rejected(ZTMApiError("the City answered with something else"))
+        coordinator._api_rejected(answer)
     assert (failure.value.translation_domain, failure.value.translation_key) == (DOMAIN, "city_rejected")
     assert failure.value.translation_placeholders == {"error": "the City answered with something else"}
     assert DEFAULT_KEY not in str(failure.value.translation_placeholders)
@@ -49,12 +50,12 @@ async def test_e2e_42_a_rejected_key_raises_a_translated_update_failed_and_the_t
 async def test_e2e_42_three_rejected_keys_in_a_row_raise_a_translated_auth_failure(env):
     entry = await env.add_entry_via_flow(line=LINE)
     coordinator = _coordinator(entry)
+    rejected = ZTMAuthError("the key was rejected")
+    for _ in range(coordinator_module.REJECTIONS_BEFORE_REAUTH - 1):
+        with pytest.raises(UpdateFailed):
+            coordinator._api_rejected(rejected)
     with pytest.raises(ConfigEntryAuthFailed) as failure:
-        for _ in range(coordinator_module.REJECTIONS_BEFORE_REAUTH):
-            try:
-                coordinator._api_rejected(ZTMAuthError("the key was rejected"))
-            except UpdateFailed:
-                continue
+        coordinator._api_rejected(rejected)
     assert failure.value.translation_key == "city_rejected"
 
 
