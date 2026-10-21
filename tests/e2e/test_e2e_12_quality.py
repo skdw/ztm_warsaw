@@ -172,3 +172,13 @@ async def test_e2e_40_reconfigure_accepts_a_key_that_works_for_a_line_that_does_
     await env.settle()
     assert (done["type"], done["reason"]) == ("abort", "reconfigure_successful")
     assert entry.data["api_key"] == DEFAULT_TOKEN
+
+
+def test_e2e_43_every_entity_of_a_stop_is_built_on_the_common_base_in_entity_py():
+    """The device, the stop's record and the name with the stop in it are written once, in entity.py, not in each platform."""
+    from custom_components.ztm_warsaw import calendar, sensor
+    from custom_components.ztm_warsaw.entity import ZtmStopEntity
+
+    classes = [sensor.ZTMSensor, sensor.ZTMStatusSensor, sensor.ZTMLastUpdateSensor, sensor.ZTMNextDepartureSensor, calendar.ZTMCalendar]
+    assert all(issubclass(cls, ZtmStopEntity) for cls in classes)
+    assert not any("device_info" in vars(cls) for cls in classes), "the device is the base class's, not re-defined"
