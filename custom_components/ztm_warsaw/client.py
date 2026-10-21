@@ -477,6 +477,6 @@ class ZTMStopClient:
 
         except ZTMApiError:
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error in timetable fetch: %s", e, exc_info=True)
+        except Exception:
+            _LOGGER.exception("Unexpected error in timetable fetch")  # the traceback carries the error itself
         return None
