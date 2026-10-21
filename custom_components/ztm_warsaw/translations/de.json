@@ -89,6 +89,18 @@
     "sensor": {
       "ztm_warsaw": {
         "name": "ZTM-Linie"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "running": "Fährt",
+          "cannot_catch": "Nicht mehr erreichbar",
+          "after_last_departure": "Die letzte Abfahrt ist vorbei",
+          "no_service_today": "Heute kein Verkehr",
+          "city_updating": "Die Stadt aktualisiert ihre Fahrpläne",
+          "waiting": "Warte auf die Stadt",
+          "city_error": "Die Stadt hat keinen Fahrplan geliefert"
+        }
       }
     }
   },

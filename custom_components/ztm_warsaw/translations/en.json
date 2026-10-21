@@ -89,6 +89,18 @@
     "sensor": {
       "ztm_warsaw": {
         "name": "ZTM Line"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "running": "Running",
+          "cannot_catch": "Cannot be caught",
+          "after_last_departure": "The last departure has gone",
+          "no_service_today": "No service today",
+          "city_updating": "The City is updating its timetables",
+          "waiting": "Waiting for the City",
+          "city_error": "The City did not answer with a timetable"
+        }
       }
     }
   },

@@ -176,6 +176,11 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._schedule_flip_refresh()
         self.hass.async_create_task(self.async_refresh())
 
+    @property
+    def api_error(self) -> bool:
+        """Whether the City's last answer was not a timetable (a rejected key, an unknown stop or line, an unknown format)."""
+        return self._api_error
+
     def is_fresh(self, now) -> bool:
         """Whether the cached timetable is the one of the service day that ``now`` is in."""
         return self.data is not None and self.data.service_date == service_date_at(now)

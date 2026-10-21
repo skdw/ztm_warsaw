@@ -89,6 +89,18 @@
     "sensor": {
       "ztm_warsaw": {
         "name": "Ligne ZTM"
+      },
+      "status": {
+        "name": "État",
+        "state": {
+          "running": "En service",
+          "cannot_catch": "Impossible à attraper",
+          "after_last_departure": "Le dernier départ est passé",
+          "no_service_today": "Pas de service aujourd’hui",
+          "city_updating": "La ville met à jour ses horaires",
+          "waiting": "En attente de la ville",
+          "city_error": "La ville n’a pas répondu avec un horaire"
+        }
       }
     }
   },

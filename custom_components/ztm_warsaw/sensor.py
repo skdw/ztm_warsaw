@@ -25,7 +25,7 @@ from homeassistant.helpers.entity import EntityCategory
 from .const import NEXT_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
-from .models import WARSAW, next_warsaw_midnight
+from .models import WARSAW, in_swap_window, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -515,6 +515,124 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
+STATUSES = [
+    "running",  # there is a departure to catch
+    "cannot_catch",  # departures are left, but all are sooner than the walking time
+    "after_last_departure",  # the last departure of the day has gone
+    "no_service_today",  # the City says the line does not run today
+    "city_updating",  # the City swaps its timetables (about 02:10 to 03:05)
+    "waiting",  # no timetable of today yet
+    "city_error",  # the City answered, but not with a timetable (a rejected key, an unknown stop or line)
+]
+
+
+class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
+    """What is going on with a stop, in words (translated): the state of the main sensor says only "unknown" after the last
+    departure, and a person needs to know whether the bus has gone, the line does not run today or the City did not answer.
+    It is available also when the timetable is not, because explaining that is its job."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = STATUSES
+
+    def __init__(self, coordinator, line, stop_id, stop_number):
+        """The status of a line at a pole, named and identified by the numbers like the other entities of the stop."""
+        super().__init__(coordinator)
+        self._line = line
+        self._stop_number = stop_number
+        self._status = "waiting"
+        self._scheduled_unsub = None
+        self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_status"
+        self._attr_name = f"Line {line} from {stop_id}/{stop_number} Status"
+        self._attr_translation_key = "status"  # its name, the texts of its states and its icons are in the translations
+
+    @property
+    def native_value(self):
+        """One of ``STATUSES``."""
+        return self._status
+
+    @property
+    def available(self):
+        """Always: it is the one entity that says why the others have nothing to show."""
+        return True
+
+    @property
+    def device_info(self):
+        """The device of the stop, as the other entities of the stop have it."""
+        return _device_info(self._line, self.coordinator)
+
+    @property
+    def extra_state_attributes(self):
+        """The attribution only."""
+        return {ATTR_ATTRIBUTION: CONF_ATTRIBUTION}
+
+    def _compute(self, now):
+        """The status at ``now`` from what the coordinator holds."""
+        coordinator = self.coordinator
+        if coordinator.api_error:
+            return "city_error"
+        walk = timedelta(minutes=coordinator.walking_minutes)
+        if coordinator.upcoming(now + walk):
+            return "running"
+        if coordinator.upcoming(now):
+            return "cannot_catch"
+        if in_swap_window(now):
+            return "city_updating"
+        data = coordinator.data
+        if data is None or not coordinator.is_fresh(now):
+            return "waiting"
+        if not [d for d in data.departures if d.dt]:
+            return "no_service_today"
+        return "after_last_departure"
+
+    def _refresh(self):
+        """Work out the status and wake up at the next moment it can change: a departure that can no longer be caught, or one that leaves."""
+        now = dt_util.utcnow()
+        self._status = self._compute(now)
+        self._cancel_wakeup()
+        walk = timedelta(minutes=self.coordinator.walking_minutes)
+        moments = [d.dt - walk for d in self.coordinator.upcoming(now + walk)] + [d.dt for d in self.coordinator.upcoming(now)]
+        moments = [m for m in moments if m > now]
+        if moments:
+            self._scheduled_unsub = async_track_point_in_time(self.hass, self._wake_up, min(moments))
+
+    def _cancel_wakeup(self):
+        """Forget the wake-up that is scheduled, if any."""
+        if self._scheduled_unsub:
+            self._scheduled_unsub()
+            self._scheduled_unsub = None
+
+    @callback
+    def _wake_up(self, _now):
+        """A departure can no longer be caught or has left: say what the status is now."""
+        self._scheduled_unsub = None
+        self._refresh()
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self):
+        """Work out the status when the sensor is added."""
+        await super().async_added_to_hass()
+        self._take_stop_name()
+        self._refresh()
+
+    async def async_will_remove_from_hass(self):
+        """Cancel the wake-up when the sensor goes."""
+        self._cancel_wakeup()
+        await super().async_will_remove_from_hass()
+
+    def _take_stop_name(self):
+        """Put the stop's name into the entity's name once it is known."""
+        stop_name = _stop_info_of(self.coordinator).get("nazwa_zespolu")
+        if stop_name:
+            self._attr_name = f"Line {self._line} {stop_name} {self._stop_number} Status"
+
+    @callback
+    def _handle_coordinator_update(self):
+        """A new answer: take the stop's name, work out the status again and write the state."""
+        self._take_stop_name()
+        self._refresh()
+        self.async_write_ha_state()
+
+
 # Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
 async def async_setup_entry(hass, config_entry, async_add_entities):  # NOSONAR
     """Set up the ZTM sensors of a config entry: two for every stop it runs."""
@@ -541,7 +659,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):  # NOSONAR
                 ZTMNextDepartureSensor(coordinator, line, stop_id, stop_number, position)
                 for position in range(1, NEXT_DEPARTURES + 1)
             ]
-            async_add_entities([entity, diag_sensor, *following], config_subentry_id=subentry_id)
+            status = ZTMStatusSensor(coordinator, line, stop_id, stop_number)
+            async_add_entities([entity, status, diag_sensor, *following], config_subentry_id=subentry_id)
 
             _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s", line, stop_id, stop_number)
 
