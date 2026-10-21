@@ -88,3 +88,17 @@ async def test_e2e_42_a_first_refresh_that_fails_without_a_reason_is_a_translate
         with pytest.raises(ConfigEntryNotReady) as failure:
             await coordinator.async_config_entry_first_refresh()
     assert (failure.value.translation_key, failure.value.translation_placeholders) == ("city_not_ready", {"error": "-"})
+
+
+async def test_e2e_42_a_translated_failure_of_the_first_refresh_keeps_its_own_reason_in_the_retry(env):
+    """Home Assistant wraps the failure as the cause of a not-ready error: the specific text must survive, not become "...: -"."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    coordinator = _coordinator(entry)
+    cause = UpdateFailed(translation_domain=DOMAIN, translation_key="city_swapping")
+    wrapper = ConfigEntryNotReady()
+    wrapper.__cause__ = cause
+    base = type(coordinator).__mro__[1]
+    with patch.object(base, "async_config_entry_first_refresh", side_effect=wrapper):
+        with pytest.raises(ConfigEntryNotReady) as failure:
+            await coordinator.async_config_entry_first_refresh()
+    assert failure.value.translation_key == "city_swapping"

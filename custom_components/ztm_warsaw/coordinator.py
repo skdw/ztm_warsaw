@@ -12,7 +12,7 @@ import logging
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 
 from .const import DOMAIN
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -90,6 +90,13 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             self.last_update_success = True  # the cancelled refresh marked it failed; the stored timetable is what we hold
         except ConfigEntryNotReady as err:
             # Home Assistant raises it without a reason; the cause is a fixed text that never holds the key.
+            cause = err.__cause__
+            if isinstance(cause, HomeAssistantError) and cause.translation_key:  # the specific reason, already translated
+                raise ConfigEntryNotReady(
+                    translation_domain=cause.translation_domain,
+                    translation_key=cause.translation_key,
+                    translation_placeholders=cause.translation_placeholders,
+                ) from err
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,
                 translation_key="city_not_ready",
