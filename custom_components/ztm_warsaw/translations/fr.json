@@ -105,7 +105,8 @@
             "title": "Remplacer l’ancienne clé par un jeton",
             "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
-              "api_key": "Jeton"
+              "api_key": "Jeton",
+              "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
             }
           },
           "init": {
@@ -113,7 +114,8 @@
             "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
-              "ignore": "Garder l’ancienne clé et ignorer cet avis"
+              "ignore": "Garder l’ancienne clé et ignorer cet avis",
+              "reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
             }
           }
         },
@@ -130,7 +132,8 @@
         },
         "abort": {
           "unknown": "La configuration associée à cet avis a été supprimée ou ne peut pas être modifiée.",
-          "ignored": "Cet avis a été ignoré. Pour le retrouver, ouvrez **Corrections**, choisissez **Afficher les corrections ignorées**, ouvrez cet avis et choisissez **Ne plus ignorer**."
+          "ignored": "Cet avis a été ignoré. Pour le retrouver, ouvrez **Corrections**, choisissez **Afficher les corrections ignorées**, ouvrez cet avis et choisissez **Ne plus ignorer**.",
+          "reuse_rejected": "La ville n’a pas accepté ce jeton pour cette ligne. Collez plutôt un jeton."
         }
       }
     },
@@ -142,7 +145,8 @@
             "title": "Remplacer l’ancienne clé par un jeton",
             "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
-              "api_key": "Jeton"
+              "api_key": "Jeton",
+              "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
             }
           },
           "init": {
@@ -150,7 +154,8 @@
             "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
-              "ignore": "Garder l’ancienne clé et ignorer cet avis"
+              "ignore": "Garder l’ancienne clé et ignorer cet avis",
+              "reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
             }
           }
         },
@@ -167,7 +172,8 @@
         },
         "abort": {
           "unknown": "La configuration associée à cet avis a été supprimée ou ne peut pas être modifiée.",
-          "ignored": "Cet avis a été ignoré. Pour le retrouver, ouvrez **Corrections**, choisissez **Afficher les corrections ignorées**, ouvrez cet avis et choisissez **Ne plus ignorer**."
+          "ignored": "Cet avis a été ignoré. Pour le retrouver, ouvrez **Corrections**, choisissez **Afficher les corrections ignorées**, ouvrez cet avis et choisissez **Ne plus ignorer**.",
+          "reuse_rejected": "La ville n’a pas accepté ce jeton pour cette ligne. Collez plutôt un jeton."
         }
       }
     },

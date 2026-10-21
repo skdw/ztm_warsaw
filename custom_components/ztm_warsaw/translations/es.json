@@ -105,7 +105,8 @@
             "title": "Sustituir la clave antigua por un token",
             "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
             }
           },
           "init": {
@@ -113,7 +114,8 @@
             "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
             "menu_options": {
               "token": "Pegar un token",
-              "ignore": "Conservar la clave antigua e ignorar este aviso"
+              "ignore": "Conservar la clave antigua e ignorar este aviso",
+              "reuse": "Usar el token ya introducido para otra línea"
             }
           }
         },
@@ -130,7 +132,8 @@
         },
         "abort": {
           "unknown": "La configuración asociada a este aviso se ha eliminado o no se puede modificar.",
-          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**."
+          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**.",
+          "reuse_rejected": "La ciudad no aceptó ese token para esta línea. Pega un token en su lugar."
         }
       }
     },
@@ -142,7 +145,8 @@
             "title": "Sustituir la clave antigua por un token",
             "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
             }
           },
           "init": {
@@ -150,7 +154,8 @@
             "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
             "menu_options": {
               "token": "Pegar un token",
-              "ignore": "Conservar la clave antigua e ignorar este aviso"
+              "ignore": "Conservar la clave antigua e ignorar este aviso",
+              "reuse": "Usar el token ya introducido para otra línea"
             }
           }
         },
@@ -167,7 +172,8 @@
         },
         "abort": {
           "unknown": "La configuración asociada a este aviso se ha eliminado o no se puede modificar.",
-          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**."
+          "ignored": "Se ha ignorado este aviso. Para volver a él, abre **Reparaciones**, selecciona **Mostrar reparaciones ignoradas**, abre este aviso y selecciona **Dejar de ignorar**.",
+          "reuse_rejected": "La ciudad no aceptó ese token para esta línea. Pega un token en su lugar."
         }
       }
     },

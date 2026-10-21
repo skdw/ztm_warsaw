@@ -105,7 +105,8 @@
             "title": "Alten Schlüssel durch ein Token ersetzen",
             "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
             }
           },
           "init": {
@@ -113,7 +114,8 @@
             "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
-              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren"
+              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
+              "reuse": "Das Token einer anderen Linie verwenden"
             }
           }
         },
@@ -130,7 +132,8 @@
         },
         "abort": {
           "unknown": "Die zu diesem Hinweis gehörende Konfiguration wurde entfernt oder kann nicht geändert werden.",
-          "ignored": "Dieser Hinweis wird ignoriert. Um ihn wieder aufzurufen, öffne **Reparaturen**, wähle **Ignorierte Reparaturen einblenden**, öffne diesen Hinweis und wähle **Nicht ignorieren**."
+          "ignored": "Dieser Hinweis wird ignoriert. Um ihn wieder aufzurufen, öffne **Reparaturen**, wähle **Ignorierte Reparaturen einblenden**, öffne diesen Hinweis und wähle **Nicht ignorieren**.",
+          "reuse_rejected": "Die Stadt hat dieses Token für diese Linie nicht akzeptiert. Füge stattdessen ein Token ein."
         }
       }
     },
@@ -142,7 +145,8 @@
             "title": "Alten Schlüssel durch ein Token ersetzen",
             "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
             }
           },
           "init": {
@@ -150,7 +154,8 @@
             "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
-              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren"
+              "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
+              "reuse": "Das Token einer anderen Linie verwenden"
             }
           }
         },
@@ -167,7 +172,8 @@
         },
         "abort": {
           "unknown": "Die zu diesem Hinweis gehörende Konfiguration wurde entfernt oder kann nicht geändert werden.",
-          "ignored": "Dieser Hinweis wird ignoriert. Um ihn wieder aufzurufen, öffne **Reparaturen**, wähle **Ignorierte Reparaturen einblenden**, öffne diesen Hinweis und wähle **Nicht ignorieren**."
+          "ignored": "Dieser Hinweis wird ignoriert. Um ihn wieder aufzurufen, öffne **Reparaturen**, wähle **Ignorierte Reparaturen einblenden**, öffne diesen Hinweis und wähle **Nicht ignorieren**.",
+          "reuse_rejected": "Die Stadt hat dieses Token für diese Linie nicht akzeptiert. Füge stattdessen ein Token ein."
         }
       }
     },

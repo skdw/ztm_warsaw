@@ -105,7 +105,8 @@
             "title": "Replace the old key with a token",
             "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API still works, but the City has not announced when it will be retired. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Use it for every line that still has an old key"
             }
           },
           "init": {
@@ -113,7 +114,8 @@
             "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API still works, but the City has not announced when it will be retired. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
-              "ignore": "Keep the old key and ignore this notice"
+              "ignore": "Keep the old key and ignore this notice",
+              "reuse": "Use the token already entered for another line"
             }
           }
         },
@@ -130,7 +132,8 @@
         },
         "abort": {
           "unknown": "The configuration associated with this notice has been removed or cannot be changed.",
-          "ignored": "This notice has been ignored. To return to it, open **Repairs**, choose **Show ignored repairs**, open this notice and choose **Unignore**."
+          "ignored": "This notice has been ignored. To return to it, open **Repairs**, choose **Show ignored repairs**, open this notice and choose **Unignore**.",
+          "reuse_rejected": "The City did not accept that token for this line. Paste a token instead."
         }
       }
     },
@@ -142,7 +145,8 @@
             "title": "Replace the old key with a token",
             "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API still works, but the City has not announced when it will be retired. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Use it for every line that still has an old key"
             }
           },
           "init": {
@@ -150,7 +154,8 @@
             "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API still works, but the City has not announced when it will be retired. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
-              "ignore": "Keep the old key and ignore this notice"
+              "ignore": "Keep the old key and ignore this notice",
+              "reuse": "Use the token already entered for another line"
             }
           }
         },
@@ -167,7 +172,8 @@
         },
         "abort": {
           "unknown": "The configuration associated with this notice has been removed or cannot be changed.",
-          "ignored": "This notice has been ignored. To return to it, open **Repairs**, choose **Show ignored repairs**, open this notice and choose **Unignore**."
+          "ignored": "This notice has been ignored. To return to it, open **Repairs**, choose **Show ignored repairs**, open this notice and choose **Unignore**.",
+          "reuse_rejected": "The City did not accept that token for this line. Paste a token instead."
         }
       }
     },
