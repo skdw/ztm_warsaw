@@ -95,11 +95,11 @@
         "state": {
           "running": "In servizio",
           "cannot_catch": "Non fai in tempo",
-          "after_last_departure": "L’ultima partenza è passata",
-          "no_service_today": "Oggi nessun servizio",
-          "city_updating": "La città aggiorna gli orari",
-          "waiting": "In attesa della città",
-          "city_error": "La città non ha risposto con un orario"
+          "after_last_departure": "L’ultima partenza della giornata è passata",
+          "no_service_today": "Oggi non circola",
+          "city_updating": "Aggiornamento degli orari in corso (verso le 02:10–03:05)",
+          "waiting": "In attesa dell’orario",
+          "city_error": "Impossibile ottenere l’orario"
         }
       }
     }
@@ -240,22 +240,22 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "La città di Varsavia non ha risposto in tempo."
+      "message": "Il servizio di dati aperti di Varsavia non ha risposto in tempo. Home Assistant riproverà."
     },
     "city_not_ready": {
-      "message": "La città di Varsavia non ha risposto correttamente: {error}"
+      "message": "Il servizio di dati aperti di Varsavia al momento non risponde correttamente: {error}. Home Assistant riproverà."
     },
     "city_rejected": {
-      "message": "La città di Varsavia non ha accettato la richiesta: {error}"
+      "message": "Il servizio di dati aperti di Varsavia ha rifiutato la richiesta: {error}. Se riguarda la chiave, controlla la tua chiave API o il token."
     },
     "city_swapping": {
-      "message": "La città di Varsavia sta aggiornando i suoi orari; nuovo tentativo dopo le 03:05."
+      "message": "Il servizio di dati aperti di Varsavia sta sostituendo i suoi orari per il nuovo giorno (verso le 02:10–03:05). L’integrazione chiederà di nuovo dopo le 03:05."
     },
     "no_cached_timetable": {
-      "message": "Non è stato possibile ottenere l’orario e non ce n’è uno salvato utilizzabile."
+      "message": "Non è stato possibile scaricare l’orario e non ce n’è uno precedente salvato a cui ripiegare."
     },
     "fetch_failed": {
-      "message": "Errore nel recupero dei dati: {error}"
+      "message": "Qualcosa è andato storto durante il download dell’orario: {error}"
     }
   }
 }

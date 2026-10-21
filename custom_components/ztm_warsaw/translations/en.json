@@ -94,12 +94,12 @@
         "name": "Status",
         "state": {
           "running": "Running",
-          "cannot_catch": "Cannot be caught",
-          "after_last_departure": "The last departure has gone",
-          "no_service_today": "No service today",
-          "city_updating": "The City is updating its timetables",
-          "waiting": "Waiting for the City",
-          "city_error": "The City did not answer with a timetable"
+          "cannot_catch": "You cannot make it in time",
+          "after_last_departure": "The last departure of the day has gone",
+          "no_service_today": "Does not run today",
+          "city_updating": "Timetables are being updated (about 02:10–03:05)",
+          "waiting": "Waiting for the timetable",
+          "city_error": "Could not get the timetable"
         }
       }
     }
@@ -240,22 +240,22 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "The City of Warsaw did not answer in time."
+      "message": "Warsaw's open data service did not respond in time. Home Assistant will try again."
     },
     "city_not_ready": {
-      "message": "The City of Warsaw did not answer properly: {error}"
+      "message": "Warsaw's open data service is not responding properly right now: {error}. Home Assistant will try again."
     },
     "city_rejected": {
-      "message": "The City of Warsaw did not accept the request: {error}"
+      "message": "Warsaw's open data service refused the request: {error}. If it is about the key, check your API key or token."
     },
     "city_swapping": {
-      "message": "The City of Warsaw is updating its timetables; trying again after 03:05."
+      "message": "Warsaw's open data service is replacing its timetables for the new day (about 02:10–03:05). The integration will ask again after 03:05."
     },
     "no_cached_timetable": {
-      "message": "The timetable could not be fetched and there is no usable stored one."
+      "message": "The timetable could not be downloaded, and there is no earlier one saved to fall back on."
     },
     "fetch_failed": {
-      "message": "Error fetching data: {error}"
+      "message": "Something went wrong while downloading the timetable: {error}"
     }
   }
 }

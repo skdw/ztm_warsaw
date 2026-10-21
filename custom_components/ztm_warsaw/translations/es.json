@@ -94,12 +94,12 @@
         "name": "Estado",
         "state": {
           "running": "En servicio",
-          "cannot_catch": "No se llega a tiempo",
-          "after_last_departure": "Ya salió la última salida",
-          "no_service_today": "Hoy no hay servicio",
-          "city_updating": "La ciudad actualiza sus horarios",
-          "waiting": "Esperando a la ciudad",
-          "city_error": "La ciudad no respondió con un horario"
+          "cannot_catch": "No llegas a tiempo",
+          "after_last_departure": "Ya salió la última salida del día",
+          "no_service_today": "Hoy no circula",
+          "city_updating": "Se están actualizando los horarios (hacia las 02:10–03:05)",
+          "waiting": "Esperando el horario",
+          "city_error": "No se pudo obtener el horario"
         }
       }
     }
@@ -240,22 +240,22 @@
   },
   "exceptions": {
     "city_timeout": {
-      "message": "La ciudad de Varsovia no respondió a tiempo."
+      "message": "El servicio de datos abiertos de Varsovia no respondió a tiempo. Home Assistant lo intentará de nuevo."
     },
     "city_not_ready": {
-      "message": "La ciudad de Varsovia no respondió correctamente: {error}"
+      "message": "El servicio de datos abiertos de Varsovia no responde correctamente en este momento: {error}. Home Assistant lo intentará de nuevo."
     },
     "city_rejected": {
-      "message": "La ciudad de Varsovia no aceptó la solicitud: {error}"
+      "message": "El servicio de datos abiertos de Varsovia rechazó la solicitud: {error}. Si se trata de la clave, revisa tu clave API o token."
     },
     "city_swapping": {
-      "message": "La ciudad de Varsovia está actualizando sus horarios; se reintentará después de las 03:05."
+      "message": "El servicio de datos abiertos de Varsovia está cambiando sus horarios al nuevo día (hacia las 02:10–03:05). La integración volverá a preguntar después de las 03:05."
     },
     "no_cached_timetable": {
-      "message": "No se pudo obtener el horario y no hay uno guardado que se pueda usar."
+      "message": "No se pudo descargar el horario y no hay otro guardado anterior al que recurrir."
     },
     "fetch_failed": {
-      "message": "Error al obtener los datos: {error}"
+      "message": "Algo salió mal al descargar el horario: {error}"
     }
   }
 }
