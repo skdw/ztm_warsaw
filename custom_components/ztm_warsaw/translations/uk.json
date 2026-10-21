@@ -89,6 +89,18 @@
     "sensor": {
       "ztm_warsaw": {
         "name": "Маршрут ZTM"
+      },
+      "status": {
+        "name": "Статус",
+        "state": {
+          "running": "Курсує",
+          "cannot_catch": "Не встигнути",
+          "after_last_departure": "Останнє відправлення вже було",
+          "no_service_today": "Сьогодні не курсує",
+          "city_updating": "Місто оновлює розклади",
+          "waiting": "Чекаю на місто",
+          "city_error": "Місто не відповіло розкладом"
+        }
       }
     }
   },

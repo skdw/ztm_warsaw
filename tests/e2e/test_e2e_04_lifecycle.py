@@ -30,10 +30,10 @@ def integration_timers(env) -> list[str]:
 
 
 # ===================================================================== E2E-22
-async def test_e2e_22_setup_owns_exactly_two_timers_and_unload_releases_both(env):
+async def test_e2e_22_setup_owns_exactly_three_timers_and_unload_releases_all(env):
     assert integration_timers(env) == []
     entry = await env.add_entry()
-    assert len(integration_timers(env)) == 2, integration_timers(env)  # hourly refresh + next-departure wake-up
+    assert len(integration_timers(env)) == 3, integration_timers(env)  # hourly refresh + next-departure wake-up + the status's wake-up
     assert entry.runtime_data, "a loaded entry holds its running coordinators"
 
     assert await env.hass.config_entries.async_unload(entry.entry_id)
@@ -60,7 +60,7 @@ async def test_e2e_22_reloading_three_times_never_accumulates_timers_or_entities
         await env.settle()
         assert entry.state is ConfigEntryState.LOADED
         assert env.city.count("timetable") == tt + 1, f"reload {round_no}: exactly one timetable fetch"
-        assert len(integration_timers(env)) == 2, integration_timers(env)
+        assert len(integration_timers(env)) == 3, integration_timers(env)
         assert entry.runtime_data, f"reload {round_no}: the entry holds its running coordinators again"
     registry_after = {e.entity_id for e in er.async_entries_for_config_entry(env.entity_registry, entry.entry_id)}
     assert registry_after == registry_before
@@ -77,10 +77,10 @@ async def test_e2e_22_removing_the_last_entry_cleans_registries(env):
     assert integration_timers(env) == []
 
 
-async def test_e2e_22_two_loaded_entries_hold_two_timers_each_and_unloading_releases_them(env):
+async def test_e2e_22_two_loaded_entries_hold_three_timers_each_and_unloading_releases_them(env):
     first = await env.add_entry(line="151")
     second = await env.add_entry(line="N25")
-    assert len(integration_timers(env)) == 4
+    assert len(integration_timers(env)) == 6
     await env.hass.config_entries.async_unload(first.entry_id)
     await env.hass.config_entries.async_unload(second.entry_id)
     await env.settle()
@@ -107,7 +107,7 @@ async def test_e2e_23_five_entries_on_one_stop_all_load(env):
         assert env.departure_local(line) is not None, line
         assert env.state(line).attributes["Stop, Name"] == stop_name_for("7009")
     assert env.city.count("timetable") == 5, "one timetable request per entry at startup"
-    assert len(env.hass.states.async_all("sensor")) == 5  # the five diagnostic sensors are disabled by default
+    assert len(env.hass.states.async_all("sensor")) == 10  # a sensor and its status for each of the five; the diagnostic ones are disabled by default
 
 
 @pytest.mark.city(catalogue_bytes=FULL_CATALOGUE)

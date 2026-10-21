@@ -205,6 +205,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
         f"line_{line}_from_7009_01_next_1",  # added in 1.2.0: the departures after the next one as sensors of their own
         f"line_{line}_from_7009_01_next_2",
         f"line_{line}_from_7009_01_next_3",
+        f"line_{line}_from_7009_01_status",  # added in 1.2.0: what is going on with the stop, in words
     }
     main = registered[f"line_{line}_from_7009_01"]
     assert (main.entity_id, main.platform, main.domain) == (f"sensor.line_{slug}_from_7009_01", "ztm_warsaw", "sensor")

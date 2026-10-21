@@ -89,6 +89,18 @@
     "sensor": {
       "ztm_warsaw": {
         "name": "Linia ZTM"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "running": "Kursuje",
+          "cannot_catch": "Nie zdążysz",
+          "after_last_departure": "Ostatni odjazd już był",
+          "no_service_today": "Dziś nie kursuje",
+          "city_updating": "Miasto aktualizuje rozkłady",
+          "waiting": "Czekam na miasto",
+          "city_error": "Miasto nie odpowiedziało rozkładem"
+        }
       }
     }
   },
