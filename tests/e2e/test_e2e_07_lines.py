@@ -491,3 +491,15 @@ async def test_e2e_38_a_generated_title_follows_the_stops_and_does_not_reload_th
     assert entry.title == f"Line {LINE} · {name} 01, {name} 02"
     assert entry.options["generated_title"] == entry.title
     assert reload.call_count == 1, "the new stop reloads the line once; its title does not reload it again"
+
+
+async def test_e2e_38_a_generated_title_does_not_keep_a_stop_that_is_gone_while_no_name_can_be_loaded(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    assert entry.title.count(stop_name_for("7009")) == 2
+    from custom_components import ztm_warsaw
+
+    with patch.object(ztm_warsaw, "_stop_name_of", lambda e, sid=None: None):  # the catalogue fails for every stop
+        ztm_warsaw._title_line_with_its_stops(env.hass, entry)
+    assert entry.title == f"Line {LINE}"

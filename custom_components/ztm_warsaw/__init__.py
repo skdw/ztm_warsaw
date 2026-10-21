@@ -213,7 +213,8 @@ def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
         name = _stop_name_of(entry, unit.subentry_id)
         if name:
             names.append(f"{name} {unit.stop_nr}")
-    if not names:
+    if not names:  # no name arrived yet: a title made earlier may name a stop that is gone, so it is not kept
+        _set_generated_title(hass, entry, plain)
         return
     left = len(units) - len(names[:_TITLE_STOPS])  # every stop not named counts, also one whose name has not arrived yet
     shown = ", ".join(names[:_TITLE_STOPS]) + (f" +{left}" if left else "")

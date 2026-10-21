@@ -33,6 +33,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Delete a stop's old device**: when a stop is gone from a line, its leftover device now has a *Delete* button on its page, while a device that is still in use cannot be deleted by mistake.
 - **Proper icons**: Next 1 to 3, Last update and the calendar have icons of their own (numbers, an update arrow, a calendar with a clock) instead of Home Assistant's default eye.
 - **Lines say which stops they have**: a line is titled like "Line 176 · Marcelin 01, Marcelin 02", so the list of lines (for example when you add a stop) shows which is which. A title you chose yourself stays.
+- **When the first and the last bus is**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure` for the day, so a card can still say "the last bus left at 23:41" when the state is *unknown* after the last departure, after a restart or for a sensor added late.
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.

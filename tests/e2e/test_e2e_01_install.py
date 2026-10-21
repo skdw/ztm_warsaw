@@ -147,6 +147,7 @@ GOLDEN_ENTITY_ATTRS_WITH_SERVICE = {
     "Upcoming, Brigade",
 }
 GOLDEN_NEXT_ATTRS = {"Headsign", "Departure Day", "Departure Time", "Route ID", "Brigade"}
+TIMETABLE_SPAN = {"Timetable, First Departure", "Timetable, Last Departure"}  # added in 1.2.0
 GOLDEN_ENTITY_ATTRS_NO_SERVICE = {
     "Line, Number",
     "Line, Type",
@@ -245,7 +246,7 @@ async def test_e2e_02_golden_public_contract(env, line, line_type, icon):
     assert st.attributes["device_class"] == "timestamp"
     assert st.attributes["icon"] == icon
     attrs = set(st.attributes)
-    expected = GOLDEN_ENTITY_ATTRS_WITH_SERVICE | {f"Next {n}, {k}" for n in (1, 2, 3) for k in GOLDEN_NEXT_ATTRS}
+    expected = GOLDEN_ENTITY_ATTRS_WITH_SERVICE | TIMETABLE_SPAN | {f"Next {n}, {k}" for n in (1, 2, 3) for k in GOLDEN_NEXT_ATTRS}
     assert attrs == expected, (sorted(attrs - expected), sorted(expected - attrs))
     assert st.attributes["Line, Number"] == line
     assert st.attributes["Line, Type"] == line_type
@@ -261,7 +262,7 @@ async def test_e2e_02_golden_attributes_when_there_is_no_service(env):
     await env.run_to("2026-10-17 01:00")
     st = env.state("151")
     assert st.state == "unknown"
-    assert set(st.attributes) == GOLDEN_ENTITY_ATTRS_NO_SERVICE
+    assert set(st.attributes) == GOLDEN_ENTITY_ATTRS_NO_SERVICE | TIMETABLE_SPAN
     assert st.attributes["Upcoming, Headsign"] == "No service"
     assert st.attributes["Upcoming, Departure Day"] == "Not available"
     assert st.attributes["Note"].startswith("No upcoming schedule available")

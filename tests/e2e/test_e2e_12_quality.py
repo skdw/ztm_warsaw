@@ -65,3 +65,47 @@ async def test_e2e_37_the_entities_without_a_dynamic_icon_get_theirs_from_icons_
                 assert icons[reg.domain][key]["default"].startswith("mdi:"), key
                 seen.add(key)
     assert seen == set(by_suffix.values())
+
+
+async def test_e2e_39_the_sensor_says_when_the_first_and_the_last_departure_of_the_day_is(env):
+    from homeassistant.util.dt import as_local
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    (runtime,) = entry.runtime_data["units"].values()
+    known = runtime["coordinator"].known()
+    attrs = env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_01").attributes
+    assert attrs["Timetable, First Departure"] == as_local(known[0].dt).strftime("%H:%M")
+    assert attrs["Timetable, Last Departure"] == as_local(known[-1].dt).strftime("%H:%M")
+
+
+async def test_e2e_39_after_the_last_departure_the_state_is_unknown_but_the_times_of_the_day_are_still_there(env):
+    """What a person needs to understand "unknown" at midnight: there is no next departure, but the last one is on the sensor."""
+    from datetime import timedelta
+
+    from homeassistant.util.dt import as_local
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    (runtime,) = entry.runtime_data["units"].values()
+    last = runtime["coordinator"].known()[-1].dt
+    await env.run_to(last + timedelta(minutes=1))
+    state = env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_01")
+    assert state.state == "unknown"
+    assert state.attributes["Upcoming, Headsign"] == "No service"
+    assert state.attributes["Timetable, Last Departure"] == as_local(last).strftime("%H:%M")
+    assert "Timetable, First Departure" in state.attributes
+
+
+async def test_e2e_39_the_times_are_warsaw_times_whatever_time_zone_home_assistant_has(env):
+    """The attribute says Europe/Warsaw as its zone, so the times must be Warsaw ones for a Home Assistant set to another zone."""
+    from zoneinfo import ZoneInfo
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    (runtime,) = entry.runtime_data["units"].values()
+    known = runtime["coordinator"].known()
+    await env.hass.config.async_set_time_zone("America/New_York")
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    attrs = env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_01").attributes
+    warsaw = ZoneInfo("Europe/Warsaw")
+    assert attrs["Timetable, First Departure"] == known[0].dt.astimezone(warsaw).strftime("%H:%M")
+    assert attrs["Timetable, Last Departure"] == known[-1].dt.astimezone(warsaw).strftime("%H:%M")
