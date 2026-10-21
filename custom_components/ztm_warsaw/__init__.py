@@ -147,7 +147,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def _snapshot(entry: ConfigEntry) -> tuple:
     """What a setup depends on: the data, the options and the data of every stop (not any title)."""
-    return dict(entry.data), dict(entry.options), {sid: dict(sub.data) for sid, sub in entry.subentries.items()}
+    options = {k: v for k, v in entry.options.items() if k != _GENERATED_TITLE}  # a title is not what a setup depends on
+    return dict(entry.data), options, {sid: dict(sub.data) for sid, sub in entry.subentries.items()}
 
 
 def _stop_name_of(entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
@@ -185,6 +186,47 @@ def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry) -> None:
         subentry = entry.subentries[unit.subentry_id]
         if subentry.title == f"{unit.stop_id}/{unit.stop_nr}":
             hass.config_entries.async_update_subentry(entry, subentry, title=f"{name} {unit.stop_nr}")
+    _title_line_with_its_stops(hass, entry)
+
+
+_TITLE_STOPS = 3  # the stops named in the title of a line, the rest is counted
+_GENERATED_TITLE = "generated_title"  # the option that remembers the title this integration made, so a user's own is never replaced
+
+
+def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Title a line "Line 176 · Marcelin 01, Marcelin 02" so that the list of lines (the picker of *Add stop* is Home Assistant's
+    own list of entry titles) says which stop is which. Only a title this integration made is replaced: "Line 176" (what a new
+    line is called, until it has made one) or the one it remembered making (the ``generated_title`` option); any other title is
+    the user's and stays, whatever it looks like (also "Line 176" after the user renamed a line back to it). A line without stops goes back to "Line 176"."""
+    line = line_of(entry)
+    if not is_line_entry(entry) or not line:
+        return
+    plain = f"Line {line}"
+    made = entry.options.get(_GENERATED_TITLE)
+    if entry.title != (made or plain):  # "Line 176" is this integration's own only until it has made a title of its own
+        return
+    units = stop_units(entry)
+    if not units:
+        _set_generated_title(hass, entry, plain)
+        return
+    names = []
+    for unit in units:
+        name = _stop_name_of(entry, unit.subentry_id)
+        if name:
+            names.append(f"{name} {unit.stop_nr}")
+    if not names:  # no name arrived yet: a title made earlier may name a stop that is gone, so it is not kept
+        _set_generated_title(hass, entry, plain)
+        return
+    left = len(units) - len(names[:_TITLE_STOPS])  # every stop not named counts, also one whose name has not arrived yet
+    shown = ", ".join(names[:_TITLE_STOPS]) + (f" +{left}" if left else "")
+    _set_generated_title(hass, entry, f"Line {line} · {shown}")
+
+
+def _set_generated_title(hass: HomeAssistant, entry: ConfigEntry, title: str) -> None:
+    """Give the entry a title of this integration's making and remember it (the option is not part of what a setup depends on)."""
+    if entry.title == title and entry.options.get(_GENERATED_TITLE) == title:
+        return
+    hass.config_entries.async_update_entry(entry, title=title, options={**entry.options, _GENERATED_TITLE: title})
 
 
 def stop_key(entry: ConfigEntry) -> tuple[str, str, str] | None:
