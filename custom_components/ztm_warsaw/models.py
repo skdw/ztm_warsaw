@@ -41,6 +41,17 @@ def in_swap_window(moment: datetime) -> bool:
     return _warsaw_moment(day, SWAP_START, first=True) <= moment < _warsaw_moment(day, SWAP_END, first=False)
 
 
+def next_swap_boundary(after: datetime) -> datetime:
+    """The next moment, after ``after``, at which ``in_swap_window`` changes (the start or the end of the City's update), in UTC."""
+    day = after.astimezone(WARSAW).date()
+    boundaries = [
+        _warsaw_moment(d, at, first=first)
+        for d in (day, day + timedelta(days=1))
+        for at, first in ((SWAP_START, True), (SWAP_END, False))
+    ]
+    return min(b for b in boundaries if b > after)
+
+
 def service_date_at(moment: datetime) -> date:
     """The service day that an answer received at ``moment`` belongs to."""
     local = moment.astimezone(WARSAW)

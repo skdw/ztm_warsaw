@@ -80,3 +80,31 @@ async def test_e2e_41_the_swap_of_the_city_and_a_missing_timetable_have_words_of
         assert entity._compute(now) == "city_updating"
     with patch.object(coordinator, "is_fresh", return_value=False):
         assert entity._compute(now) == "waiting"
+
+
+async def test_e2e_41_a_line_with_nothing_left_still_shows_the_update_of_the_city_at_night(env):
+    """No departure is left, so there is no wake-up at a departure: the start of the City's update (02:10) must wake the status itself."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    await env.run_to(_coordinator(entry).known()[-1].dt + timedelta(minutes=1))
+    assert env.hass.states.get(STATUS).state == "after_last_departure"
+    env.move_to("2026-10-17 02:07")  # three minutes before the update, Warsaw time
+    entity = _entity(env)
+    entity._refresh()  # what a new answer would do: work out the status and schedule the next change
+    assert entity._status == "after_last_departure"
+    assert entity._scheduled_unsub is not None, "nothing is left to catch, yet the start of the update must be waited for"
+    await env.run_to("2026-10-17 02:12")  # only the wake-up of the status falls due on the way
+    assert env.hass.states.get(STATUS).state == "city_updating"
+
+
+def test_e2e_41_the_next_boundary_of_the_update_of_the_city_is_its_start_then_its_end_then_the_start_of_the_next_night():
+    from datetime import datetime
+
+    from custom_components.ztm_warsaw.models import WARSAW, next_swap_boundary
+
+    def boundary(text):
+        """The next boundary after a Warsaw wall time, as a Warsaw wall time."""
+        return next_swap_boundary(datetime.fromisoformat(text).replace(tzinfo=WARSAW)).astimezone(WARSAW).strftime("%Y-%m-%d %H:%M")
+
+    assert boundary("2026-10-17T01:00") == "2026-10-17 02:10"
+    assert boundary("2026-10-17T02:20") == "2026-10-17 03:05"
+    assert boundary("2026-10-17T03:30") == "2026-10-18 02:10"

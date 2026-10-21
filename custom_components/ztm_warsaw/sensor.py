@@ -25,7 +25,7 @@ from homeassistant.helpers.entity import EntityCategory
 from .const import NEXT_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
-from .models import WARSAW, in_swap_window, next_warsaw_midnight
+from .models import WARSAW, in_swap_window, next_swap_boundary, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -585,13 +585,14 @@ class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
         return "after_last_departure"
 
     def _refresh(self):
-        """Work out the status and wake up at the next moment it can change: a departure that can no longer be caught, or one that leaves."""
+        """Work out the status and wake up at the next moment it can change: a departure that can no longer be caught, or one that
+        leaves, or the start or the end of the City's update of its timetables (when *the City is updating* is shown)."""
         now = dt_util.utcnow()
         self._status = self._compute(now)
         self._cancel_wakeup()
         walk = timedelta(minutes=self.coordinator.walking_minutes)
         moments = [d.dt - walk for d in self.coordinator.upcoming(now + walk)] + [d.dt for d in self.coordinator.upcoming(now)]
-        moments = [m for m in moments if m > now]
+        moments = [m for m in moments if m > now] + [next_swap_boundary(now)]
         if moments:
             self._scheduled_unsub = async_track_point_in_time(self.hass, self._wake_up, min(moments))
 
