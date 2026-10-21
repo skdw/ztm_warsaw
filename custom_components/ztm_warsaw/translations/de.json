@@ -94,12 +94,12 @@
         "name": "Status",
         "state": {
           "running": "Fährt",
-          "cannot_catch": "Nicht mehr erreichbar",
-          "after_last_departure": "Die letzte Abfahrt ist vorbei",
-          "no_service_today": "Heute kein Verkehr",
-          "city_updating": "Die Stadt aktualisiert ihre Fahrpläne",
-          "waiting": "Warte auf die Stadt",
-          "city_error": "Die Stadt hat keinen Fahrplan geliefert"
+          "cannot_catch": "Nicht mehr zu schaffen",
+          "after_last_departure": "Die letzte Abfahrt des Tages ist vorbei",
+          "no_service_today": "Fährt heute nicht",
+          "city_updating": "Die Fahrpläne werden aktualisiert (etwa 02:10–03:05)",
+          "waiting": "Warte auf den Fahrplan",
+          "city_error": "Fahrplan konnte nicht abgerufen werden"
         }
       }
     }
@@ -236,6 +236,26 @@
         "unknown": "Ein unbekannter Fehler ist aufgetreten.",
         "reconfigure_successful": "Die Gehzeit wurde gespeichert."
       }
+    }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau hat nicht rechtzeitig geantwortet. Home Assistant versucht es erneut."
+    },
+    "city_not_ready": {
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau antwortet gerade nicht richtig: {error}. Home Assistant versucht es erneut."
+    },
+    "city_rejected": {
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau hat die Anfrage abgelehnt: {error}. Falls es um den Schlüssel geht, prüfe deinen API-Schlüssel oder dein Token."
+    },
+    "city_swapping": {
+      "message": "Der Open-Data-Dienst der Stadtverwaltung Warschau tauscht seine Fahrpläne für den neuen Tag aus (etwa 02:10–03:05). Die Integration fragt nach 03:05 erneut an."
+    },
+    "no_cached_timetable": {
+      "message": "Der Fahrplan konnte nicht heruntergeladen werden, und es gibt keinen früheren gespeicherten, auf den man zurückgreifen könnte."
+    },
+    "fetch_failed": {
+      "message": "Beim Herunterladen des Fahrplans ist etwas schiefgelaufen: {error}"
     }
   }
 }

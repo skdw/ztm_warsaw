@@ -94,12 +94,12 @@
         "name": "État",
         "state": {
           "running": "En service",
-          "cannot_catch": "Impossible à attraper",
-          "after_last_departure": "Le dernier départ est passé",
-          "no_service_today": "Pas de service aujourd’hui",
-          "city_updating": "La ville met à jour ses horaires",
-          "waiting": "En attente de la ville",
-          "city_error": "La ville n’a pas répondu avec un horaire"
+          "cannot_catch": "Impossible de l’attraper",
+          "after_last_departure": "Le dernier départ de la journée est passé",
+          "no_service_today": "Ne circule pas aujourd’hui",
+          "city_updating": "Mise à jour des horaires en cours (vers 02:10–03:05)",
+          "waiting": "En attente de l’horaire",
+          "city_error": "Impossible d’obtenir l’horaire"
         }
       }
     }
@@ -236,6 +236,26 @@
         "unknown": "Une erreur inconnue s’est produite.",
         "reconfigure_successful": "Le temps de marche a été enregistré."
       }
+    }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Le service de données ouvertes de la mairie de Varsovie n’a pas répondu à temps. Home Assistant va réessayer."
+    },
+    "city_not_ready": {
+      "message": "Le service de données ouvertes de la mairie de Varsovie ne répond pas correctement pour le moment : {error}. Home Assistant va réessayer."
+    },
+    "city_rejected": {
+      "message": "Le service de données ouvertes de la mairie de Varsovie a refusé la requête : {error}. S’il s’agit de la clé, vérifiez votre clé API ou votre jeton."
+    },
+    "city_swapping": {
+      "message": "Le service de données ouvertes de la mairie de Varsovie remplace ses horaires pour le nouveau jour (vers 02:10–03:05). L’intégration redemandera après 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "L’horaire n’a pas pu être téléchargé et aucun horaire précédent n’est enregistré sur lequel se rabattre."
+    },
+    "fetch_failed": {
+      "message": "Un problème est survenu lors du téléchargement de l’horaire : {error}"
     }
   }
 }

@@ -95,11 +95,11 @@
         "state": {
           "running": "Kursuje",
           "cannot_catch": "Nie zdążysz",
-          "after_last_departure": "Ostatni odjazd już był",
+          "after_last_departure": "Ostatni odjazd dzisiaj już był",
           "no_service_today": "Dziś nie kursuje",
-          "city_updating": "Miasto aktualizuje rozkłady",
-          "waiting": "Czekam na miasto",
-          "city_error": "Miasto nie odpowiedziało rozkładem"
+          "city_updating": "Trwa aktualizacja rozkładów (ok. 2:10–3:05)",
+          "waiting": "Czekam na rozkład",
+          "city_error": "Nie udało się pobrać rozkładu"
         }
       }
     }
@@ -236,6 +236,26 @@
         "unknown": "Wystąpił nieznany błąd.",
         "reconfigure_successful": "Zapisano czas dojścia."
       }
+    }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Serwer API Urzędu Miasta Warszawy nie odpowiedział w wyznaczonym czasie. Home Assistant spróbuje ponownie."
+    },
+    "city_not_ready": {
+      "message": "Serwer API Urzędu Miasta Warszawy na razie nie odpowiada poprawnie: {error}. Home Assistant spróbuje ponownie."
+    },
+    "city_rejected": {
+      "message": "Serwer API Urzędu Miasta Warszawy odrzucił zapytanie: {error}. Jeśli chodzi o klucz, sprawdź klucz API lub token."
+    },
+    "city_swapping": {
+      "message": "Serwer API Urzędu Miasta Warszawy wymienia rozkłady na nową dobę (ok. 2:10–3:05). Integracja zapyta ponownie po 3:05."
+    },
+    "no_cached_timetable": {
+      "message": "Nie udało się pobrać rozkładu i nie ma wcześniej zapisanego, z którego można by skorzystać."
+    },
+    "fetch_failed": {
+      "message": "Coś poszło nie tak podczas pobierania rozkładu: {error}"
     }
   }
 }

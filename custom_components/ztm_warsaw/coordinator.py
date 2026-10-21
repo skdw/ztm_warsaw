@@ -12,7 +12,9 @@ import logging
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
+
+from .const import DOMAIN
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -30,6 +32,12 @@ REJECTIONS_BEFORE_REAUTH = 3  # consecutive refreshes that the City answers with
 def store_key(entry_id: str) -> str:
     """One store per config entry: the saved failure marker belongs to the key of that entry."""
     return f"ztm_warsaw.{entry_id}"
+
+
+def _reason(err: BaseException) -> str:
+    """The cause of a Home Assistant error that was raised without a reason (its text is then empty or \"None\"), or a dash."""
+    text = str(err.__cause__ or err)
+    return text if text not in ("", "None") else "-"
 
 
 class ZTMStopCoordinator(DataUpdateCoordinator):
@@ -77,12 +85,23 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 await super().async_config_entry_first_refresh()
         except TimeoutError as err:
             if self.data is None:
-                raise ConfigEntryNotReady("The City of Warsaw did not answer in time") from err
+                raise ConfigEntryNotReady(translation_domain=DOMAIN, translation_key="city_timeout") from err
             _LOGGER.debug("ZTM Coordinator [%s] — no answer in time, starting from the stored timetable", self.name)
             self.last_update_success = True  # the cancelled refresh marked it failed; the stored timetable is what we hold
         except ConfigEntryNotReady as err:
             # Home Assistant raises it without a reason; the cause is a fixed text that never holds the key.
-            raise ConfigEntryNotReady(str(err.__cause__ or err) or "The City of Warsaw did not answer properly") from err
+            cause = err.__cause__
+            if isinstance(cause, HomeAssistantError) and cause.translation_key:  # the specific reason, already translated
+                raise ConfigEntryNotReady(
+                    translation_domain=cause.translation_domain,
+                    translation_key=cause.translation_key,
+                    translation_placeholders=cause.translation_placeholders,
+                ) from err
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN,
+                translation_key="city_not_ready",
+                translation_placeholders={"error": _reason(err)},
+            ) from err
         self._started = True
         await self._load_stop_name()
         self._schedule_flip_refresh()
@@ -220,7 +239,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         """The City is replacing its timetables, so an answer now may be either service day: keep the cached one.
         A failure is never hidden by it, and without a cached timetable there is nothing to keep."""
         if self.data is None or self._api_error:
-            raise UpdateFailed("The City of Warsaw is updating its timetables; trying again after 03:05")
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="city_swapping")
         return self.data
 
     def _accept(self, new_data: ZTMDepartureData) -> ZTMDepartureData:
@@ -269,8 +288,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self._save()
         if self._rejections >= REJECTIONS_BEFORE_REAUTH:
             # Counted in the store, so the retries of a setup (a new coordinator each) add up.
-            raise ConfigEntryAuthFailed(str(err)) from err
-        raise UpdateFailed(str(err)) from err
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="city_rejected", translation_placeholders={"error": str(err)}
+            ) from err
+        raise UpdateFailed(
+            translation_domain=DOMAIN, translation_key="city_rejected", translation_placeholders={"error": str(err)}
+        ) from err
 
     def _outage(self):
         """A network error or an answer that is not the City's breaks a run of rejected keys; the store must know."""
@@ -298,7 +321,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                         self.name,
                     )
                     return self.data
-                raise UpdateFailed("Timetable fetch failed and there is no usable cached timetable")
+                raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_cached_timetable")
             return self._accept(new_data)
 
         except (UpdateFailed, ConfigEntryAuthFailed):
@@ -315,7 +338,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 )
                 return self.data
             _LOGGER.error("ZTM Coordinator [%s] — failed fetching schedule and no cached data", self.name)
-            raise UpdateFailed(f"Error fetching data: {err}") from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN, translation_key="fetch_failed", translation_placeholders={"error": str(err)}
+            ) from err
 
     async def async_shutdown(self):
         """Clean up when coordinator is being shut down."""
