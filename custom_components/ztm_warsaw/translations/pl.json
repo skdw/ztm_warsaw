@@ -105,7 +105,8 @@
             "title": "Zastąp stary klucz tokenem",
             "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
             }
           },
           "init": {
@@ -113,7 +114,8 @@
             "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
             "menu_options": {
               "token": "Wklej token",
-              "ignore": "Zachowaj stary klucz i zignoruj powiadomienie"
+              "ignore": "Zachowaj stary klucz i zignoruj powiadomienie",
+              "reuse": "Użyj tokenu wpisanego już dla innej linii"
             }
           }
         },
@@ -130,7 +132,8 @@
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
-          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**."
+          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**.",
+          "reuse_rejected": "Miasto nie przyjęło tego tokenu dla tej linii. Wklej zamiast tego token."
         }
       }
     },
@@ -142,7 +145,8 @@
             "title": "Zastąp stary klucz tokenem",
             "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
             "data": {
-              "api_key": "Token"
+              "api_key": "Token",
+              "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
             }
           },
           "init": {
@@ -150,7 +154,8 @@
             "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
             "menu_options": {
               "token": "Wklej token",
-              "ignore": "Zachowaj stary klucz i zignoruj powiadomienie"
+              "ignore": "Zachowaj stary klucz i zignoruj powiadomienie",
+              "reuse": "Użyj tokenu wpisanego już dla innej linii"
             }
           }
         },
@@ -167,7 +172,8 @@
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
-          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**."
+          "ignored": "Zignorowano powiadomienie. Aby do niego wrócić, otwórz **Problemy**, wybierz **Pokaż ignorowane problemy**, otwórz to powiadomienie i wybierz **Nie ignoruj**.",
+          "reuse_rejected": "Miasto nie przyjęło tego tokenu dla tej linii. Wklej zamiast tego token."
         }
       }
     },
