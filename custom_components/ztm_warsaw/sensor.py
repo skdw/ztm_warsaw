@@ -182,8 +182,20 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return attributes, excluding any None values to satisfy recorder."""
-        attributes = self._attributes or {}
+        attributes = {**(self._attributes or {}), **self._timetable_span()}
         return {k: v for k, v in attributes.items() if v is not None}
+
+    def _timetable_span(self):
+        """The first and the last departure of the timetable the City gave (the whole service day, the past ones too), as local
+        times: with them a card can say "the last bus left at 23:41" when the sensor has no next departure. Nothing without a timetable."""
+        data = self.coordinator.data if self.coordinator else None
+        times = [d.dt for d in getattr(data, "departures", None) or [] if getattr(d, "dt", None)]
+        if not times:
+            return {}
+        return {
+            "Timetable, First Departure": as_local(min(times)).strftime("%H:%M"),
+            "Timetable, Last Departure": as_local(max(times)).strftime("%H:%M"),
+        }
 
     @property
     def device_info(self):
