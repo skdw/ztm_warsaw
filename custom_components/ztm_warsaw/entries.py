@@ -142,7 +142,7 @@ def line_of(entry: ConfigEntry) -> str | None:
     return _first_nonempty(_merged(entry), "line", "linia") if is_line_entry(entry) else None
 
 
-def runtimes(entry: ConfigEntry) -> dict[str | None, dict]:
+def runtimes(entry: ConfigEntry) -> dict[str | None, dict[str, Any]]:
     """The running coordinators of a loaded entry by subentry id (None for a version 1 entry), from its ``runtime_data``."""
     stored = getattr(entry, "runtime_data", None)
     if not isinstance(stored, dict):

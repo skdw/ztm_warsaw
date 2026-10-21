@@ -10,8 +10,9 @@ keep on disk (the last two answers, so that a restart does not lose the night ta
 import asyncio
 import logging
 from dataclasses import asdict
-from datetime import date, datetime, timedelta
-from homeassistant.core import callback
+from typing import Any
+from datetime import date, datetime, timedelta, timezone
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 
 from .const import DOMAIN
@@ -34,16 +35,19 @@ def store_key(entry_id: str) -> str:
     return f"ztm_warsaw.{entry_id}"
 
 
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
 def _reason(err: BaseException) -> str:
     """The cause of a Home Assistant error that was raised without a reason (its text is then empty or \"None\"), or a dash."""
     text = str(err.__cause__ or err)
     return text if text not in ("", "None") else "-"
 
 
-class ZTMStopCoordinator(DataUpdateCoordinator):
+class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
     """Holds the timetable of one line at one pole and refreshes it; the sensors and the calendar read it from here."""
 
-    def __init__(self, hass, stop_id: str, stop_nr: str, line: str, client: ZTMStopClient, entry_id: str):
+    def __init__(self, hass: HomeAssistant, stop_id: str, stop_nr: str, line: str, client: ZTMStopClient, entry_id: str):
         """Set up the refresh of the stop (hourly); ``entry_id`` names the answers kept on disk, which the first refresh loads."""
         super().__init__(
             hass,
@@ -57,26 +61,26 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         self.client = client
         self.walking_minutes = 0  # set for a stop with a walking time: the sensor skips the departures sooner than that
         self.device_per_stop = False  # set for the stops of a line entry: each is a device of its own
-        self.data: ZTMDepartureData | None = None
+        self.data = None
         self.last_update_success_time: datetime | None = None
         # True after the API answered with something that is not a timetable, until a timetable arrives. While it
         # is set a network error must not bring the cached timetable back: that would make the sensor look healthy.
         self._api_error = False
         # The answer before this one, kept while its late departures (the 27:xx of a night bus) are still ahead.
         self._previous: ZTMDepartureData | None = None
-        self._flip_unsub = None
+        self._flip_unsub: CALLBACK_TYPE | None = None
         self._refreshing = asyncio.Lock()
         self._rejections = 0  # consecutive answers of the City that reject the key
         self._started = False  # the first refresh is over: from then on a refresh may also ask for the stop's name
         self._ztm_shutdown_done = False
         self._refreshes = 0  # how many refreshes have finished
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
-        self._store: Store[dict] = Store(hass, 1, store_key(entry_id))
+        self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry_id))
 
         # Hourly timetable refresh handled by DataUpdateCoordinator
         self.update_interval = timedelta(hours=1)
 
-    async def async_config_entry_first_refresh(self):
+    async def async_config_entry_first_refresh(self) -> None:
         """First refresh of the entry: a failure or a missing answer within the deadline makes Home Assistant retry the
         setup (ConfigEntryNotReady) instead of leaving an entity that waits for the next hourly refresh."""
         await self._restore()
@@ -106,13 +110,13 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         await self._load_stop_name()
         self._schedule_flip_refresh()
 
-    def start_without_timetable(self):
+    def start_without_timetable(self) -> None:
         """The first refresh of this stop failed while the other stops of its line answered: the stop starts anyway, its
         entities are unavailable, and the hourly refresh (and the one after the service day changes) brings the timetable."""
         self._started = True
         self._schedule_flip_refresh()
 
-    async def _load_stop_name(self):
+    async def _load_stop_name(self) -> None:
         """The stop's name, once at startup (the client keeps it), on a short leash and never inside the City's update;
         a failure only means the sensors have no name for it."""
         if in_swap_window(dt_util.utcnow()):
@@ -126,7 +130,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         if info and self.data is not None:
             self.data.stop_info = info
 
-    async def _restore(self):
+    async def _restore(self) -> None:
         """Load the answers saved by the last run: a saved answer of this service day is used while the API is not asked,
         one of the previous day keeps its night tail."""
         today = service_date_at(dt_util.utcnow())
@@ -160,7 +164,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             # Only the night tail of yesterday is known: it is what to fall back on if the first request fails.
             self.data, self._previous = self._previous, None
 
-    def _payload(self) -> dict:
+    def _payload(self) -> dict[str, Any]:
         """What is saved on disk: the last two answers (the earlier day's keeps its night tail), the failure marker and the count of rejections."""
         return {
             "answers": [
@@ -176,7 +180,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             "rejections": self._rejections,
         }
 
-    def _save(self):
+    def _save(self) -> None:
         """Write the payload to disk a little later (30 s, one write for a burst of changes), unless the coordinator has been shut down."""
         # Built now, not when the delayed write runs: by then a shutdown may have cleared the answers.
         if self._ztm_shutdown_done:  # a refresh that was still running must not write the store of an unloaded entry
@@ -184,12 +188,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         payload = self._payload()
         self._store.async_delay_save(lambda: payload, 30)
 
-    def _schedule_flip_refresh(self):
+    def _schedule_flip_refresh(self) -> None:
         """Ask again at 03:06 Warsaw time, when the update of the API is over."""
         self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
 
     @callback
-    def _flip_refresh(self, _now):
+    def _flip_refresh(self, _now: datetime) -> None:
         """Ask again after the City's update is over, and arrange the next one (the timer of 03:06 repeats itself every day)."""
         self._flip_unsub = None
         self._schedule_flip_refresh()
@@ -200,20 +204,20 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
         """Whether the City's last answer was not a timetable (a rejected key, an unknown stop or line, an unknown format)."""
         return self._api_error
 
-    def is_fresh(self, now) -> bool:
+    def is_fresh(self, now: datetime) -> bool:
         """Whether the cached timetable is the one of the service day that ``now`` is in."""
         return self.data is not None and self.data.service_date == service_date_at(now)
 
-    def known(self) -> list:
+    def known(self) -> list[ZTMDepartureDataReading]:
         """Every departure of the current and the previous answer (the past ones too), in order."""
         known = [d for part in (self._previous, self.data) if part for d in part.departures if d.dt]
-        return sorted(known, key=lambda d: d.dt)
+        return sorted(known, key=lambda d: d.dt or _EPOCH)  # every one has a moment: the filter above
 
-    def upcoming(self, now) -> list:
+    def upcoming(self, now: datetime) -> list[ZTMDepartureDataReading]:
         """The departures at or after ``now`` from the current and the previous answer, in order."""
-        return [d for d in self.known() if d.dt >= now]
+        return [d for d in self.known() if d.dt and d.dt >= now]
 
-    def is_usable(self, now) -> bool:
+    def is_usable(self, now: datetime) -> bool:
         """Whether what the coordinator holds may be shown: the last refresh worked, and the timetable is today's or has
         late departures (27:xx) still ahead (an answer of an earlier service day is not today's timetable)."""
         return bool(self.last_update_success) and (self.is_fresh(now) or bool(self.upcoming(now)))
@@ -295,7 +299,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
             translation_domain=DOMAIN, translation_key="city_rejected", translation_placeholders={"error": str(err)}
         ) from err
 
-    def _outage(self):
+    def _outage(self) -> None:
         """A network error or an answer that is not the City's breaks a run of rejected keys; the store must know."""
         if self._rejections:
             self._rejections = 0
@@ -342,7 +346,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator):
                 translation_domain=DOMAIN, translation_key="fetch_failed", translation_placeholders={"error": str(err)}
             ) from err
 
-    async def async_shutdown(self):
+    async def async_shutdown(self) -> None:
         """Clean up when coordinator is being shut down."""
         if self._ztm_shutdown_done:
             return

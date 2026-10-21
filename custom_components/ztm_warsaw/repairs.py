@@ -14,6 +14,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
@@ -34,7 +35,7 @@ class LegacyKeyRepairFlow(RepairsFlow):
         super().__init__()
         self._entry_id = entry_id
 
-    def _line_of_entry(self, entry) -> str:
+    def _line_of_entry(self, entry: ConfigEntry) -> str:
         """The line of the entry whose key is replaced, for the texts of the dialog."""
         units = stop_units(entry)
         return line_of(entry) or (units[0].line if units else "")
@@ -52,15 +53,15 @@ class LegacyKeyRepairFlow(RepairsFlow):
             description_placeholders={"line": self._line_of_entry(entry), "portal": KEY_PORTAL_URL},
         )
 
-    def _others(self, entry) -> list:
+    def _others(self, entry: ConfigEntry) -> list[ConfigEntry]:
         """The other entries of the integration, whose key can be read."""
         return [e for e in self.hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and entry_api_key(e)]
 
-    def _other_token(self, entry) -> str | None:
+    def _other_token(self, entry: ConfigEntry) -> str | None:
         """A token another entry of the integration already has (the token is the account's, one for all lines), or None."""
         return next((key for e in self._others(entry) if key_kind(key := entry_api_key(e) or "") == "token"), None)
 
-    def _legacy_others(self, entry) -> list:
+    def _legacy_others(self, entry: ConfigEntry) -> list[ConfigEntry]:
         """The other entries that still have an old key and could take the new token as well."""
         return [e for e in self._others(entry) if key_kind(entry_api_key(e) or "") == "legacy" and key_can_change(e)]
 
@@ -78,7 +79,7 @@ class LegacyKeyRepairFlow(RepairsFlow):
         await close_reauth(self.hass, entry)
         return self.async_create_entry(data={})
 
-    async def _also_for_other_lines(self, entry, key: str) -> None:
+    async def _also_for_other_lines(self, entry: ConfigEntry, key: str) -> None:
         """Give the token to every other line that still has an old key, where the City accepts it for that line."""
         for other in self._legacy_others(entry):
             error, works = await key_error(self.hass, other, key)

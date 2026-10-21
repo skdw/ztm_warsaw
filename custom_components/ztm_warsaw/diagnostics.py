@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .client import key_kind
+from .coordinator import ZTMStopCoordinator
 from .entries import entry_api_key, is_line_entry, runtimes
+from .models import ZTMDepartureData
 
 # Every spelling of the key the setup accepts (see entries.py); the value of each is replaced.
 TO_REDACT = {"api_key", "apikey", "apiKey"}
 REDACTED = "**REDACTED**"
 
 
-def _redact(data) -> dict[str, Any]:
+def _redact(data: Mapping[str, Any]) -> dict[str, Any]:
     """A copy of the mapping with the value of every key spelling replaced (no import of the diagnostics component)."""
     return {k: REDACTED if k in TO_REDACT else v for k, v in dict(data).items()}
 
@@ -45,13 +48,13 @@ def _scrub(value: Any, secrets: set[str]) -> Any:
     return value
 
 
-def _stop_name(info) -> str | None:
+def _stop_name(info: object) -> str | None:
     """The name of a stop for the diagnostics: a string of at most 100 characters, or None."""
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     return str(name)[:100] if name else None
 
 
-def _answer(data) -> dict[str, Any] | None:
+def _answer(data: ZTMDepartureData | None) -> dict[str, Any] | None:
     """The shape of a timetable answer: its service day, how many departures and the first few labels."""
     if data is None:
         return None
@@ -63,7 +66,7 @@ def _answer(data) -> dict[str, Any] | None:
     }
 
 
-def _coordinator_state(coordinator) -> dict[str, Any]:
+def _coordinator_state(coordinator: ZTMStopCoordinator) -> dict[str, Any]:
     """The state of one coordinator as plain data: how its last refresh went (the class of an error, never its text), the failure marker and the answers it holds."""
     error = coordinator.last_exception
     return {
@@ -107,4 +110,4 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     else:
         coordinator = running.get(None, {}).get("coordinator")
         result["coordinator"] = _coordinator_state(coordinator) if coordinator is not None else None
-    return _scrub(result, _secrets(entry))
+    return cast("dict[str, Any]", _scrub(result, _secrets(entry)))

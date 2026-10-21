@@ -55,13 +55,11 @@ pytest
 - `pytest` takes about ten seconds. It runs the integration inside a real Home Assistant against a
   fake City of Warsaw server on your own machine, so it needs no network and no API key. Add
   `--cov` for a coverage report.
-- `scripts/check_mypy_baseline.py` runs `mypy custom_components/ztm_warsaw` and compares its
-  diagnostics exactly with `.github/mypy-baseline.txt`, the same way CI does. A plain
-  `mypy custom_components/ztm_warsaw` prints the known errors and exits with status 1 on a clean
-  checkout, so it cannot tell you whether you added one. A new error fails the check, and so does a
-  baseline entry that mypy no longer reports: remove it in the pull request that fixes it.
-  `python scripts/check_mypy_baseline.py --update` rewrites the entries after you fix or
-  deliberately accept one.
+- `scripts/check_mypy_baseline.py` runs `mypy custom_components/ztm_warsaw` in strict mode (`strict = true` in
+  `pyproject.toml`: every function is annotated) and compares its diagnostics with
+  `.github/mypy-baseline.txt`, the same way CI does. The list is empty: any diagnostic fails the check,
+  so annotate what you add. `python scripts/check_mypy_baseline.py --update` rewrites the entries if a
+  diagnostic must be accepted for a while (say why in the pull request).
 - A test against the real API exists (`tests/live/`) but is opt-in. It makes a handful of requests,
   never prints the key, and never runs in CI:
 

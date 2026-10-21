@@ -115,7 +115,7 @@ async def _merge_line(hass: HomeAssistant, line: str, members: list[ConfigEntry]
     await _clean_up(hass, parent, line, members, old_devices)
 
 
-def _add_stops(hass: HomeAssistant, parent: ConfigEntry, members: list[ConfigEntry]):
+def _add_stops(hass: HomeAssistant, parent: ConfigEntry, members: list[ConfigEntry]) -> tuple[dict[str, str], dict[str, StopUnit]]:
     """A subentry for the stop of every member, reusing the ones the line has already; returns the subentry of each member and its stop."""
     stops: dict[str, str] = {}  # the entry id of a member -> the id of the subentry of its stop
     units: dict[str, StopUnit] = {}
@@ -186,7 +186,9 @@ def _int_if_number(value: str) -> Any:
     return int(value) if value.isascii() and value.isdigit() and str(int(value)) == value else value
 
 
-def _move_entities_and_devices(hass, parent, line, members, stops, units) -> set[str]:
+def _move_entities_and_devices(
+    hass: HomeAssistant, parent: ConfigEntry, line: str, members: list[ConfigEntry], stops: dict[str, str], units: dict[str, StopUnit]
+) -> set[str]:
     """Move the entities of the members to the line and to the device of their stop, creating that device and carrying over what the user set on the old one.
 
     Returns the old devices, for the clean-up once nothing uses them.
@@ -243,11 +245,11 @@ def _carry_over(device_registry: dr.DeviceRegistry, old_id: str, new_id: str) ->
 async def _copy_store(hass: HomeAssistant, entry_id: str, subentry_id: str, *, reset_flags: bool) -> None:
     """The answers saved for the stop of a 1.1.x entry are kept for its stop of the line. A rejection of the old key is
     not carried over to a stop that now uses another one."""
-    old: Store[dict] = Store(hass, 1, store_key(entry_id))
+    old: Store[dict[str, Any]] = Store(hass, 1, store_key(entry_id))
     stored = await old.async_load()
     if stored is None:
         return
-    new: Store[dict] = Store(hass, 1, store_key(subentry_id))
+    new: Store[dict[str, Any]] = Store(hass, 1, store_key(subentry_id))
     if await new.async_load() is None:
         if reset_flags:
             stored = {**stored, "api_error": False, "rejections": 0}
