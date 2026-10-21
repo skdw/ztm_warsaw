@@ -16,6 +16,20 @@
         "data": {
           "api_key": "API key or token from the City of Warsaw open data portal"
         }
+      },
+      "reconfigure": {
+        "title": "Warsaw Public Transport",
+        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe old API still works, but the City has not announced when it will be retired. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
+        "data": {
+          "api_key": "API key or token"
+        }
+      },
+      "reconfigure_token": {
+        "title": "Warsaw Public Transport",
+        "description": "**Change your API access token.**\n\nIf your current token has expired or you want to replace it, paste a new token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nYour line and stop settings will be preserved.",
+        "data": {
+          "api_key": "Token"
+        }
       }
     },
     "error": {
@@ -35,7 +49,8 @@
       "reauth_successful": "The new credentials have been saved and the configuration reloaded.",
       "unknown": "An unknown error occurred.",
       "already_configured": "The selected line is already configured for this stop point.",
-      "stop_added": "The stop has been added to the existing line configuration. It will use the credentials saved for that line. To change them, choose **Configure**."
+      "stop_added": "The stop has been added to the existing line configuration. It will use the credentials saved for that line. To change them, choose **Configure**.",
+      "reconfigure_successful": "The new credentials have been saved and the configuration reloaded."
     }
   },
   "options": {
