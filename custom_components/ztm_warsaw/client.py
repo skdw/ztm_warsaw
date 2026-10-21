@@ -130,6 +130,14 @@ class ZTMAuthError(ZTMApiError):
     """The API refused the API key."""
 
 
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _by_moment(reading: ZTMDepartureDataReading) -> datetime:
+    """The sort key of a reading: the moment it departs (a reading without one sorts first)."""
+    return reading.dt or _EPOCH
+
+
 def _checked_result(json_response: Any) -> list[Any]:
     """The readings of a timetable answer, or a ZTMApiError for an answer that is not a timetable.
 
@@ -463,7 +471,7 @@ class ZTMStopClient:
                 raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
 
             # Sort departures by their scheduled time
-            _departures.sort(key=lambda x: x.dt or datetime.min.replace(tzinfo=timezone.utc))
+            _departures.sort(key=_by_moment)
             _LOGGER.debug("Loaded %d departures from API", len(_departures))
             return ZTMDepartureData(departures=_departures, stop_info=self._stop_name, service_date=service_date)
 

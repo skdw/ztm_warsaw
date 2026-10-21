@@ -191,5 +191,6 @@ async def test_e2e_43_a_departure_without_a_moment_is_never_made_into_a_calendar
     entry = await env.add_entry_via_flow(line=LINE)
     (runtime,) = entry.runtime_data["units"].values()
     calendar = ZTMCalendar(runtime["coordinator"])  # the entity is off by default: build it as the platform does
+    reading = ZTMDepartureDataReading(czas="junk")
     with pytest.raises(ValueError):
-        calendar._event_of(ZTMDepartureDataReading(czas="junk"))
+        calendar._event_of(reading)
