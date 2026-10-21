@@ -11,9 +11,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from typing import TYPE_CHECKING, cast
+
 from homeassistant.config_entries import ConfigEntry
 
 from .const import CONF_WALKING_TIME, MAX_WALKING_TIME
+
+if TYPE_CHECKING:
+    from .runtime import StopRuntime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,11 +147,14 @@ def line_of(entry: ConfigEntry) -> str | None:
     return _first_nonempty(_merged(entry), "line", "linia") if is_line_entry(entry) else None
 
 
-def runtimes(entry: ConfigEntry) -> dict[str | None, dict[str, Any]]:
+def runtimes(entry: ConfigEntry[Any]) -> dict[str | None, StopRuntime]:
     """The running coordinators of a loaded entry by subentry id (None for a version 1 entry), from its ``runtime_data``."""
     stored = getattr(entry, "runtime_data", None)
     if not isinstance(stored, dict):
         return {}
     if "units" in stored:
-        return dict(stored["units"])
-    return {None: stored} if "coordinator" in stored else {}
+        units: dict[str | None, StopRuntime] = stored["units"]
+        return dict(units)
+    if "coordinator" in stored:
+        return {None: cast("StopRuntime", stored)}  # a version 1 entry holds its one stop itself
+    return {}

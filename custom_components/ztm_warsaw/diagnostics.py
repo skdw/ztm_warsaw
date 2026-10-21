@@ -12,6 +12,7 @@ from .client import key_kind
 from .coordinator import ZTMStopCoordinator
 from .entries import entry_api_key, is_line_entry, runtimes
 from .models import ZTMDepartureData
+from .runtime import ZtmConfigEntry
 
 # Every spelling of the key the setup accepts (see entries.py); the value of each is replaced.
 TO_REDACT = {"api_key", "apikey", "apiKey"}
@@ -83,7 +84,7 @@ def _coordinator_state(coordinator: ZTMStopCoordinator) -> dict[str, Any]:
 
 
 # Home Assistant awaits this platform function, so it has to be a coroutine function although it only reads memory.
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # NOSONAR
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ZtmConfigEntry) -> dict[str, Any]:  # NOSONAR
     """The entry (key redacted) and the state of its coordinators, as plain data."""
     running = runtimes(entry)
     api_key = entry_api_key(entry)
@@ -108,6 +109,6 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             for sid, subentry in entry.subentries.items()
         ]
     else:
-        coordinator = running.get(None, {}).get("coordinator")
-        result["coordinator"] = _coordinator_state(coordinator) if coordinator is not None else None
+        stop = running.get(None)
+        result["coordinator"] = _coordinator_state(stop["coordinator"]) if stop is not None else None
     return cast("dict[str, Any]", _scrub(result, _secrets(entry)))
