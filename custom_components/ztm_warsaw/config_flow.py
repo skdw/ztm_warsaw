@@ -626,11 +626,11 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         known = self._line_and_key()
         if known is None:
             return self.async_abort(reason="unknown")
-        line, _ = known
+        line, api_key = known
         if user_input is None:
             return self._pole_form(line)
         stop_id, stop_nr = user_input[CONF_POLE].split("/")
-        outcome = await self._finish(int(stop_id), stop_nr)
+        outcome = await self._finish(line, api_key, int(stop_id), stop_nr)
         return outcome if not isinstance(outcome, str) else self._pole_form(line, {"base": outcome})
 
     def _pole_form(self, line: str, errors: dict[str, str] | None = None) -> SubentryFlowResult:
@@ -642,12 +642,8 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
             description_placeholders={"line": line, "query": self._query},
         )
 
-    async def _finish(self, stop_id: int, stop_nr: str) -> SubentryFlowResult | str:
+    async def _finish(self, line: str, api_key: str, stop_id: int, stop_nr: str) -> SubentryFlowResult | str:
         """Check the pole with the line's key (the line must stop there) and add it as a subentry: the result, or the key of the error to show."""
-        known = self._line_and_key()
-        if known is None:
-            return self.async_abort(reason="unknown")
-        line, api_key = known
         if any((str(stop_id), stop_nr, line) in stop_keys(e) for e in self.hass.config_entries.async_entries(DOMAIN)):
             return self.async_abort(reason="already_configured")
         error, _ = await error_for(self.hass, {CONF_API_KEY: api_key, CONF_BUSSTOP_ID: stop_id, CONF_BUSSTOP_NR: stop_nr, CONF_LINE: line})
@@ -671,11 +667,11 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         known = self._line_and_key()
         if known is None:
             return self.async_abort(reason="unknown")
-        line, _ = known
+        line, api_key = known
         if user_input is None:
             return self._manual_form(line)
         stop_id, stop_nr = _stop_id_of(user_input[CONF_BUSSTOP_ID]), user_input[CONF_BUSSTOP_NR].strip()
         if stop_id is None:
             return self._manual_form(line, {"base": "invalid_stop_id"})
-        outcome = await self._finish(stop_id, stop_nr)
+        outcome = await self._finish(line, api_key, stop_id, stop_nr)
         return outcome if not isinstance(outcome, str) else self._manual_form(line, {"base": outcome})

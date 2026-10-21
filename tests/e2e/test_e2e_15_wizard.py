@@ -44,7 +44,8 @@ async def test_e2e_43_a_part_of_the_name_leads_to_the_poles_then_the_lines_then_
     values = [o["value"] for o in options]
     assert {"7009/01", "7009/02"} <= set(values)
     label = next(o["label"] for o in options if o["value"] == "7009/01")
-    assert label.startswith(f"{NAME} 01") and label.endswith("(7009/01)")
+    assert label.startswith(f"{NAME} 01")
+    assert label.endswith("(7009/01)")
     lines = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
     assert (lines["type"], lines["step_id"]) == ("form", "line")
     choices = [o["value"] for o in lines["data_schema"].schema["line"].config["options"]]
@@ -198,3 +199,15 @@ async def test_e2e_43_add_stop_aborts_when_the_entry_loses_its_key_between_the_s
     manual_result = await manager.async_configure(manual["flow_id"], {"busstop_id": 7009, "busstop_nr": "02"})
     assert (pole_result["type"], pole_result["reason"]) == ("abort", "unknown")
     assert (manual_result["type"], manual_result["reason"]) == ("abort", "unknown")
+
+
+async def test_e2e_43_the_check_of_the_timetable_tells_a_broken_answer_from_a_missing_one(env):
+    from custom_components.ztm_warsaw.client import ZTMApiError, ZTMStopClient
+
+    client = ZTMStopClient(None, DEFAULT_KEY, "7009", "01", LINE)
+    with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMApiError("odd answer"))):
+        with pytest.raises(ValueError, match="no_valid_times"):
+            await config_flow._check_timetable(client)
+    with patch.object(ZTMStopClient, "get", AsyncMock(return_value=None)):
+        with pytest.raises(ValueError, match="api_connection_error"):
+            await config_flow._check_timetable(client)

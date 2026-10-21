@@ -78,6 +78,14 @@ def _fold(text: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
 
 
+def _matches(numbers: re.Match[str] | None, wanted: str, stop_id: str, stop_nr: str, name: str) -> bool:
+    """Whether a pole is what the user typed: the stop ID (or the ID and the pole number) when it was typed as numbers, else a
+    part of the stop's name."""
+    if numbers:
+        return stop_id == numbers.group(1) and (numbers.group(2) is None or stop_nr == numbers.group(2))
+    return bool(wanted) and wanted in _fold(name)
+
+
 def _index_stops(rows: list[Any]) -> dict[str, dict[str, dict[str, Any]]]:
     """The catalogue as ``{stop: {pole: what it says about the pole, without the ids}}``, in the order of the records."""
     index: dict[str, dict[str, dict[str, Any]]] = {}
@@ -149,11 +157,7 @@ class StopCatalogue:
         for stop_id, poles in index.items():
             for stop_nr, info in poles.items():
                 name = str(info.get("nazwa_zespolu") or "")
-                if numbers:
-                    hit = stop_id == numbers.group(1) and (numbers.group(2) is None or stop_nr == numbers.group(2))
-                else:
-                    hit = bool(wanted) and wanted in _fold(name)
-                if hit:
+                if _matches(numbers, wanted, stop_id, stop_nr, name):
                     found.append({"stop_id": stop_id, "stop_nr": stop_nr, "name": name, "direction": str(info.get("kierunek") or "")})
         found.sort(key=lambda p: (_fold(p["name"]), p["stop_id"], p["stop_nr"]))
         return True, found[: limit + 1]
