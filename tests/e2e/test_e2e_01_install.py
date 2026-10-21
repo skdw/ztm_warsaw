@@ -84,7 +84,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
         "line": "151",
         "departures": 3,  # no longer asked (3 are always listed); the key stays
     }
-    assert entry.options == {}
+    assert set(entry.options) <= {"generated_title"}  # nothing is asked for in options; only the title this integration made is remembered
     (stop,) = entry.subentries.values()  # ... and its stops are subentries
     assert stop.subentry_type == "stop"
     assert stop.title == f"{stop_name_for('7009')} 01"  # the stop's name, not its number
@@ -447,7 +447,7 @@ async def test_e2e_05_a_new_key_replaces_the_old_one_and_reloads_the_entry_once(
     assert entry.data["api_key"] == NEW_KEY
     (stop,) = entry.subentries.values()
     assert (stop.data["busstop_id"], stop.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
-    assert entry.options == {}
+    assert set(entry.options) <= {"generated_title"}  # nothing is asked for in options; only the title this integration made is remembered
     assert reload.call_count == 1
     assert entry.state is ConfigEntryState.LOADED
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
