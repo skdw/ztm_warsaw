@@ -237,5 +237,25 @@
         "reconfigure_successful": "The walking time was saved."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "The City of Warsaw did not answer in time."
+    },
+    "city_not_ready": {
+      "message": "The City of Warsaw did not answer properly: {error}"
+    },
+    "city_rejected": {
+      "message": "The City of Warsaw did not accept the request: {error}"
+    },
+    "city_swapping": {
+      "message": "The City of Warsaw is updating its timetables; trying again after 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "The timetable could not be fetched and there is no usable stored one."
+    },
+    "fetch_failed": {
+      "message": "Error fetching data: {error}"
+    }
   }
 }

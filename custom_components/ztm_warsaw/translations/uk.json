@@ -237,5 +237,25 @@
         "reconfigure_successful": "Час ходьби збережено."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Місто Варшава не відповіло вчасно."
+    },
+    "city_not_ready": {
+      "message": "Місто Варшава відповіло некоректно: {error}"
+    },
+    "city_rejected": {
+      "message": "Місто Варшава не прийняло запит: {error}"
+    },
+    "city_swapping": {
+      "message": "Місто Варшава оновлює розклади; повторна спроба після 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "Не вдалося отримати розклад, а збереженого використати не можна."
+    },
+    "fetch_failed": {
+      "message": "Помилка отримання даних: {error}"
+    }
   }
 }

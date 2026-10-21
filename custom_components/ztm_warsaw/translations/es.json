@@ -237,5 +237,25 @@
         "reconfigure_successful": "Se guardó el tiempo a pie."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "La ciudad de Varsovia no respondió a tiempo."
+    },
+    "city_not_ready": {
+      "message": "La ciudad de Varsovia no respondió correctamente: {error}"
+    },
+    "city_rejected": {
+      "message": "La ciudad de Varsovia no aceptó la solicitud: {error}"
+    },
+    "city_swapping": {
+      "message": "La ciudad de Varsovia está actualizando sus horarios; se reintentará después de las 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "No se pudo obtener el horario y no hay uno guardado que se pueda usar."
+    },
+    "fetch_failed": {
+      "message": "Error al obtener los datos: {error}"
+    }
   }
 }

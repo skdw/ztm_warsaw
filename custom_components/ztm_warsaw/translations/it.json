@@ -237,5 +237,25 @@
         "reconfigure_successful": "Il tempo di percorrenza a piedi è stato salvato."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "La città di Varsavia non ha risposto in tempo."
+    },
+    "city_not_ready": {
+      "message": "La città di Varsavia non ha risposto correttamente: {error}"
+    },
+    "city_rejected": {
+      "message": "La città di Varsavia non ha accettato la richiesta: {error}"
+    },
+    "city_swapping": {
+      "message": "La città di Varsavia sta aggiornando i suoi orari; nuovo tentativo dopo le 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "Non è stato possibile ottenere l’orario e non ce n’è uno salvato utilizzabile."
+    },
+    "fetch_failed": {
+      "message": "Errore nel recupero dei dati: {error}"
+    }
   }
 }

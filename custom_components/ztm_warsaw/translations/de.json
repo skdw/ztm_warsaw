@@ -237,5 +237,25 @@
         "reconfigure_successful": "Die Gehzeit wurde gespeichert."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Die Stadt Warschau hat nicht rechtzeitig geantwortet."
+    },
+    "city_not_ready": {
+      "message": "Die Stadt Warschau hat nicht richtig geantwortet: {error}"
+    },
+    "city_rejected": {
+      "message": "Die Stadt Warschau hat die Anfrage nicht akzeptiert: {error}"
+    },
+    "city_swapping": {
+      "message": "Die Stadt Warschau aktualisiert ihre Fahrpläne; neuer Versuch nach 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "Der Fahrplan konnte nicht abgerufen werden, und es gibt keinen verwendbaren gespeicherten."
+    },
+    "fetch_failed": {
+      "message": "Fehler beim Abrufen der Daten: {error}"
+    }
   }
 }

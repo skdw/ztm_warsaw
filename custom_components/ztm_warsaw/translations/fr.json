@@ -237,5 +237,25 @@
         "reconfigure_successful": "Le temps de marche a été enregistré."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "La ville de Varsovie n’a pas répondu à temps."
+    },
+    "city_not_ready": {
+      "message": "La ville de Varsovie n’a pas répondu correctement : {error}"
+    },
+    "city_rejected": {
+      "message": "La ville de Varsovie n’a pas accepté la requête : {error}"
+    },
+    "city_swapping": {
+      "message": "La ville de Varsovie met à jour ses horaires ; nouvel essai après 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "L’horaire n’a pas pu être récupéré et aucun horaire enregistré n’est utilisable."
+    },
+    "fetch_failed": {
+      "message": "Erreur lors de la récupération des données : {error}"
+    }
   }
 }

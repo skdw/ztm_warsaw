@@ -237,5 +237,25 @@
         "reconfigure_successful": "Zapisano czas dojścia."
       }
     }
+  },
+  "exceptions": {
+    "city_timeout": {
+      "message": "Miasto Warszawa nie odpowiedziało na czas."
+    },
+    "city_not_ready": {
+      "message": "Miasto Warszawa nie odpowiedziało poprawnie: {error}"
+    },
+    "city_rejected": {
+      "message": "Miasto Warszawa nie przyjęło żądania: {error}"
+    },
+    "city_swapping": {
+      "message": "Miasto Warszawa aktualizuje rozkłady; ponowna próba po 03:05."
+    },
+    "no_cached_timetable": {
+      "message": "Nie udało się pobrać rozkładu, a zapisanego nie da się użyć."
+    },
+    "fetch_failed": {
+      "message": "Błąd pobierania danych: {error}"
+    }
   }
 }
