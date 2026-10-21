@@ -49,4 +49,5 @@ def test_every_status_is_valid_and_every_exemption_or_todo_says_why():
         status = entry if isinstance(entry, str) else entry["status"]
         assert status in {"done", "exempt", "todo"}, rule
         if status in {"exempt", "todo"}:
-            assert isinstance(entry, dict) and entry.get("comment"), f"{rule} is {status}: say why"
+            assert isinstance(entry, dict), f"{rule} is {status}: say why"
+            assert entry.get("comment"), f"{rule} is {status}: say why"
