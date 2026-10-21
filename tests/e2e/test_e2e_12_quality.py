@@ -149,3 +149,26 @@ async def test_e2e_40_reconfigure_of_an_entry_with_a_token_asks_for_the_new_toke
     bad = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"api_key": "not a key"})
     assert (bad["type"], bad["errors"]) == ("form", {"base": "invalid_api_key"})
     assert entry.data["api_key"] == DEFAULT_TOKEN
+
+
+async def test_e2e_40_reconfigure_of_an_entry_whose_data_cannot_be_read_aborts_and_changes_nothing(env):
+    from .fake_city import DEFAULT_KEY
+
+    entry = await env.add_entry(data={"api_key": DEFAULT_KEY}, setup=False)  # no stop: a 1.1.x entry that cannot be run
+    result = await _reconfigure(env, entry)
+    assert (result["type"], result["reason"]) == ("abort", "unknown")
+    assert entry.data["api_key"] == DEFAULT_KEY
+
+
+async def test_e2e_40_reconfigure_accepts_a_key_that_works_for_a_line_that_does_not_run_today(env):
+    """A weekday-only line on a Saturday: the key is judged by the key, as in Configure."""
+    from .fake_city import DEFAULT_TOKEN
+
+    env.move_to("2026-10-17 12:00")
+    entry = await env.add_entry(line="411")
+    env.city.valid_tokens.add(DEFAULT_TOKEN)
+    form = await _reconfigure(env, entry)
+    done = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN})
+    await env.settle()
+    assert (done["type"], done["reason"]) == ("abort", "reconfigure_successful")
+    assert entry.data["api_key"] == DEFAULT_TOKEN
