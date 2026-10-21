@@ -186,15 +186,15 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         return {k: v for k, v in attributes.items() if v is not None}
 
     def _timetable_span(self):
-        """The first and the last departure of the timetable the City gave (the whole service day, the past ones too), as local
-        times: with them a card can say "the last bus left at 23:41" when the sensor has no next departure. Nothing without a timetable."""
+        """The first and the last departure of the timetable the City gave (the whole service day, the past ones too), as Warsaw
+        times (as the timetable and the other times of the sensor are, whatever zone Home Assistant has): with them a card can say "the last bus left at 23:41" when the sensor has no next departure. Nothing without a timetable."""
         data = self.coordinator.data if self.coordinator else None
         times = [d.dt for d in getattr(data, "departures", None) or [] if getattr(d, "dt", None)]
         if not times:
             return {}
         return {
-            "Timetable, First Departure": as_local(min(times)).strftime("%H:%M"),
-            "Timetable, Last Departure": as_local(max(times)).strftime("%H:%M"),
+            "Timetable, First Departure": min(times).astimezone(WARSAW).strftime("%H:%M"),
+            "Timetable, Last Departure": max(times).astimezone(WARSAW).strftime("%H:%M"),
         }
 
     @property

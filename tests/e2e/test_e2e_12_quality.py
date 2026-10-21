@@ -93,3 +93,19 @@ async def test_e2e_39_after_the_last_departure_the_state_is_unknown_but_the_time
     assert state.attributes["Upcoming, Headsign"] == "No service"
     assert state.attributes["Timetable, Last Departure"] == as_local(last).strftime("%H:%M")
     assert "Timetable, First Departure" in state.attributes
+
+
+async def test_e2e_39_the_times_are_warsaw_times_whatever_time_zone_home_assistant_has(env):
+    """The attribute says Europe/Warsaw as its zone, so the times must be Warsaw ones for a Home Assistant set to another zone."""
+    from zoneinfo import ZoneInfo
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    (runtime,) = entry.runtime_data["units"].values()
+    known = runtime["coordinator"].known()
+    await env.hass.config.async_set_time_zone("America/New_York")
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    attrs = env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_01").attributes
+    warsaw = ZoneInfo("Europe/Warsaw")
+    assert attrs["Timetable, First Departure"] == known[0].dt.astimezone(warsaw).strftime("%H:%M")
+    assert attrs["Timetable, Last Departure"] == known[-1].dt.astimezone(warsaw).strftime("%H:%M")
