@@ -509,3 +509,17 @@ async def test_e2e_21_a_hanging_stops_catalogue_does_not_keep_the_sensor_away(en
     entry = await env.drive_timeouts(task)
     assert entry.state is ConfigEntryState.LOADED
     assert departing(env)
+
+
+async def test_e2e_16_a_failed_refresh_covered_by_the_cache_is_retried_in_minutes_not_an_hour(env):
+    """Right after a restart the City may be unreachable for a moment: the sensors must not wait for the next hourly tick."""
+    await env.add_entry()
+    coord = coordinator_of(env)
+    cached = coord.data
+    env.city.always(None, Reset())
+    await env.hourly_tick()
+    assert coord.data is cached, "the cached timetable covers the failure"
+    env.city.heal()  # the City is back; nothing but the short retry asks for it
+    await env.advance(seconds=360)
+    assert coord.data is not cached, "the retry fetched a fresh timetable long before the next hourly refresh"
+    assert coord._retry_unsub is None, "a retry that worked does not schedule another"
