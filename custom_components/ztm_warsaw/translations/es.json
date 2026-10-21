@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Indica la línea y la parada cuyas salidas quieres mostrar. Encontrarás instrucciones detalladas en la documentación de GitHub.",
+        "description": "Introduce tu clave API o token y parte del nombre de tu parada (o su ID). Después elegirás el poste y la línea.",
         "data": {
           "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia",
-          "busstop_id": "ID de la parada (p. ej. 3044)",
-          "busstop_nr": "Número del punto de parada (p. ej. 02)",
-          "line": "Número de línea (p. ej. N31)"
+          "stop": "Nombre o ID de la parada (p. ej. Marcelin o 3044)",
+          "manual": "Conozco los números: los introduciré yo"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Token"
         }
+      },
+      "manual": {
+        "description": "Indica la línea y la parada cuyas salidas quieres mostrar. Encontrarás instrucciones detalladas en la documentación de GitHub.",
+        "data": {
+          "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia",
+          "busstop_id": "ID de la parada (p. ej. 3044)",
+          "busstop_nr": "Número del punto de parada (p. ej. 02)",
+          "line": "Número de línea (p. ej. N31)"
+        }
+      },
+      "pole": {
+        "title": "¿Qué poste?",
+        "description": "Coinciden con «{query}». Una parada tiene un poste para cada dirección; su número está en el cartel.",
+        "data": {
+          "pole": "Poste"
+        }
+      },
+      "line": {
+        "title": "¿Qué línea?",
+        "description": "Las líneas que hoy paran en {stop}.",
+        "data": {
+          "line": "Línea"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
       "unknown": "Se ha producido un error desconocido.",
       "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
-      "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»)."
+      "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»).",
+      "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
+      "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre.",
+      "no_lines": "Hoy ninguna línea para en ese poste. Elige otro.",
+      "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
+      "cannot_load_lines": "No se pudieron cargar las líneas de ese poste. Inténtalo de nuevo o vuelve y introduce los números tú mismo."
     },
     "abort": {
       "single_instance_allowed": "Solo se permite una instancia.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Añadir una parada de la línea {line}",
-          "description": "Indica el ID de la parada y el número del punto de parada para la línea {line}. La nueva parada utilizará las credenciales guardadas para esta línea.",
+          "description": "Otra parada de la línea {line}. Escribe parte de su nombre o su ID.",
           "data": {
-            "busstop_id": "ID de la parada (p. ej. 3044)",
-            "busstop_nr": "Número del punto de parada (p. ej. 02)"
+            "stop": "Nombre o ID de la parada (p. ej. Marcelin o 3044)",
+            "manual": "Conozco los números: los introduciré yo"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Indica cuántos minutos tardas en llegar a pie a la parada. El sensor omitirá las salidas a las que no puedas llegar en ese tiempo. Introduce 0 para no tener en cuenta el tiempo a pie.",
           "data": {
             "walking_time": "Tiempo a pie (minutos)"
+          }
+        },
+        "manual": {
+          "title": "Añadir una parada de la línea {line}",
+          "description": "Indica el ID de la parada y el número del punto de parada para la línea {line}. La nueva parada utilizará las credenciales guardadas para esta línea.",
+          "data": {
+            "busstop_id": "ID de la parada (p. ej. 3044)",
+            "busstop_nr": "Número del punto de parada (p. ej. 02)"
+          }
+        },
+        "pole": {
+          "title": "¿Qué poste?",
+          "description": "Coinciden con «{query}». Una parada tiene un poste para cada dirección; su número está en el cartel.",
+          "data": {
+            "pole": "Poste"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_valid_times": "La API no devolvió ninguna hora de salida válida.",
         "unknown": "Se ha producido un error desconocido.",
         "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
-        "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»)."
+        "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»).",
+        "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
+        "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre.",
+        "no_lines": "Hoy ninguna línea para en ese poste. Elige otro.",
+        "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
+        "cannot_load_lines": "No se pudieron cargar las líneas de ese poste. Inténtalo de nuevo o vuelve y introduce los números tú mismo."
       },
       "abort": {
         "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",

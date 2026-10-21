@@ -83,26 +83,27 @@ async def test_e2e_32_adding_a_stop_reloads_the_entry_once(env):
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_02") is not None
 
 
-async def test_e2e_32_add_stop_on_the_entry_asks_only_for_the_stop(env):
+async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_by_name_then_the_pole(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
     assert (form["type"], form["step_id"]) == ("form", "user")
-    assert [str(k) for k in form["data_schema"].schema] == ["busstop_id", "busstop_nr"]
-    done = await manager.async_configure(form["flow_id"], {"busstop_id": 7009, "busstop_nr": "02"})
+    assert [str(k) for k in form["data_schema"].schema] == ["stop", "manual"]
+    poles = await manager.async_configure(form["flow_id"], {"stop": stop_name_for("7009")[:12]})
+    assert (poles["type"], poles["step_id"]) == ("form", "pole")
+    done = await manager.async_configure(poles["flow_id"], {"pole": "7009/02"})
     await env.settle()
     assert done["type"] == "create_entry", done
     assert sorted(s.data["busstop_nr"] for s in entry.subentries.values()) == ["01", "02"]
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_02") is not None
 
-
 async def test_e2e_32_add_stop_refuses_a_stop_the_line_has_and_a_stop_it_does_not_serve(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
-    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    form = await env.add_stop_form(entry)
     done = await manager.async_configure(form["flow_id"], {"busstop_id": 7009, "busstop_nr": "01"})
     assert (done["type"], done["reason"]) == ("abort", "already_configured")
-    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    form = await env.add_stop_form(entry)
     done = await manager.async_configure(form["flow_id"], {"busstop_id": 7009, "busstop_nr": "9"})
     assert (done["type"], done["errors"]) == ("form", {"base": "invalid_stop_number"})
     assert len(entry.subentries) == 1
@@ -332,7 +333,7 @@ async def test_e2e_32_a_stop_that_another_flow_added_meanwhile_is_refused_not_a_
 async def test_e2e_32_add_stop_refuses_a_stop_that_another_flow_added_while_the_city_was_asked(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
-    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    form = await env.add_stop_form(entry)
     real = config_flow.error_for
 
     async def another_flow_finishes_first(hass, user_input, **kwargs):
@@ -379,8 +380,8 @@ async def test_e2e_32_a_stop_name_that_arrives_after_the_setup_titles_the_stop_t
 async def test_e2e_32_the_stop_id_is_a_text_field_that_starts_empty_in_both_dialogs(env):
     """A number field starts as 0 in the form; a text that must be a number starts empty."""
     entry = await env.add_entry_via_flow(line=LINE)
-    first = await env.hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    add_stop = await env.hass.config_entries.subentries.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    first = await env.manual_form()
+    add_stop = await env.add_stop_form(entry)
     for form in (first, add_stop):
         field, validator = next((k, v) for k, v in form["data_schema"].schema.items() if str(k) == "busstop_id")
         assert validator.type is str  # a text field: the frontend shows no 0 in it
@@ -391,13 +392,13 @@ async def test_e2e_32_the_stop_id_is_a_text_field_that_starts_empty_in_both_dial
 async def test_e2e_32_a_stop_id_that_is_not_a_number_is_refused_in_both_dialogs(env, typed):
     entry = await env.add_entry_via_flow(line=LINE)
     flow = env.hass.config_entries.flow
-    form = await flow.async_init(DOMAIN, context={"source": "user"})
+    form = await env.manual_form()
     done = await flow.async_configure(
         form["flow_id"], {"api_key": DEFAULT_KEY, "busstop_id": typed, "busstop_nr": "02", "line": LINE}
     )
     assert (done["type"], done["errors"]) == ("form", {"base": "invalid_stop_id"})
     manager = env.hass.config_entries.subentries
-    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    form = await env.add_stop_form(entry)
     done = await manager.async_configure(form["flow_id"], {"busstop_id": typed, "busstop_nr": "02"})
     assert (done["type"], done["errors"]) == ("form", {"base": "invalid_stop_id"})
     assert done["description_placeholders"] == {"line": LINE}, "the title of the form names the line again"
@@ -407,7 +408,7 @@ async def test_e2e_32_a_stop_id_that_is_not_a_number_is_refused_in_both_dialogs(
 async def test_e2e_32_a_stop_id_with_spaces_around_it_is_stored_as_the_number(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
-    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    form = await env.add_stop_form(entry)
     done = await manager.async_configure(form["flow_id"], {"busstop_id": " 7009 ", "busstop_nr": "02"})
     await env.settle()
     assert done["type"] == "create_entry", done

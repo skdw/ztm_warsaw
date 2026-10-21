@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Gib die Linie und Haltestelle an, deren Abfahrten du anzeigen möchtest. Eine ausführliche Anleitung findest du in der Dokumentation auf GitHub.",
+        "description": "Gib deinen API-Schlüssel oder dein Token und einen Teil des Haltestellennamens (oder die ID) ein. Danach wählst du den Mast und die Linie.",
         "data": {
           "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
-          "busstop_id": "Haltestellen-ID (z. B. 3044)",
-          "busstop_nr": "Nummer der Halteposition (z. B. 02)",
-          "line": "Liniennummer (z. B. N31)"
+          "stop": "Haltestellenname oder ID (z. B. Marcelin oder 3044)",
+          "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Token"
         }
+      },
+      "manual": {
+        "description": "Gib die Linie und Haltestelle an, deren Abfahrten du anzeigen möchtest. Eine ausführliche Anleitung findest du in der Dokumentation auf GitHub.",
+        "data": {
+          "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
+          "busstop_id": "Haltestellen-ID (z. B. 3044)",
+          "busstop_nr": "Nummer der Halteposition (z. B. 02)",
+          "line": "Liniennummer (z. B. N31)"
+        }
+      },
+      "pole": {
+        "title": "Welcher Mast?",
+        "description": "Treffer für „{query}“. Eine Haltestelle hat für jede Richtung einen Mast; die Nummer steht auf dem Schild.",
+        "data": {
+          "pole": "Mast"
+        }
+      },
+      "line": {
+        "title": "Welche Linie?",
+        "description": "Die Linien, die heute an {stop} halten.",
+        "data": {
+          "line": "Linie"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
       "unknown": "Ein unbekannter Fehler ist aufgetreten.",
       "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
-      "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“)."
+      "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“).",
+      "no_stop_found": "Nichts gefunden. Versuche einen anderen Teil des Namens oder die Haltestellen-ID.",
+      "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
+      "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
+      "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
+      "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein."
     },
     "abort": {
       "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Haltestelle der Linie {line} hinzufügen",
-          "description": "Gib die Haltestellen-ID und die Nummer der Halteposition für die Linie {line} an. Die neue Haltestelle verwendet die für diese Linie gespeicherten Zugangsdaten.",
+          "description": "Eine weitere Haltestelle der Linie {line}. Gib einen Teil des Namens oder die ID ein.",
           "data": {
-            "busstop_id": "Haltestellen-ID (z. B. 3044)",
-            "busstop_nr": "Nummer der Halteposition (z. B. 02)"
+            "stop": "Haltestellenname oder ID (z. B. Marcelin oder 3044)",
+            "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Gib an, wie viele Minuten du zu Fuß zur Haltestelle brauchst. Der Sensor überspringt Abfahrten, die du in dieser Zeit nicht mehr erreichen kannst. Mit 0 wird die Gehzeit nicht berücksichtigt.",
           "data": {
             "walking_time": "Gehzeit (Minuten)"
+          }
+        },
+        "manual": {
+          "title": "Haltestelle der Linie {line} hinzufügen",
+          "description": "Gib die Haltestellen-ID und die Nummer der Halteposition für die Linie {line} an. Die neue Haltestelle verwendet die für diese Linie gespeicherten Zugangsdaten.",
+          "data": {
+            "busstop_id": "Haltestellen-ID (z. B. 3044)",
+            "busstop_nr": "Nummer der Halteposition (z. B. 02)"
+          }
+        },
+        "pole": {
+          "title": "Welcher Mast?",
+          "description": "Treffer für „{query}“. Eine Haltestelle hat für jede Richtung einen Mast; die Nummer steht auf dem Schild.",
+          "data": {
+            "pole": "Mast"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
         "unknown": "Ein unbekannter Fehler ist aufgetreten.",
         "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
-        "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“)."
+        "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“).",
+        "no_stop_found": "Nichts gefunden. Versuche einen anderen Teil des Namens oder die Haltestellen-ID.",
+        "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
+        "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
+        "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
+        "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein."
       },
       "abort": {
         "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",

@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Indica la linea e la fermata di cui vuoi visualizzare le partenze. Trovi le istruzioni dettagliate nella documentazione su GitHub.",
+        "description": "Inserisci la tua chiave API o token e parte del nome della fermata (o il suo ID). Poi sceglierai il palo e la linea.",
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
-          "busstop_id": "ID della fermata (es. 3044)",
-          "busstop_nr": "Numero del punto di fermata (es. 02)",
-          "line": "Numero della linea (es. N31)"
+          "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
+          "manual": "Conosco i numeri: li inserisco io"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Token"
         }
+      },
+      "manual": {
+        "description": "Indica la linea e la fermata di cui vuoi visualizzare le partenze. Trovi le istruzioni dettagliate nella documentazione su GitHub.",
+        "data": {
+          "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
+          "busstop_id": "ID della fermata (es. 3044)",
+          "busstop_nr": "Numero del punto di fermata (es. 02)",
+          "line": "Numero della linea (es. N31)"
+        }
+      },
+      "pole": {
+        "title": "Quale palo?",
+        "description": "Corrispondono a «{query}». Una fermata ha un palo per ogni direzione; il numero è sul cartello.",
+        "data": {
+          "pole": "Palo"
+        }
+      },
+      "line": {
+        "title": "Quale linea?",
+        "description": "Le linee che oggi fermano a {stop}.",
+        "data": {
+          "line": "Linea"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
       "unknown": "Si è verificato un errore sconosciuto.",
       "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
-      "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»)."
+      "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
+      "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
+      "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome.",
+      "no_lines": "Oggi nessuna linea ferma a quel palo. Scegline un altro.",
+      "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
+      "cannot_load_lines": "Non è stato possibile caricare le linee di quel palo. Riprova, oppure torna indietro e inserisci tu i numeri."
     },
     "abort": {
       "single_instance_allowed": "È consentita una sola istanza.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Aggiungi una fermata della linea {line}",
-          "description": "Indica l’ID della fermata e il numero del punto di fermata per la linea {line}. La nuova fermata utilizzerà le credenziali salvate per questa linea.",
+          "description": "Un’altra fermata della linea {line}. Scrivi parte del nome o l’ID.",
           "data": {
-            "busstop_id": "ID della fermata (es. 3044)",
-            "busstop_nr": "Numero del punto di fermata (es. 02)"
+            "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
+            "manual": "Conosco i numeri: li inserisco io"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Indica quanti minuti impieghi per raggiungere la fermata a piedi. Il sensore escluderà le partenze che non riusciresti a raggiungere in questo tempo. Inserisci 0 per non tenere conto del tempo di percorrenza a piedi.",
           "data": {
             "walking_time": "Tempo di percorrenza a piedi (minuti)"
+          }
+        },
+        "manual": {
+          "title": "Aggiungi una fermata della linea {line}",
+          "description": "Indica l’ID della fermata e il numero del punto di fermata per la linea {line}. La nuova fermata utilizzerà le credenziali salvate per questa linea.",
+          "data": {
+            "busstop_id": "ID della fermata (es. 3044)",
+            "busstop_nr": "Numero del punto di fermata (es. 02)"
+          }
+        },
+        "pole": {
+          "title": "Quale palo?",
+          "description": "Corrispondono a «{query}». Una fermata ha un palo per ogni direzione; il numero è sul cartello.",
+          "data": {
+            "pole": "Palo"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_valid_times": "L’API non ha restituito alcun orario di partenza valido.",
         "unknown": "Si è verificato un errore sconosciuto.",
         "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
-        "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»)."
+        "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
+        "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
+        "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome.",
+        "no_lines": "Oggi nessuna linea ferma a quel palo. Scegline un altro.",
+        "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
+        "cannot_load_lines": "Non è stato possibile caricare le linee di quel palo. Riprova, oppure torna indietro e inserisci tu i numeri."
       },
       "abort": {
         "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",

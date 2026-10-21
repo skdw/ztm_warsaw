@@ -67,12 +67,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     assert result["type"] == "form"
     assert result["step_id"] == "user"
     assert result["errors"] == {}
-    assert [str(k) for k in result["data_schema"].schema] == [
-        "api_key",
-        "busstop_id",
-        "busstop_nr",
-        "line",
-    ]
+    assert [str(k) for k in result["data_schema"].schema] == ["api_key", "stop", "manual"]  # the key and what to search for
     assert env.city.count() == 0, "showing the form must not call the city"
 
     entry = await env.add_entry_via_flow(line="151")

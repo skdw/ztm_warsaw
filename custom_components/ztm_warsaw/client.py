@@ -15,6 +15,7 @@ from typing import Any, Optional
 import json
 from datetime import datetime, timezone
 import re
+import unicodedata
 
 import aiohttp
 
@@ -68,6 +69,23 @@ _MAX_BYTES = 2_000_000  # the largest timetable or list of lines accepted
 _MAX_CATALOGUE_BYTES = 8_000_000  # the stops catalogue is bigger (1.6 MB of 2 MB in 2026) and grows
 
 
+SEARCH_LIMIT = 30  # the poles a search lists at most; more asks the user to narrow it
+
+
+def _fold(text: str) -> str:
+    """Text for comparing names: lower case, without diacritics (the Polish "ł" has none to remove, so it is turned into "l")."""
+    decomposed = unicodedata.normalize("NFKD", text.replace("ł", "l").replace("Ł", "L"))
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
+
+
+def _matches(numbers: re.Match[str] | None, wanted: str, stop_id: str, stop_nr: str, name: str) -> bool:
+    """Whether a pole is what the user typed: the stop ID (or the ID and the pole number) when it was typed as numbers, else a
+    part of the stop's name."""
+    if numbers:
+        return stop_id == numbers.group(1) and (numbers.group(2) is None or stop_nr == numbers.group(2))
+    return bool(wanted) and wanted in _fold(name)
+
+
 def _index_stops(rows: list[Any]) -> dict[str, dict[str, dict[str, Any]]]:
     """The catalogue as ``{stop: {pole: what it says about the pole, without the ids}}``, in the order of the records."""
     index: dict[str, dict[str, dict[str, Any]]] = {}
@@ -92,9 +110,9 @@ class StopCatalogue:
         self._index: dict[bool, tuple[float, dict[str, dict[str, dict[str, Any]]]]] = {}  # per host kind (token or not): (when, index)
         self._failed: dict[bool, float] = {}
 
-    async def find(self, client: "ZTMStopClient", stop_id: str, stop_nr: str) -> tuple[bool | None, dict[str, Any] | None]:
-        """``(readable, info)``: whether the catalogue could be read (None: not asked, a failure is still fresh), and what
-        it says about the pole (the first pole of the stop when this one is not listed; None when the stop is not there)."""
+    async def _load(self, client: "ZTMStopClient") -> tuple[bool | None, dict[str, dict[str, dict[str, Any]]] | None]:
+        """``(readable, index)``: the index of the catalogue for the host of this client's key, downloaded when it is not kept
+        (or is older than ``ttl``). ``readable`` is None when a failure is still fresh (not asked), False when the answer could not be read."""
         key = client.uses_token
         async with self._locks.setdefault(key, asyncio.Lock()):
             cached = self._index.get(key)
@@ -111,11 +129,38 @@ class StopCatalogue:
                 cached = (time.monotonic(), index)
                 if self._ttl > 0:
                     self._index[key] = cached
-        poles = cached[1].get(stop_id)
+            return True, cached[1]
+
+    async def find(self, client: "ZTMStopClient", stop_id: str, stop_nr: str) -> tuple[bool | None, dict[str, Any] | None]:
+        """``(readable, info)``: whether the catalogue could be read (None: not asked, a failure is still fresh), and what
+        it says about the pole (the first pole of the stop when this one is not listed; None when the stop is not there)."""
+        readable, index = await self._load(client)
+        if index is None:
+            return readable, None
+        poles = index.get(stop_id)
         if not poles:
             return True, None
         info = poles[stop_nr] if stop_nr in poles else next(iter(poles.values()))
         return True, dict(info)
+
+    async def search(self, client: "ZTMStopClient", query: str, limit: int = SEARCH_LIMIT) -> tuple[bool | None, list[dict[str, Any]]]:
+        """``(readable, poles)``: the poles whose stop name contains ``query`` (case, diacritics and the Polish "ł" do not matter),
+        or whose stop ID, or stop ID and pole number ("7009" or "7009/01"), is what was typed. A pole is
+        ``{"stop_id", "stop_nr", "name", "direction"}``, sorted by name, ID and number; at most ``limit + 1`` come back, so
+        that the caller can tell "too many" from "all of them"."""
+        readable, index = await self._load(client)
+        if index is None:
+            return readable, []
+        wanted = _fold(query).strip()
+        numbers = re.fullmatch(r"(\d{1,9})(?:/(\d{2}))?", query.strip())
+        found: list[dict[str, Any]] = []
+        for stop_id, poles in index.items():
+            for stop_nr, info in poles.items():
+                name = str(info.get("nazwa_zespolu") or "")
+                if _matches(numbers, wanted, stop_id, stop_nr, name):
+                    found.append({"stop_id": stop_id, "stop_nr": stop_nr, "name": name, "direction": str(info.get("kierunek") or "")})
+        found.sort(key=lambda p: (_fold(p["name"]), p["stop_id"], p["stop_nr"]))
+        return True, found[: limit + 1]
 
 
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).

@@ -32,6 +32,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Its own logo in Home Assistant**: the integration carries its icon and logo, so Home Assistant 2026.3 and newer shows them without fetching anything.
 - **Delete a stop's old device**: when a stop is gone from a line, its leftover device now has a *Delete* button on its page, while a device that is still in use cannot be deleted by mistake.
 - **Proper icons**: Next 1 to 3, Last update and the calendar have icons of their own (numbers, an update arrow, a calendar with a clock) instead of Home Assistant's default eye.
+- **A friendlier setup**: type a part of the stop's name, pick the pole, then pick a line that really stops there, instead of filling in four empty fields (or tick *I know the numbers* to type them yourself).
 - **Error messages in your language**: when the City does not answer, is updating its timetables or refuses a request, the message in the Home Assistant log and in the entry's state is in your language too.
 - **A status in words**: every stop has a *Status* sensor that says what is going on (running, the last departure has gone, no service today, timetables are being updated, the timetable could not be fetched ...) in your language, so "unknown" after the last bus is no longer a puzzle.
 - **One token for all your lines**: the notice about an old key can reuse the token you already entered for another line, and pasting a token there can give it to every line that still has an old key, so you do not paste it once per line.
