@@ -185,6 +185,32 @@ def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry) -> None:
         subentry = entry.subentries[unit.subentry_id]
         if subentry.title == f"{unit.stop_id}/{unit.stop_nr}":
             hass.config_entries.async_update_subentry(entry, subentry, title=f"{name} {unit.stop_nr}")
+    _title_line_with_its_stops(hass, entry)
+
+
+_TITLE_STOPS = 3  # the stops named in the title of a line, the rest is counted
+
+
+def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Title a line "Line 176 · Marcelin 01, Marcelin 02" so that the list of lines (the picker of *Add stop* is Home Assistant's
+    own list of entry titles) says which stop is which. Only a title this integration made ("Line 176" or one with stops) is
+    replaced: a title the user chose stays."""
+    line = line_of(entry)
+    if not is_line_entry(entry) or not line:
+        return
+    if not re.fullmatch(rf"Line {re.escape(line)}( · .*)?", entry.title):
+        return
+    names = []
+    for unit in stop_units(entry):
+        name = _stop_name_of(entry, unit.subentry_id)
+        if name:
+            names.append(f"{name} {unit.stop_nr}")
+    if not names:
+        return
+    shown = ", ".join(names[:_TITLE_STOPS]) + (f" +{len(names) - _TITLE_STOPS}" if len(names) > _TITLE_STOPS else "")
+    title = f"Line {line} · {shown}"
+    if entry.title != title:
+        hass.config_entries.async_update_entry(entry, title=title)
 
 
 def stop_key(entry: ConfigEntry) -> tuple[str, str, str] | None:

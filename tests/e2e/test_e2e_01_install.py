@@ -78,7 +78,7 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     entry = await env.add_entry_via_flow(line="151")
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.title == "Line 151"  # an entry is a line ...
+    assert entry.title == f"Line 151 · {stop_name_for('7009')} 01"  # an entry is a line, titled with its stops ...
     assert entry.data == {
         "api_key": DEFAULT_KEY,
         "line": "151",

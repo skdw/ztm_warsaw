@@ -412,3 +412,27 @@ async def test_e2e_32_a_stop_id_with_spaces_around_it_is_stored_as_the_number(en
     await env.settle()
     assert done["type"] == "create_entry", done
     assert sorted((s.data["busstop_id"], s.data["busstop_nr"]) for s in entry.subentries.values()) == [(7009, "01"), (7009, "02")]
+
+
+async def test_e2e_38_a_line_is_titled_with_its_stops_so_the_list_of_lines_says_which_is_which(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    name = stop_name_for("7009")
+    assert entry.title == f"Line {LINE} · {name} 01, {name} 02"
+
+
+async def test_e2e_38_only_the_first_stops_are_named_in_the_title_and_the_rest_is_counted(env, monkeypatch):
+    monkeypatch.setattr("custom_components.ztm_warsaw._TITLE_STOPS", 1)  # three stops need three poles the fake city lacks
+    entry = await env.add_entry_via_flow(line=LINE)
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    assert entry.title == f"Line {LINE} · {stop_name_for('7009')} 01 +1"
+
+
+async def test_e2e_38_a_title_the_user_chose_is_not_replaced_by_the_stops(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    env.hass.config_entries.async_update_entry(entry, title="My bus")
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    assert entry.title == "My bus"
