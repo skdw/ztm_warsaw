@@ -16,6 +16,20 @@
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia"
         }
+      },
+      "reconfigure": {
+        "title": "Trasporto pubblico di Varsavia",
+        "description": "**Questa configurazione utilizza la vecchia API della città di Varsavia ({current}).**\n\nLa vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API, che richiede un token.\n\nPer passare alla nuova API:\n\n1. Ottieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Incollalo nel campo qui sotto.\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
+        "data": {
+          "api_key": "Chiave API o token"
+        }
+      },
+      "reconfigure_token": {
+        "title": "Trasporto pubblico di Varsavia",
+        "description": "**Modifica il token di accesso all’API.**\n\nSe il token attuale è scaduto o vuoi sostituirlo, incolla un nuovo token da [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
+        "data": {
+          "api_key": "Token"
+        }
       }
     },
     "error": {
@@ -35,7 +49,8 @@
       "reauth_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata.",
       "unknown": "Si è verificato un errore sconosciuto.",
       "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",
-      "stop_added": "La fermata è stata aggiunta alla configurazione esistente della linea. Utilizzerà le credenziali salvate per quella linea. Per modificarle, scegli **Configura**."
+      "stop_added": "La fermata è stata aggiunta alla configurazione esistente della linea. Utilizzerà le credenziali salvate per quella linea. Per modificarle, scegli **Configura**.",
+      "reconfigure_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata."
     }
   },
   "options": {

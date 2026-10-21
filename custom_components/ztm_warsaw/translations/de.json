@@ -16,6 +16,20 @@
         "data": {
           "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau"
         }
+      },
+      "reconfigure": {
+        "title": "Öffentlicher Nahverkehr Warschau",
+        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "data": {
+          "api_key": "API-Schlüssel oder Token"
+        }
+      },
+      "reconfigure_token": {
+        "title": "Öffentlicher Nahverkehr Warschau",
+        "description": "**API-Zugriffstoken ändern.**\n\nWenn dein bisheriges Token abgelaufen ist oder du es ersetzen möchtest, füge ein neues Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "data": {
+          "api_key": "Token"
+        }
       }
     },
     "error": {
@@ -35,7 +49,8 @@
       "reauth_successful": "Die neuen Zugangsdaten wurden gespeichert und die Konfiguration neu geladen.",
       "unknown": "Ein unbekannter Fehler ist aufgetreten.",
       "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",
-      "stop_added": "Die Haltestelle wurde zur bestehenden Konfiguration der Linie hinzugefügt. Sie verwendet die für diese Linie gespeicherten Zugangsdaten. Du kannst sie unter **Konfigurieren** ändern."
+      "stop_added": "Die Haltestelle wurde zur bestehenden Konfiguration der Linie hinzugefügt. Sie verwendet die für diese Linie gespeicherten Zugangsdaten. Du kannst sie unter **Konfigurieren** ändern.",
+      "reconfigure_successful": "Die neuen Zugangsdaten wurden gespeichert und die Konfiguration neu geladen."
     }
   },
   "options": {

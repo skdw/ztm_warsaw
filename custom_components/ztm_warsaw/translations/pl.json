@@ -16,6 +16,20 @@
         "data": {
           "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy"
         }
+      },
+      "reconfigure": {
+        "title": "Warszawski Transport Publiczny",
+        "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
+        "data": {
+          "api_key": "Klucz API lub token"
+        }
+      },
+      "reconfigure_token": {
+        "title": "Warszawski Transport Publiczny",
+        "description": "**Zmień token dostępu do API.**\n\nJeśli dotychczasowy token wygasł lub chcesz go zastąpić, wklej nowy token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nUstawienia linii i przystanków zostaną zachowane.",
+        "data": {
+          "api_key": "Token"
+        }
       }
     },
     "error": {
@@ -35,7 +49,8 @@
       "reauth_successful": "Zapisano nowe dane dostępu i ponownie wczytano konfigurację.",
       "unknown": "Wystąpił nieznany błąd.",
       "already_configured": "Wybrana linia jest już skonfigurowana dla tego słupka przystankowego.",
-      "stop_added": "Dodano przystanek do istniejącej konfiguracji linii. Będzie korzystać z zapisanych dla niej danych dostępu. Aby je zmienić, wybierz **Konfiguruj**."
+      "stop_added": "Dodano przystanek do istniejącej konfiguracji linii. Będzie korzystać z zapisanych dla niej danych dostępu. Aby je zmienić, wybierz **Konfiguruj**.",
+      "reconfigure_successful": "Zapisano nowe dane dostępu i ponownie wczytano konfigurację."
     }
   },
   "options": {

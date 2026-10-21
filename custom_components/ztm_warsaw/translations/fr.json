@@ -16,6 +16,20 @@
         "data": {
           "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie"
         }
+      },
+      "reconfigure": {
+        "title": "Transports publics de Varsovie",
+        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "data": {
+          "api_key": "Clé API ou jeton"
+        }
+      },
+      "reconfigure_token": {
+        "title": "Transports publics de Varsovie",
+        "description": "**Modifiez votre jeton d’accès à l’API.**\n\nSi votre jeton actuel a expiré ou si vous souhaitez le remplacer, collez un nouveau jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "data": {
+          "api_key": "Jeton"
+        }
       }
     },
     "error": {
@@ -35,7 +49,8 @@
       "reauth_successful": "Les nouveaux identifiants d’accès ont été enregistrés et la configuration a été rechargée.",
       "unknown": "Une erreur inconnue s’est produite.",
       "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",
-      "stop_added": "L’arrêt a été ajouté à la configuration existante de la ligne. Il utilisera les identifiants d’accès enregistrés pour cette ligne. Pour les modifier, choisissez **Configurer**."
+      "stop_added": "L’arrêt a été ajouté à la configuration existante de la ligne. Il utilisera les identifiants d’accès enregistrés pour cette ligne. Pour les modifier, choisissez **Configurer**.",
+      "reconfigure_successful": "Les nouveaux identifiants d’accès ont été enregistrés et la configuration a été rechargée."
     }
   },
   "options": {

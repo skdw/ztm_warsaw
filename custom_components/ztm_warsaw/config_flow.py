@@ -224,6 +224,37 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             step_id="reauth_confirm", data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}), errors=errors
         )
 
+    async def async_step_reconfigure(self, user_input=None):
+        """*Reconfigure* on a line (Home Assistant's own menu item): replace its API key or token, nudging an old key to a token."""
+        return await self._reconfigure_key(user_input)
+
+    async def async_step_reconfigure_token(self, user_input=None):
+        """The same step for an entry that already has a token: its form does not ask for an old key."""
+        return await self._reconfigure_key(user_input)
+
+    async def _reconfigure_key(self, user_input):
+        """Ask for the new key (the same check and the same saving as *Configure* and the notice in Repairs), then end the flow;
+        the entry reloads once with it and a reauth that was waiting for it is closed."""
+        entry = self._get_reconfigure_entry()
+        api_key = entry_api_key(entry)
+        if api_key is None or not key_can_change(entry):
+            return self.async_abort(reason="unknown")
+        errors = {}
+        if user_input is not None:
+            key = user_input[CONF_API_KEY].strip()
+            error, works = await key_error(self.hass, entry, key)
+            if error is None or works:  # that the line does not run today is not the key's fault
+                save_key(self.hass, entry, key)
+                await close_reauth(self.hass, entry)
+                return self.async_abort(reason="reconfigure_successful")
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="reconfigure" if key_kind(api_key) == "legacy" else "reconfigure_token",
+            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            errors=errors,
+            description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
