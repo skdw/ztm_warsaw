@@ -436,3 +436,21 @@ async def test_e2e_38_a_title_the_user_chose_is_not_replaced_by_the_stops(env):
     await env.submit_flow(line=LINE, stop_nr="02")
     await env.settle()
     assert entry.title == "My bus"
+
+
+async def test_e2e_38_a_title_the_user_chose_is_kept_even_when_it_starts_like_a_generated_one(env):
+    """"Line 525 · Home route" has the prefix of a generated title but not its shape (a stop name and a two-digit pole)."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    env.hass.config_entries.async_update_entry(entry, title=f"Line {LINE} · Home route")
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    assert entry.title == f"Line {LINE} · Home route"
+
+
+async def test_e2e_38_a_line_whose_last_stop_is_removed_goes_back_to_its_plain_title(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    assert entry.title.startswith(f"Line {LINE} · ")
+    (only,) = entry.subentries
+    env.hass.config_entries.async_remove_subentry(entry, only)
+    await env.settle()
+    assert entry.title == f"Line {LINE}"

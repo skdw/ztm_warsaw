@@ -193,15 +193,22 @@ _TITLE_STOPS = 3  # the stops named in the title of a line, the rest is counted
 
 def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Title a line "Line 176 · Marcelin 01, Marcelin 02" so that the list of lines (the picker of *Add stop* is Home Assistant's
-    own list of entry titles) says which stop is which. Only a title this integration made ("Line 176" or one with stops) is
-    replaced: a title the user chose stays."""
+    own list of entry titles) says which stop is which. Only a title of the shape this integration makes ("Line 176", or with
+    stops, each ending in its two-digit pole, and a "+N") is replaced: a title the user chose stays. A line without stops goes
+    back to "Line 176"."""
     line = line_of(entry)
     if not is_line_entry(entry) or not line:
         return
-    if not re.fullmatch(rf"Line {re.escape(line)}( · .*)?", entry.title):
+    stop = r".+ \d{2}"
+    if not re.fullmatch(rf"Line {re.escape(line)}( · {stop}(, {stop})*( \+\d+)?)?", entry.title):
+        return
+    units = stop_units(entry)
+    if not units:
+        if entry.title != f"Line {line}":
+            hass.config_entries.async_update_entry(entry, title=f"Line {line}")
         return
     names = []
-    for unit in stop_units(entry):
+    for unit in units:
         name = _stop_name_of(entry, unit.subentry_id)
         if name:
             names.append(f"{name} {unit.stop_nr}")
