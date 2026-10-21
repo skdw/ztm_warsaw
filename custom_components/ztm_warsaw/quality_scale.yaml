@@ -1,0 +1,147 @@
+# Where this integration stands on the Home Assistant Integration Quality Scale
+# (https://contributors.home-assistant.io/core/quality-scale/rules/): `done`, `exempt` with the reason, or `todo`.
+# Home Assistant does not require this file of a custom integration; it is here so that what is done, what does not
+# apply and what is still missing is written down, rule by rule, and kept honest. Change a status in the pull request
+# that changes the code.
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration has no actions (services).
+  appropriate-polling:
+    status: done
+    comment: The timetable is fetched once an hour and again when the City has replaced it (03:06); the sensors wake up at the next departure instead of polling.
+  brands:
+    status: done
+    comment: The icon and the logo are in brand/.
+  common-modules:
+    status: done
+    comment: The coordinator is in coordinator.py and what every entity of a stop shares is in entity.py.
+  config-flow:
+    status: done
+  config-flow-test-coverage:
+    status: done
+    comment: The flows are tested end to end in a real Home Assistant (tests/e2e), with the paths that refuse, abort and repeat.
+  dependency-transparency:
+    status: done
+    comment: There are no requirements; Home Assistant provides aiohttp.
+  docs-actions:
+    status: exempt
+    comment: There are no actions.
+  docs-high-level-description:
+    status: done
+  docs-installation-instructions:
+    status: done
+  docs-removal-instructions:
+    status: todo
+    comment: The wiki does not say how to remove a line or a stop yet (the rewrite of the documentation will).
+  docs-conditions:
+    status: exempt
+    comment: There are no conditions.
+  docs-triggers:
+    status: exempt
+    comment: There are no triggers; the calendar entity starts calendar triggers.
+  entity-event-setup:
+    status: done
+    comment: The listeners are registered with async_on_unload or removed when the entity goes.
+  entity-unique-id:
+    status: done
+  has-entity-name:
+    status: todo
+    comment: Entities carry their full name ("Line 151 from 7009/01"). Switching to has_entity_name would change entity IDs, which automations depend on; it needs a migration plan first.
+  runtime-data:
+    status: done
+  test-before-configure:
+    status: done
+    comment: The key and the stop are checked with the City before anything is saved.
+  test-before-setup:
+    status: done
+    comment: A City that does not answer at the first load makes Home Assistant retry (ConfigEntryNotReady); a rejected key asks for a new one.
+  unique-config-entry:
+    status: done
+    comment: A line is one entry, a stop is unique within the integration (unique ID of the stop).
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: There are no actions.
+  config-entry-unloading:
+    status: done
+  docs-configuration-parameters:
+    status: done
+  docs-installation-parameters:
+    status: done
+  entity-unavailable:
+    status: done
+    comment: The sensors are unavailable when the City did not answer with a timetable; the Status sensor stays available and says why.
+  integration-owner:
+    status: done
+  log-when-unavailable:
+    status: done
+    comment: Home Assistant logs the failure once and the recovery once (UpdateFailed).
+  parallel-updates:
+    status: done
+  reauthentication-flow:
+    status: done
+  test-coverage:
+    status: done
+    comment: 97 % of the code, 100 % of the flows.
+  # Gold
+  devices:
+    status: done
+  diagnostics:
+    status: done
+  discovery-update-info:
+    status: exempt
+    comment: A cloud service; nothing is discovered.
+  discovery:
+    status: exempt
+    comment: A cloud service; nothing is discovered.
+  docs-data-update:
+    status: done
+  docs-examples:
+    status: todo
+    comment: The rewrite of the wiki will add examples of cards and automations.
+  docs-known-limitations:
+    status: done
+  docs-supported-devices:
+    status: exempt
+    comment: A service, not a device.
+  docs-supported-functions:
+    status: done
+  docs-troubleshooting:
+    status: done
+  docs-use-cases:
+    status: todo
+    comment: The rewrite of the wiki will add use cases.
+  dynamic-devices:
+    status: done
+    comment: A stop added to a line gets a device of its own; one removed can be deleted from its page.
+  entity-category:
+    status: done
+  entity-device-class:
+    status: done
+  entity-disabled-by-default:
+    status: done
+    comment: The calendar, the next departures and the diagnostic sensor are off by default.
+  entity-translations:
+    status: todo
+    comment: Entity names are in the code, with has-entity-name; the states of the Status sensor are translated.
+  exception-translations:
+    status: done
+  icon-translations:
+    status: done
+    comment: The icons of the Status, Next, Last update and calendar entities are in icons.json; the main sensor's icon follows the kind of line, so it is dynamic.
+  reconfiguration-flow:
+    status: done
+  repair-issues:
+    status: done
+  stale-devices:
+    status: done
+  # Platinum
+  async-dependency:
+    status: done
+  inject-websession:
+    status: done
+  strict-typing:
+    status: done
+    comment: mypy --strict, with an empty list of known errors.
