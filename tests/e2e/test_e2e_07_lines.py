@@ -454,3 +454,17 @@ async def test_e2e_38_a_line_whose_last_stop_is_removed_goes_back_to_its_plain_t
     env.hass.config_entries.async_remove_subentry(entry, only)
     await env.settle()
     assert entry.title == f"Line {LINE}"
+
+
+async def test_e2e_38_a_stop_whose_name_has_not_arrived_is_still_counted_in_the_title(env):
+    """With two stops and only one name known the title must not claim the line has one stop."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
+    from custom_components import ztm_warsaw
+
+    real = ztm_warsaw._stop_name_of
+    first = next(iter(entry.subentries))
+    with patch.object(ztm_warsaw, "_stop_name_of", lambda e, sid=None: None if sid != first else real(e, sid)):
+        ztm_warsaw._title_line_with_its_stops(env.hass, entry)
+    assert entry.title == f"Line {LINE} · {stop_name_for('7009')} 01 +1"

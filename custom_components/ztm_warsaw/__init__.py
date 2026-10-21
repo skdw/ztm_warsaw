@@ -214,7 +214,8 @@ def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
             names.append(f"{name} {unit.stop_nr}")
     if not names:
         return
-    shown = ", ".join(names[:_TITLE_STOPS]) + (f" +{len(names) - _TITLE_STOPS}" if len(names) > _TITLE_STOPS else "")
+    left = len(units) - len(names[:_TITLE_STOPS])  # every stop not named counts, also one whose name has not arrived yet
+    shown = ", ".join(names[:_TITLE_STOPS]) + (f" +{left}" if left else "")
     title = f"Line {line} · {shown}"
     if entry.title != title:
         hass.config_entries.async_update_entry(entry, title=title)
