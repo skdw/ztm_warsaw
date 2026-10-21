@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -37,7 +38,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 # Home Assistant awaits this function with these two arguments, so it has to be a coroutine function that takes both.
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:  # NOSONAR
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:  # NOSONAR
     """Before any entry is set up: the entries of 1.1.x (one stop each) become lines (see migration.py)."""
     await async_migrate_to_lines(hass)
     return True
@@ -79,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     agent = await user_agent(hass)
     catalogue = hass.data.setdefault(f"{DOMAIN}_catalogue", StopCatalogue())  # one for all the entries
 
-    built: dict[str | None, dict] = {}
+    built: dict[str | None, dict[str, Any]] = {}
     for unit in units:
         client = ZTMStopClient(
             session=session,
@@ -145,7 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def _snapshot(entry: ConfigEntry) -> tuple:
+def _snapshot(entry: ConfigEntry) -> tuple[dict[str, Any], dict[str, Any], dict[str, dict[str, Any]]]:
     """What a setup depends on: the data, the options and the data of every stop (not any title)."""
     options = {k: v for k, v in entry.options.items() if k != _GENERATED_TITLE}  # a title is not what a setup depends on
     return dict(entry.data), options, {sid: dict(sub.data) for sid, sub in entry.subentries.items()}

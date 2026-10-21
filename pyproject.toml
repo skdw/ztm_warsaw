@@ -2,6 +2,9 @@
 python_version = "3.13"
 ignore_missing_imports = true
 warn_unused_ignores = true
+# The whole integration is typed: every function is annotated and none returns an untyped value (the strict-typing rule of the
+# Home Assistant quality scale). A new diagnostic fails the "Type check (mypy)" job; there is no list of known ones any more.
+strict = true
 
 [tool.ruff]
 # Production code must stay valid for the minimum supported Home Assistant

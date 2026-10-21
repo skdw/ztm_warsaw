@@ -160,3 +160,13 @@ def test_a_reading_without_a_moment_has_no_day_label():
     from custom_components.ztm_warsaw.sensor import NOT_AVAILABLE, _friendly_day
 
     assert _friendly_day(None, warsaw("2026-10-17 12:00")) == NOT_AVAILABLE
+
+
+def test_a_reading_without_a_usable_time_has_no_moment():
+    """``moment`` is for the departures of a timetable, which all have one; a reading without one says so loudly."""
+    import pytest
+
+    from custom_components.ztm_warsaw.models import ZTMDepartureDataReading
+
+    with pytest.raises(ValueError):
+        ZTMDepartureDataReading(czas="junk").moment

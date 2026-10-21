@@ -3,7 +3,3 @@
 # (the "mypy" step of workflows/ci.yml): a diagnostic missing from this list fails the job,
 # and so does an entry that mypy no longer reports. Remove an entry in the pull request that
 # fixes it; `python scripts/check_mypy_baseline.py --update` rewrites the entries.
-custom_components/ztm_warsaw/config_flow.py: error: Unused "type: ignore" comment  [unused-ignore]
-custom_components/ztm_warsaw/coordinator.py: error: Argument "update_method" to "__init__" of "DataUpdateCoordinator" has incompatible type "Callable[[], Coroutine[Any, Any, ZTMDepartureData]]"; expected "Callable[[], Awaitable[dict[str, Any]]] | None"  [arg-type]
-custom_components/ztm_warsaw/coordinator.py: error: Incompatible types in assignment (expression has type "ZTMDepartureData | None", base class "DataUpdateCoordinator" defined the type as "dict[str, Any]")  [assignment]
-custom_components/ztm_warsaw/coordinator.py: error: Return type "Coroutine[Any, Any, ZTMDepartureData]" of "_async_update_data" incompatible with return type "Coroutine[Any, Any, dict[str, Any]]" in supertype "homeassistant.helpers.update_coordinator.DataUpdateCoordinator"  [override]

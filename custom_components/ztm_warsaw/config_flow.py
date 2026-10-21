@@ -8,6 +8,8 @@ step asks for a new key when the City rejects the old one.
 
 import logging
 import re
+from collections.abc import Mapping
+from typing import Any
 
 import voluptuous as vol
 
@@ -15,8 +17,15 @@ from types import MappingProxyType
 
 from homeassistant import config_entries
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.config_entries import ConfigSubentry, ConfigSubentryData, ConfigSubentryFlow
-from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, callback
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlowResult,
+    ConfigSubentry,
+    ConfigSubentryData,
+    ConfigSubentryFlow,
+    SubentryFlowResult,
+)
+from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -42,7 +51,12 @@ class KeyWorks(ValueError):
     """The City accepted the key and answered, but not with something to show (the line is not in its list, an empty
     timetable). Setup refuses it like any other ValueError; a reauth only wants to know that the key works."""
 
-DATA_SCHEMA = vol.Schema({
+def _form(fields: dict[Any, Any]) -> Any:
+    """The schema of a form (Home Assistant 2026.10 types a form's schema for another schema library, hence ``Any``)."""
+    return vol.Schema(fields)
+
+
+DATA_SCHEMA = _form({
     vol.Required(CONF_API_KEY): str,
     vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str),  # a text, so the form starts empty; stored as the number it is
     vol.Required(CONF_BUSSTOP_NR): str,
@@ -50,7 +64,7 @@ DATA_SCHEMA = vol.Schema({
 })
 
 
-async def _check_lines(client, line):
+async def _check_lines(client: ZTMStopClient, line: str) -> None:
     """The line must stop at the pole. When the request fails on the new API (which answers every rejected request
     alike) the catalogue tells a stop that does not exist from a service that is down."""
     try:
@@ -68,7 +82,7 @@ async def _check_lines(client, line):
         raise KeyWorks("line_not_found")
 
 
-async def _check_timetable(client):
+async def _check_timetable(client: ZTMStopClient) -> None:
     """The timetable must come back with departures: ``ValueError`` for the error key to show, ``KeyWorks`` when the City
     accepted the key but the line has no departures today. A rejected key is passed on as ``ZTMAuthError``.
     """
@@ -84,7 +98,7 @@ async def _check_timetable(client):
         raise KeyWorks("no_departures")
 
 
-async def validate_input(hass, api_key, stop_id, stop_nr, line):
+async def validate_input(hass: HomeAssistant, api_key: str, stop_id: str | int, stop_nr: str, line: str) -> None:
     """Check the input against the City of Warsaw API with the client the sensor uses. Raises ValueError(<error key>).
 
     A key that is neither a UUID (old API) nor a token (new API) is refused before anything is sent.
@@ -101,7 +115,7 @@ async def validate_input(hass, api_key, stop_id, stop_nr, line):
         raise ValueError("invalid_api_key") from None
 
 
-async def error_for(hass, user_input, *, check_stop_number=True) -> tuple[str | None, bool]:
+async def error_for(hass: HomeAssistant, user_input: Mapping[str, Any], *, check_stop_number: bool = True) -> tuple[str | None, bool]:
     """``(error key, key works)`` for this input: the error is None when it is valid, and ``key works`` says that an
     error still proves the City accepted the key (the line does not run today, say). Logs what went wrong, never the key."""
     if check_stop_number and not re.fullmatch(r"\d{2}", user_input[CONF_BUSSTOP_NR], re.ASCII):
@@ -130,26 +144,26 @@ async def error_for(hass, user_input, *, check_stop_number=True) -> tuple[str | 
     return key, key_works
 
 
-class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,unused-ignore]
     """The dialog that adds a line (or, for a line that is set up, one more stop of it)."""
 
     VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is converted into a line at startup (migration.py)
 
-    async def _error_for(self, user_input, *, check_stop_number=True):
+    async def _error_for(self, user_input: Mapping[str, Any], *, check_stop_number: bool = True) -> str | None:
         """The error key for this input, or None when it is valid (see ``error_for``).
         ``self.key_works`` tells afterwards whether the error still proves that the City accepted the key."""
         error, self.key_works = await error_for(self.hass, user_input, check_stop_number=check_stop_number)
         return error
 
-    def _is_configured(self, key):
+    def _is_configured(self, key: tuple[str, str, str]) -> bool:
         """Whether a stop, pole and line is already run by an entry (a 1.1.x entry or a line); a second sensor for it could not exist."""
         return any(key in stop_keys(entry) for entry in self._async_current_entries())
 
-    def _entry_of_line(self, line):
+    def _entry_of_line(self, line: str) -> ConfigEntry | None:
         """The line entry that already runs this line, if any: a new stop of the line goes into it."""
         return next((e for e in self._async_current_entries() if is_line_entry(e) and line_of(e) == line), None)
 
-    def _create_or_add(self, user_input):
+    def _create_or_add(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """The input is valid: a new line is an entry with this stop, a line that is set up gets one more stop."""
         stop = ConfigSubentryData(
             subentry_type=SUBENTRY_STOP,
@@ -175,7 +189,7 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             subentries=[stop],
         )
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The form of the line, its first stop and the key: checked with the City, then an entry with the stop, or one more stop in the line's entry."""
         errors = {}
 
@@ -203,11 +217,11 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             errors=errors
         )
 
-    async def async_step_reauth(self, entry_data):
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Home Assistant starts this when the City rejects the key of an entry: it asks for a new key."""
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input=None):
+    async def async_step_reauth_confirm(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """Ask for a new API key or token for an entry whose key the City rejects; the rest of the entry stays."""
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         if entry is None or not key_can_change(entry):
@@ -221,18 +235,18 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
                 return self.async_abort(reason="reauth_successful")
             errors["base"] = error
         return self.async_show_form(
-            step_id="reauth_confirm", data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}), errors=errors
+            step_id="reauth_confirm", data_schema=_form({vol.Required(CONF_API_KEY): str}), errors=errors
         )
 
-    async def async_step_reconfigure(self, user_input=None):
+    async def async_step_reconfigure(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """*Reconfigure* on a line (Home Assistant's own menu item): replace its API key or token, nudging an old key to a token."""
         return await self._reconfigure_key(user_input)
 
-    async def async_step_reconfigure_token(self, user_input=None):
+    async def async_step_reconfigure_token(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """The same step for an entry that already has a token: its form does not ask for an old key."""
         return await self._reconfigure_key(user_input)
 
-    async def _reconfigure_key(self, user_input):
+    async def _reconfigure_key(self, user_input: dict[str, str] | None) -> ConfigFlowResult:
         """Ask for the new key (the same check and the same saving as *Configure* and the notice in Repairs), then end the flow;
         the entry reloads once with it and a reauth that was waiting for it is closed."""
         entry = self._get_reconfigure_entry()
@@ -250,20 +264,20 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             errors["base"] = error
         return self.async_show_form(
             step_id="reconfigure" if key_kind(api_key) == "legacy" else "reconfigure_token",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=_form({vol.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
         )
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> "ZtmWarsawOptionsFlow":
         """Home Assistant asks for the *Configure* dialog of an entry here."""
         return ZtmWarsawOptionsFlow(config_entry)
 
     @classmethod
     @callback
-    def async_get_supported_subentry_types(cls, config_entry):
+    def async_get_supported_subentry_types(cls, config_entry: ConfigEntry) -> dict[str, type[ConfigSubentryFlow]]:
         """The subentry dialogs of an entry: *Add stop* on a line; an entry of 1.1.x (one stop) has no stops to add."""
         # Only a line has stops to add; an entry of 1.1.x is one stop and has no "Add stop".
         return {SUBENTRY_STOP: ZtmStopSubentryFlow} if is_line_entry(config_entry) else {}
@@ -279,23 +293,23 @@ def _subentry(stop: ConfigSubentryData) -> ConfigSubentry:
     )
 
 
-def _stop_id_of(value) -> int | None:
+def _stop_id_of(value: object) -> int | None:
     """The stop ID typed in a form as the number the entry stores, or None when it is not one (up to nine digits, spaces around are removed)."""
     text = str(value).strip()
     return int(text) if text.isascii() and text.isdigit() and len(text) <= 9 else None  # a longer one cannot be a stop
 
 
-def _stop_unique_id(stop_id, stop_nr) -> str:
+def _stop_unique_id(stop_id: str | int, stop_nr: str) -> str:
     """The unique ID of a stop's subentry: ``<stop id>_<pole number>``, which is also what makes a stop impossible to add twice."""
     return f"{stop_id}_{stop_nr}"
 
 
-def key_can_change(entry) -> bool:
+def key_can_change(entry: ConfigEntry) -> bool:
     """An entry whose data cannot be read is not changed blindly: a 1.1.x entry needs its stop, a line needs only its key."""
     return entry_api_key(entry) is not None and (is_line_entry(entry) or bool(stop_units(entry)))
 
 
-async def key_error(hass, entry, key: str) -> tuple[str | None, bool]:
+async def key_error(hass: HomeAssistant, entry: ConfigEntry, key: str) -> tuple[str | None, bool]:
     """``(error key, key works)`` for a new key of this entry (see ``error_for``): the City is asked with the entry's stop,
     or with the first stop of a line. A line that has no stop left has only the shape of the key to check."""
     units = stop_units(entry)
@@ -321,7 +335,7 @@ def _host_of(api_key: str) -> str:
 _KEY_SPELLINGS = ("api_key", "apikey", "apiKey")
 
 
-def _with_key(entry, key: str) -> dict:
+def _with_key(entry: ConfigEntry, key: str) -> dict[str, Any]:
     """The ``data`` and ``options`` of the entry with ``key`` as its key: the canonical field of the data is set and an
     option that overrides it (a restored entry may have one: options win over data) is dropped, so the new key is used."""
     return {
@@ -330,7 +344,7 @@ def _with_key(entry, key: str) -> dict:
     }
 
 
-def save_key(hass, entry, key: str) -> None:
+def save_key(hass: HomeAssistant, entry: ConfigEntry, key: str) -> None:
     """Save a new key in the entry and make sure the entry runs with it.
 
     A loaded entry reloads itself through its update listener when its data changed; any other state has no listener (the
@@ -341,7 +355,7 @@ def save_key(hass, entry, key: str) -> None:
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
-async def close_reauth(hass, entry) -> None:
+async def close_reauth(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """A re-authentication that was waiting for this key is done. Home Assistant 2026.10 closes it when the entry reloads;
     older versions leave the flow open, and aborting a flow through the manager does not remove the Repairs issue and the
     notification that went with it, so they are cleared here (what Home Assistant itself does when it removes an entry)."""
@@ -360,19 +374,19 @@ async def close_reauth(hass, entry) -> None:
 class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
     """*Configure*: replace the API key or token of the entry, e.g. an old key by a token of the new API."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry: ConfigEntry) -> None:
         """Keep the entry whose key is changed."""
         self._config_entry = config_entry
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """The step of *Configure* for an entry with an old (UUID) key: the form for the new key, nudging to a token. An entry that has a token gets ``async_step_token``; both go through ``_change_key``."""
         return await self._change_key(user_input)
 
-    async def async_step_token(self, user_input=None):
+    async def async_step_token(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """The same step for an entry that already has a token: its form does not ask for an old key."""
         return await self._change_key(user_input)
 
-    async def _change_key(self, user_input):
+    async def _change_key(self, user_input: dict[str, str] | None) -> ConfigFlowResult:
         """Ask for the new key (the nudge to a token for an old key, a plain form for a token), check it with the City and save it.
 
         The entry reloads once with the new key; a reauth that was waiting for it is closed.
@@ -392,7 +406,7 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
             errors["base"] = error
         return self.async_show_form(
             step_id="init" if key_kind(api_key) == "legacy" else "token",  # an old key is nudged to the token, a token is not
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=_form({vol.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
         )
@@ -401,7 +415,7 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
 class ZtmStopSubentryFlow(ConfigSubentryFlow):
     """*Add stop*: another stop (and pole) of the line, asked with the key the line already has."""
 
-    async def async_step_reconfigure(self, user_input=None):
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         """*Reconfigure* on a stop: how many minutes it takes to walk to it. The sensor of the stop then skips the departures
         that are sooner than that (they cannot be caught); 0 is no walking time, the default."""
         entry = self._get_entry()
@@ -409,7 +423,7 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             data = {**subentry.data, CONF_WALKING_TIME: int(user_input[CONF_WALKING_TIME])}
             return self.async_update_and_abort(entry, subentry, data=data)
-        schema = vol.Schema(
+        schema = _form(
             {
                 vol.Required(CONF_WALKING_TIME, default=walking_minutes_of(subentry.data)): NumberSelector(
                     NumberSelectorConfig(
@@ -421,11 +435,11 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         return self.async_show_form(step_id="reconfigure", data_schema=schema, description_placeholders={"stop": subentry.title})
 
     @staticmethod
-    def _schema() -> vol.Schema:
+    def _schema() -> Any:
         """The form of *Add stop*: the stop ID (a text that must be a number) and the pole number."""
-        return vol.Schema({vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str), vol.Required(CONF_BUSSTOP_NR): str})
+        return _form({vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str), vol.Required(CONF_BUSSTOP_NR): str})
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         """Ask for the stop and pole to add to the line, check them with the line's key, and add them as a subentry."""
         entry = self._get_entry()
         api_key, line = entry_api_key(entry), line_of(entry)

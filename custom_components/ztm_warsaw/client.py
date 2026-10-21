@@ -11,12 +11,14 @@ Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; n
 import asyncio
 import time
 import logging
-from typing import Optional
+from typing import Any, Optional
 import json
+from datetime import datetime, timezone
 import re
 
 import aiohttp
 
+from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
@@ -44,7 +46,7 @@ def key_kind(key: str) -> str | None:
     return "token" if _TOKEN.match(key) else None
 
 
-async def user_agent(hass) -> str:
+async def user_agent(hass: HomeAssistant) -> str:
     """Says which software asks (name, version, repository), never who."""
     version = (await async_get_integration(hass, DOMAIN)).version
     return f"{DOMAIN}/{version} (Home Assistant custom integration; +{REPOSITORY_URL})"
@@ -54,7 +56,7 @@ _STOP_INFO_BACKOFF = (2 * 3600, 6 * 3600)  # seconds to wait after the first and
 _STOP_INFO_MAX_ATTEMPTS = 3  # then the stop name is given up until the entry is reloaded
 
 
-def _stop_fields(row) -> dict:
+def _stop_fields(row: object) -> dict[str, Any]:
     """The ``{key: value}`` pairs of one record of the stops catalogue (``{"values": [{key, value}, ...]}``)."""
     values = row.get("values") if isinstance(row, dict) else None
     if not isinstance(values, list):
@@ -66,9 +68,9 @@ _MAX_BYTES = 2_000_000  # the largest timetable or list of lines accepted
 _MAX_CATALOGUE_BYTES = 8_000_000  # the stops catalogue is bigger (1.6 MB of 2 MB in 2026) and grows
 
 
-def _index_stops(rows) -> dict[str, dict[str, dict]]:
+def _index_stops(rows: list[Any]) -> dict[str, dict[str, dict[str, Any]]]:
     """The catalogue as ``{stop: {pole: what it says about the pole, without the ids}}``, in the order of the records."""
-    index: dict[str, dict[str, dict]] = {}
+    index: dict[str, dict[str, dict[str, Any]]] = {}
     for row in rows:
         fields = _stop_fields(row)
         if "zespol" in fields:
@@ -87,10 +89,10 @@ class StopCatalogue:
         self._ttl = ttl
         self._retry_after = retry_after
         self._locks: dict[bool, asyncio.Lock] = {}  # one per kind of host: a slow host does not hold up the other
-        self._index: dict[bool, tuple[float, dict]] = {}  # per host kind (token or not): (when, index)
+        self._index: dict[bool, tuple[float, dict[str, dict[str, dict[str, Any]]]]] = {}  # per host kind (token or not): (when, index)
         self._failed: dict[bool, float] = {}
 
-    async def find(self, client: "ZTMStopClient", stop_id: str, stop_nr: str) -> tuple[bool | None, dict | None]:
+    async def find(self, client: "ZTMStopClient", stop_id: str, stop_nr: str) -> tuple[bool | None, dict[str, Any] | None]:
         """``(readable, info)``: whether the catalogue could be read (None: not asked, a failure is still fresh), and what
         it says about the pole (the first pole of the stop when this one is not listed; None when the stop is not there)."""
         key = client.uses_token
@@ -128,7 +130,15 @@ class ZTMAuthError(ZTMApiError):
     """The API refused the API key."""
 
 
-def _checked_result(json_response) -> list:
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _by_moment(reading: ZTMDepartureDataReading) -> datetime:
+    """The sort key of a reading: the moment it departs (a reading without one sorts first)."""
+    return reading.dt or _EPOCH
+
+
+def _checked_result(json_response: Any) -> list[Any]:
     """The readings of a timetable answer, or a ZTMApiError for an answer that is not a timetable.
 
     ``result`` null means the line exists but does not run today: a real, empty timetable ("No service").
@@ -147,7 +157,7 @@ def _checked_result(json_response) -> list:
     return result
 
 
-def _sanitize_params(params: dict) -> dict:
+def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Return a shallow copy with API key masked for safe logging."""
     if not isinstance(params, dict):
         return {}
@@ -156,7 +166,7 @@ def _sanitize_params(params: dict) -> dict:
         red["apikey"] = "****"
     return red
 
-def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str | None = None, line: str | None = None) -> str:
+def _ctx(params: dict[str, Any] | None = None, *, stop_id: str | None = None, stop_nr: str | None = None, line: str | None = None) -> str:
     """Return a short, non-sensitive context string for logs.
     Accepts a full params dict (from which only whitelisted keys are read), or explicit kwargs.
     Values are sanitized to avoid leaking sensitive/free-form data.
@@ -187,7 +197,7 @@ def _ctx(params: dict | None = None, *, stop_id: str | None = None, stop_nr: str
 
 
 # Helper to build safe context string from a params dict
-def _ctxp(params: dict | None) -> str:
+def _ctxp(params: dict[str, Any] | None) -> str:
     """Build safe context string from a params dict.
     Values are first sanitized via `_sanitize_params`, then only whitelisted keys are used.
     """
@@ -249,9 +259,9 @@ class ZTMStopClient:
             "busstopNr": stop_number,
             "line": line,
         }
-        self._stop_name: dict | None = None
+        self._stop_name: dict[str, Any] | None = None
 
-    async def _call(self, kind: str):
+    async def _call(self, kind: str) -> Any:
         """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
         that matches its key. The answer has the legacy shape ``{"result": ...}`` whichever host sent it.
         """
@@ -302,9 +312,9 @@ class ZTMStopClient:
             for f in map(_stop_fields, rows)
         )
 
-    async def _get_with_retry(self, url: str, params: dict | None, *, expect_json: bool = True,
-                              method: str = "GET", json_body: dict | None = None,
-                              headers: dict | None = None, wrap: bool = False, limit: int = _MAX_BYTES):
+    async def _get_with_retry(self, url: str, params: dict[str, Any] | None, *, expect_json: bool = True,
+                              method: str = "GET", json_body: dict[str, Any] | None = None,
+                              headers: dict[str, str] | None = None, wrap: bool = False, limit: int = _MAX_BYTES) -> Any:
         """Send the request with a timeout and a small retry on timeout, network error and 5xx.
 
         Redirects are never followed: the request carries the key, and a 3xx is an error. ``wrap`` puts a bare
@@ -332,7 +342,8 @@ class ZTMStopClient:
             attempt += 1
             await asyncio.sleep(self._retry_backoff * attempt)
 
-    async def _attempt(self, url, params, expect_json, method, json_body, headers, wrap, attempt, limit):
+    async def _attempt(self, url: str, params: dict[str, Any] | None, expect_json: bool, method: str, json_body: dict[str, Any] | None,
+                       headers: dict[str, str] | None, wrap: bool, attempt: int, limit: int) -> Any:
         """One request. The answer, None for a failure that is final, or _RETRY for a 5xx worth another try."""
         if self._user_agent:  # says which software asks (name, version, repository), never who
             headers = {**(headers or {}), "User-Agent": self._user_agent}
@@ -366,7 +377,7 @@ class ZTMStopClient:
                 return None
             return {"result": value} if wrap else value
 
-    async def get_stop_name(self) -> Optional[dict]:
+    async def get_stop_name(self) -> Optional[dict[str, Any]]:
         """The stop's metadata (name, street, position), fetched once and cached. A failure is retried after a back-off
         and given up after a few attempts, so a missing stop name never hammers the API or blocks the timetable."""
         if self._stop_name is not None:
@@ -392,7 +403,7 @@ class ZTMStopClient:
         self._stop_name = info
         return self._stop_name
 
-    async def _stop_info_rows(self) -> list | None:
+    async def _stop_info_rows(self) -> list[Any] | None:
         """The rows of the stops catalogue, or None when the answer is missing or not a list (a string is a transient
         message of the old API: asked once more after a short wait)."""
         answer = await self._call("stops")
@@ -460,12 +471,12 @@ class ZTMStopClient:
                 raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
 
             # Sort departures by their scheduled time
-            _departures.sort(key=lambda x: x.dt)
+            _departures.sort(key=_by_moment)
             _LOGGER.debug("Loaded %d departures from API", len(_departures))
             return ZTMDepartureData(departures=_departures, stop_info=self._stop_name, service_date=service_date)
 
         except ZTMApiError:
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error in timetable fetch: %s", e, exc_info=True)
+        except Exception:
+            _LOGGER.exception("Unexpected error in timetable fetch")  # the traceback carries the error itself
         return None

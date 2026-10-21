@@ -182,3 +182,15 @@ def test_e2e_43_every_entity_of_a_stop_is_built_on_the_common_base_in_entity_py(
     classes = [sensor.ZTMSensor, sensor.ZTMStatusSensor, sensor.ZTMLastUpdateSensor, sensor.ZTMNextDepartureSensor, calendar.ZTMCalendar]
     assert all(issubclass(cls, ZtmStopEntity) for cls in classes)
     assert not any("device_info" in vars(cls) for cls in classes), "the device is the base class's, not re-defined"
+
+
+async def test_e2e_43_a_departure_without_a_moment_is_never_made_into_a_calendar_event(env):
+    from custom_components.ztm_warsaw.calendar import ZTMCalendar
+    from custom_components.ztm_warsaw.models import ZTMDepartureDataReading
+
+    entry = await env.add_entry_via_flow(line=LINE)
+    (runtime,) = entry.runtime_data["units"].values()
+    calendar = ZTMCalendar(runtime["coordinator"])  # the entity is off by default: build it as the platform does
+    reading = ZTMDepartureDataReading(czas="junk")
+    with pytest.raises(ValueError):
+        calendar._event_of(reading)

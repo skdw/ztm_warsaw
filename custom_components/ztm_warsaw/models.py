@@ -13,7 +13,7 @@ as long as its late departures are ahead.
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,15 +73,17 @@ def next_warsaw_midnight(after: datetime) -> datetime:
     return datetime.combine(local.date() + timedelta(days=1), time(0, 0, 1), WARSAW).astimezone(timezone.utc)
 
 
-def departure_datetime(service_date: date, czas) -> Optional[datetime]:
+def departure_datetime(service_date: date, czas: object) -> Optional[datetime]:
     """The moment (UTC) of a ``czas`` in the timetable of ``service_date``: ``HH:MM:SS``, hours from 24 on are after midnight.
 
     The times are read as the clock shows them. A label inside the hour that the clock skips (spring) is not a
     moment: None. A label inside the hour that the clock repeats (autumn) is its first occurrence.
     """
+    if not isinstance(czas, str):  # the API gives text, but an answer is not trusted to
+        return None
     try:
         hours, minutes, _ = (int(part) for part in czas.split(":"))
-    except (AttributeError, TypeError, ValueError):
+    except (TypeError, ValueError):
         return None
     if not 0 <= minutes < 60 or not 0 <= hours < 48:
         return None
@@ -105,8 +107,16 @@ class ZTMDepartureDataReading:
     brygada: Optional[str] = field(default=None)
     dt: Optional[datetime] = field(default=None)  # the moment it departs (UTC); None when the reading has no usable time
 
+    @property
+    def moment(self) -> datetime:
+        """The moment it departs, for the code that works on the departures of a timetable (all of which have one: see ``known``);
+        ValueError for a reading without one."""
+        if self.dt is None:
+            raise ValueError("this reading has no usable time")
+        return self.dt
+
     @classmethod
-    def from_dict(cls, data, service_date: date):
+    def from_dict(cls, data: dict[str, Any], service_date: date) -> "ZTMDepartureDataReading":
         """A reading built from the City's key/value pairs; ``dt`` is the moment of ``czas`` on ``service_date`` (None when it has no usable time)."""
         czas = data.get("czas")
         return cls(
@@ -125,5 +135,5 @@ class ZTMDepartureData:
     """The timetable of one stop for one service day: its departures in order and what the City says about the stop."""
 
     departures: list[ZTMDepartureDataReading]
-    stop_info: Optional[dict] = field(default_factory=dict)
+    stop_info: Optional[dict[str, Any]] = field(default_factory=dict)
     service_date: Optional[date] = None  # the service day of the answer; None only in tests that do not care
