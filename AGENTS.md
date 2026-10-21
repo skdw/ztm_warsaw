@@ -171,7 +171,7 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 
 | Path | Purpose |
 |---|---|
-| `custom_components/ztm_warsaw/` | The integration |
+| `custom_components/ztm_warsaw/` | The integration; `entity.py` has what every entity of a stop shares (the device, the stop's record, the base class) |
 | `tests/e2e/` | The real integration in a real in-process Home Assistant against a fake City of Warsaw ([tests/README.md](tests/README.md)) |
 | `tests/live/` | An opt-in check of the real API (not run in CI); `test_key_redaction.py` there needs no key and runs in every pytest run |
 | `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |

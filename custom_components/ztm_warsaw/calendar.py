@@ -12,12 +12,11 @@ from datetime import datetime, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .entries import runtimes
 from .coordinator import ZTMStopCoordinator
-from .sensor import _device_info, _stop_info_of
+from .entity import ZtmStopEntity, stop_info_of as _stop_info_of
 
 PARALLEL_UPDATES = 0  # the entity only reads what its coordinator fetched: nothing to limit
 
@@ -32,7 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
         async_add_entities([ZTMCalendar(runtime["coordinator"])], config_subentry_id=subentry_id)
 
 
-class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
+class ZTMCalendar(ZtmStopEntity, CalendarEntity):
     """The departures of one line at one pole, as calendar events."""
 
     # Off by default: a calendar is a lot of events (every departure of the day), and it is for those who want them.
@@ -40,12 +39,11 @@ class ZTMCalendar(CoordinatorEntity[ZTMStopCoordinator], CalendarEntity):
 
     def __init__(self, coordinator: ZTMStopCoordinator):
         """Name the calendar after its stop and put it on the device of that stop, as the sensors are."""
-        super().__init__(coordinator)
         line, stop_id, stop_nr = coordinator.line, coordinator.stop_id, coordinator.stop_nr
+        super().__init__(coordinator, line, stop_nr)
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_calendar"
         self._attr_name = f"Line {line} from {stop_id}/{stop_nr} timetable"
         self._attr_translation_key = "timetable"  # its icon is in icons.json
-        self._attr_device_info = _device_info(line, coordinator)
 
     def _event_of(self, departure) -> CalendarEvent:
         """One departure as a calendar event of ``EVENT_LENGTH``: ``<line> → <headsign>``, the brigade as the description, the stop's name as the place."""

@@ -7,7 +7,7 @@ state only when it changed. The names of the attributes are part of the public c
 
 import logging
 import math
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from urllib.parse import quote
 from homeassistant.util import dt as dt_util
 from homeassistant.util.dt import as_local
@@ -19,12 +19,12 @@ from homeassistant.core import callback
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import ATTR_ATTRIBUTION
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import NEXT_DEPARTURES, DOMAIN, CONF_ATTRIBUTION
+from .const import NEXT_DEPARTURES, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
+from .entity import ZtmStopEntity, timetable_url as _timetable_url
 from .models import WARSAW, in_swap_window, next_swap_boundary, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,16 +57,6 @@ _STOP_ATTRIBUTES = {
 }
 
 
-def _stop_info_of(coordinator):
-    """The stop's record from the coordinator's data, or {}."""
-    try:
-        if coordinator and coordinator.data:
-            return getattr(coordinator.data, "stop_info", {}) or {}
-    except (AttributeError, TypeError):
-        pass
-    return {}
-
-
 def _stop_attributes(stop_info):
     """The attributes that describe the stop; its position (``latitude`` and ``longitude``) only when it is a real place, so it can be a pin on the map."""
     attrs = {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
@@ -89,44 +79,14 @@ def _departure_attrs(label, dep, day, time_str=None):
     return attrs
 
 
-def _timetable_url(line):
-    """The timetable page of the line for today."""
-    try:
-        today_str = datetime.now(tz=timezone.utc).astimezone(WARSAW).strftime("%Y-%m-%d")
-        return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_dt={today_str}&wtp_md=3&wtp_ln={quote(str(line))}"
-    except Exception:
-        return f"https://www.wtp.waw.pl/rozklady-jazdy/?wtp_md=3&wtp_ln={quote(str(line))}"
-
-
-def _device_info(line, coordinator=None):
-    """The device of a stop's entities. A stop of a 1.1.x entry (one entry per stop) is the line's device, shared by the
-    entries of that line; the stops of a line entry each have their own device, because a device belongs to one subentry."""
-    identifier, name = f"line_{line}", f"Line {line}"
-    if getattr(coordinator, "device_per_stop", False):
-        # Named like the line's device: Home Assistant 2026.10 puts the device's name in front of an entity's name (and
-        # of its ID) unless the entity's name starts with it, and ours always start with "Line <line>". The devices of the
-        # stops are told apart by the subentry they are listed under.
-        identifier = f"line_{line}_{coordinator.stop_id}_{coordinator.stop_nr}"
-    return {
-        "identifiers": {(DOMAIN, identifier)},
-        "name": name,
-        "manufacturer": "Zarząd Transportu Miejskiego",
-        "entry_type": "service",
-        "model": get_line_type(line),
-        "configuration_url": _timetable_url(line),
-    }
-
-
-class ZTMSensor(CoordinatorEntity, SensorEntity):
+class ZTMSensor(ZtmStopEntity, SensorEntity):
     """Sensor for tracking ZTM departures."""
     
     def __init__(self, coordinator, entry_id, stop_id, stop_number, line, max_departures):
         """Name the sensor after its line and pole (the stop's name replaces the numbers later, once the entity ID is fixed) and fix its unique ID."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, line, stop_number)
         self._entry_id = entry_id
-        self._line = line
         self._stop_id = stop_id
-        self._stop_number = stop_number
         self._max_departures = max_departures
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}"
@@ -161,8 +121,8 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._written_attributes: dict | None = None
 
     def _get_stop_info(self):
-        """The stop's record from the coordinator (its name, position, street ...) for the attributes and the entity name; an empty dict until the City has given it."""
-        return _stop_info_of(self.coordinator)
+        """The stop's record from the coordinator (see ``ZtmStopEntity``)."""
+        return self._stop_info()
 
     @property
     def native_value(self):
@@ -196,11 +156,6 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
             "Timetable, First Departure": min(times).astimezone(WARSAW).strftime("%H:%M"),
             "Timetable, Last Departure": max(times).astimezone(WARSAW).strftime("%H:%M"),
         }
-
-    @property
-    def device_info(self):
-        """Return device info for this entity."""
-        return _device_info(self._line, self.coordinator)
 
     def _cancel_scheduled_update(self):
         """Cancel any scheduled update."""
@@ -355,17 +310,14 @@ class ZTMSensor(CoordinatorEntity, SensorEntity):
         self._update_from_coordinator()
 
 
-class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
+class ZTMLastUpdateSensor(ZtmStopEntity, SensorEntity):
     """Sensor to expose the last successful update time from coordinator."""
 
     def __init__(self, coordinator, line, stop_id, stop_number):
         """The diagnostic sensor of a stop (disabled by default): when its timetable was last fetched."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, line, stop_number)
         self._attr_entity_registry_enabled_default = False
-        self._line = line
         self._stop_id = stop_id
-        self._stop_number = stop_number
-        
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_last_update"
@@ -373,8 +325,8 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self._attr_translation_key = "last_update"  # its icon is in icons.json
 
     def _get_stop_info(self):
-        """The stop's record from the coordinator (its name, position, street ...) for the attributes and the entity name; an empty dict until the City has given it."""
-        return _stop_info_of(self.coordinator)
+        """The stop's record from the coordinator (see ``ZtmStopEntity``)."""
+        return self._stop_info()
 
     @property
     def native_value(self):
@@ -384,11 +336,6 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         
         last_update = getattr(self.coordinator, "last_update_success_time", None)
         return last_update if isinstance(last_update, datetime) else None
-
-    @property
-    def device_info(self):
-        """Return device info for this entity."""
-        return _device_info(self._line, self.coordinator)
 
     @property
     def extra_state_attributes(self):
@@ -418,7 +365,7 @@ class ZTMLastUpdateSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
-class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
+class ZTMNextDepartureSensor(ZtmStopEntity, SensorEntity):
     """One of the departures after the next one (Next 1 to Next 3) as a sensor of its own, disabled by default.
 
     The main sensor of the stop lists them as attributes; as entities they have a history, a card and a trigger of their own
@@ -431,9 +378,7 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator, line, stop_id, stop_number, position):
         """The ``position``-th departure after the next one (1 to 3) of a line at a pole, named and identified by the numbers."""
-        super().__init__(coordinator)
-        self._line = line
-        self._stop_number = stop_number
+        super().__init__(coordinator, line, stop_number)
         self._position = position
         self._departure = None
         self._scheduled_unsub = None
@@ -450,11 +395,6 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
     def available(self):
         """Available as the main sensor of the stop is: while the coordinator holds a timetable that may be shown."""
         return bool(self.coordinator) and self.coordinator.is_usable(dt_util.utcnow())
-
-    @property
-    def device_info(self):
-        """The device of the stop, as the other entities of the stop have it."""
-        return _device_info(self._line, self.coordinator)
 
     @property
     def extra_state_attributes(self):
@@ -503,9 +443,9 @@ class ZTMNextDepartureSensor(CoordinatorEntity, SensorEntity):
 
     def _take_stop_name(self):
         """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
-        stop_name = _stop_info_of(self.coordinator).get("nazwa_zespolu")
-        if stop_name:
-            self._attr_name = f"Line {self._line} {stop_name} {self._stop_number} Next {self._position}"
+        name = self._name_with_stop(f"Next {self._position}")
+        if name:
+            self._attr_name = name
 
     @callback
     def _handle_coordinator_update(self):
@@ -526,7 +466,7 @@ STATUSES = [
 ]
 
 
-class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
+class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
     """What is going on with a stop, in words (translated): the state of the main sensor says only "unknown" after the last
     departure, and a person needs to know whether the bus has gone, the line does not run today or the City did not answer.
     It is available also when the timetable is not, because explaining that is its job."""
@@ -536,9 +476,7 @@ class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator, line, stop_id, stop_number):
         """The status of a line at a pole, named and identified by the numbers like the other entities of the stop."""
-        super().__init__(coordinator)
-        self._line = line
-        self._stop_number = stop_number
+        super().__init__(coordinator, line, stop_number)
         self._status = "waiting"
         self._scheduled_unsub = None
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_status"
@@ -554,11 +492,6 @@ class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
     def available(self):
         """Always: it is the one entity that says why the others have nothing to show."""
         return True
-
-    @property
-    def device_info(self):
-        """The device of the stop, as the other entities of the stop have it."""
-        return _device_info(self._line, self.coordinator)
 
     @property
     def extra_state_attributes(self):
@@ -621,10 +554,10 @@ class ZTMStatusSensor(CoordinatorEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     def _take_stop_name(self):
-        """Put the stop's name into the entity's name once it is known."""
-        stop_name = _stop_info_of(self.coordinator).get("nazwa_zespolu")
-        if stop_name:
-            self._attr_name = f"Line {self._line} {stop_name} {self._stop_number} Status"
+        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
+        name = self._name_with_stop("Status")
+        if name:
+            self._attr_name = name
 
     @callback
     def _handle_coordinator_update(self):
