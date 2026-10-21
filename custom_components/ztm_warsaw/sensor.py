@@ -324,10 +324,6 @@ class ZTMLastUpdateSensor(ZtmStopEntity, SensorEntity):
         self._attr_name = f"Line {line} from {stop_id}/{stop_number} Last update"
         self._attr_translation_key = "last_update"  # its icon is in icons.json
 
-    def _get_stop_info(self):
-        """The stop's record from the coordinator (see ``ZtmStopEntity``)."""
-        return self._stop_info()
-
     @property
     def native_value(self):
         """Return last update time."""
@@ -356,12 +352,9 @@ class ZTMLastUpdateSensor(ZtmStopEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self):
         """Update friendly name with stop name when coordinator data arrives."""
-        stop_info = self._get_stop_info()
-        stop_name = stop_info.get("nazwa_zespolu")
-        if stop_name:
-            new_name = f"Line {self._line} {stop_name} {self._stop_number} Last update"
-            if self._attr_name != new_name:
-                self._attr_name = new_name
+        name = self._name_with_stop("Last update")
+        if name:
+            self._attr_name = name
         self.async_write_ha_state()
 
 
