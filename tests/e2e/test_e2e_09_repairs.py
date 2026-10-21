@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 
+from custom_components.ztm_warsaw import repairs
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN
@@ -298,7 +299,8 @@ async def test_e2e_41_pasting_a_token_can_give_it_to_every_line_that_still_has_a
     await env.settle()
     assert done["type"] == "create_entry", done
     assert (first.data["api_key"], second.data["api_key"]) == (DEFAULT_TOKEN, DEFAULT_TOKEN)
-    assert _notice(env, first) is None and _notice(env, second) is None
+    assert _notice(env, first) is None
+    assert _notice(env, second) is None
 
 
 async def test_e2e_41_unticking_the_box_leaves_the_other_lines_alone(env):
@@ -317,3 +319,31 @@ async def test_e2e_41_a_single_line_with_an_old_key_is_not_asked_about_other_lin
     manager = await _flows(env)
     form = await _open(manager, f"legacy_key_{entry.entry_id}")
     assert [str(k) for k in form["data_schema"].schema] == ["api_key"]
+
+
+async def test_e2e_41_a_line_for_which_the_city_refuses_the_token_keeps_its_old_key_while_the_others_change(env):
+    first = await env.add_entry_via_flow(line=LINE)
+    second = await env.add_entry_via_flow(line=OTHER_LINE)
+    manager = await _flows(env)
+    form = await _open(manager, f"legacy_key_{first.entry_id}")
+
+    async def refuse_for_the_second(hass, entry, key):
+        """The City accepts the token for the first line and refuses it for the second."""
+        return ("invalid_token_or_unavailable", False) if entry.entry_id == second.entry_id else (None, True)
+
+    with patch.object(repairs, "key_error", refuse_for_the_second):
+        await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN, "all_lines": True})
+        await env.settle()
+    assert (first.data["api_key"], second.data["api_key"]) == (DEFAULT_TOKEN, DEFAULT_KEY)
+
+
+async def test_e2e_41_the_steps_abort_when_their_entry_or_a_donor_token_is_gone(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = await _flows(env)
+    menu = await _menu(env, manager, entry)
+    handler = manager._progress[menu["flow_id"]]  # the running flow, to call a step the menu would not offer
+    no_donor = await handler.async_step_reuse()
+    assert (no_donor["type"], no_donor["reason"]) == ("abort", "unknown")
+    await env.hass.config_entries.async_remove(entry.entry_id)
+    gone = await handler.async_step_token()
+    assert (gone["type"], gone["reason"]) == ("abort", "unknown")
