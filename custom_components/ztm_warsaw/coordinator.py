@@ -16,7 +16,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 
 from .const import DOMAIN
-from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.helpers.event import async_call_later, async_track_point_in_utc_time
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -36,6 +36,7 @@ def store_key(entry_id: str) -> str:
 
 
 _EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+RETRY_AFTER = 300  # seconds to wait before asking again after a failed refresh was covered by the cached timetable
 
 
 def _reason(err: BaseException) -> str:
@@ -69,6 +70,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         # The answer before this one, kept while its late departures (the 27:xx of a night bus) are still ahead.
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub: CALLBACK_TYPE | None = None
+        self._retry_unsub: CALLBACK_TYPE | None = None
         self._refreshing = asyncio.Lock()
         self._rejections = 0  # consecutive answers of the City that reject the key
         self._started = False  # the first refresh is over: from then on a refresh may also ask for the stop's name
@@ -204,6 +206,18 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         """Whether the City's last answer was not a timetable (a rejected key, an unknown stop or line, an unknown format)."""
         return self._api_error
 
+    def _retry_soon(self) -> None:
+        """A refresh failed and the cached timetable was served instead: ask again in a few minutes, not only at the hourly tick
+        (a City that was unreachable for a moment, for example right after Home Assistant started, would otherwise be left alone for an hour)."""
+        if self._retry_unsub is None and not self._ztm_shutdown_done:
+            self._retry_unsub = async_call_later(self.hass, RETRY_AFTER, self._retry_now)
+
+    @callback
+    def _retry_now(self, _now: datetime) -> None:
+        """The wait after a failed refresh is over: refresh once more (a failure schedules the next try)."""
+        self._retry_unsub = None
+        self.hass.async_create_task(self.async_refresh())
+
     def is_fresh(self, now: datetime) -> bool:
         """Whether the cached timetable is the one of the service day that ``now`` is in."""
         return self.data is not None and self.data.service_date == service_date_at(now)
@@ -324,6 +338,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
                         self.name,
                     )
+                    self._retry_soon()
                     return self.data
                 raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_cached_timetable")
             return self._accept(new_data)
@@ -336,10 +351,11 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
             if self.data is not None and not self._api_error:
                 # Keep entity available with last known data; try again on next hourly tick
                 _LOGGER.warning(
-                    "ZTM Coordinator [%s] — fetch failed (%s); keeping last known timetable and retrying next hour",
+                    "ZTM Coordinator [%s] — fetch failed (%s); keeping last known timetable and retrying in a few minutes",
                     self.name,
                     err,
                 )
+                self._retry_soon()
                 return self.data
             _LOGGER.error("ZTM Coordinator [%s] — failed fetching schedule and no cached data", self.name)
             raise UpdateFailed(
@@ -359,5 +375,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
             if self._flip_unsub:
                 self._flip_unsub()
                 self._flip_unsub = None
+            if self._retry_unsub:
+                self._retry_unsub()
+                self._retry_unsub = None
             await super().async_shutdown()
         _LOGGER.info("ZTM Coordinator [%s] — shutdown complete", self.name)
