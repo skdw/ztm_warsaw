@@ -523,3 +523,17 @@ async def test_e2e_16_a_failed_refresh_covered_by_the_cache_is_retried_in_minute
     await env.advance(seconds=360)
     assert coord.data is not cached, "the retry fetched a fresh timetable long before the next hourly refresh"
     assert coord._retry_unsub is None, "a retry that worked does not schedule another"
+
+
+async def test_e2e_16_a_pending_retry_is_not_doubled_and_an_unload_cancels_it(env):
+    """Two failures before the retry fire one retry, and a stop that is unloaded leaves no timer behind."""
+    entry = await env.add_entry()
+    coord = coordinator_of(env)
+    env.city.always(None, Reset())
+    await env.hourly_tick()
+    pending = coord._retry_unsub
+    assert pending is not None
+    await coord.async_refresh()  # a second failure while the first retry is still waiting
+    assert coord._retry_unsub is pending, "the wait already under way is kept, not replaced"
+    await env.hass.config_entries.async_unload(entry.entry_id)
+    assert coord._retry_unsub is None, "unloading cancels the wait"
