@@ -500,6 +500,16 @@ async def test_e2e_38_a_generated_title_does_not_keep_a_stop_that_is_gone_while_
     assert entry.title.count(stop_name_for("7009")) == 2
     from custom_components import ztm_warsaw
 
-    with patch.object(ztm_warsaw, "_stop_name_of", lambda e, sid=None: None):  # the catalogue fails for every stop
+    with patch.object(ztm_warsaw, "_stop_name_of", return_value=None):  # the catalogue fails for every stop
         ztm_warsaw._title_line_with_its_stops(env.hass, entry)
+    assert entry.title == f"Line {LINE}"
+
+
+async def test_e2e_38_a_line_the_user_renamed_back_to_the_plain_title_keeps_it(env):
+    """"Line 525" is also what a new line is called, but once the integration has made a title of its own, the plain one is the user's."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    assert entry.options["generated_title"] != f"Line {LINE}"
+    env.hass.config_entries.async_update_entry(entry, title=f"Line {LINE}")
+    await env.submit_flow(line=LINE, stop_nr="02")
+    await env.settle()
     assert entry.title == f"Line {LINE}"

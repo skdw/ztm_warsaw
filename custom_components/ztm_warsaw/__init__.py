@@ -196,13 +196,14 @@ _GENERATED_TITLE = "generated_title"  # the option that remembers the title this
 def _title_line_with_its_stops(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Title a line "Line 176 · Marcelin 01, Marcelin 02" so that the list of lines (the picker of *Add stop* is Home Assistant's
     own list of entry titles) says which stop is which. Only a title this integration made is replaced: "Line 176" (what a new
-    line is called) or the one it remembered making (the ``generated_title`` option); any other title is the user's and stays,
-    whatever it looks like. A line without stops goes back to "Line 176"."""
+    line is called, until it has made one) or the one it remembered making (the ``generated_title`` option); any other title is
+    the user's and stays, whatever it looks like (also "Line 176" after the user renamed a line back to it). A line without stops goes back to "Line 176"."""
     line = line_of(entry)
     if not is_line_entry(entry) or not line:
         return
     plain = f"Line {line}"
-    if entry.title not in (plain, entry.options.get(_GENERATED_TITLE)):
+    made = entry.options.get(_GENERATED_TITLE)
+    if entry.title != (made or plain):  # "Line 176" is this integration's own only until it has made a title of its own
         return
     units = stop_units(entry)
     if not units:
