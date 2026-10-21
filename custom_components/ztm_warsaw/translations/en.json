@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Enter the line and stop whose departures you want to display. For detailed instructions, see the documentation on GitHub.",
+        "description": "Enter your API key or token and part of the name of your stop (or its ID). Next you pick the pole and the line.",
         "data": {
           "api_key": "API key or token from the City of Warsaw open data portal",
-          "busstop_id": "Stop ID (e.g. 3044)",
-          "busstop_nr": "Stop point number (e.g. 02)",
-          "line": "Line number (e.g. N31)"
+          "stop": "Stop name or ID (e.g. Marcelin or 3044)",
+          "manual": "I know the numbers: let me enter them myself"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Token"
         }
+      },
+      "manual": {
+        "description": "Enter the line and stop whose departures you want to display. For detailed instructions, see the documentation on GitHub.",
+        "data": {
+          "api_key": "API key or token from the City of Warsaw open data portal",
+          "busstop_id": "Stop ID (e.g. 3044)",
+          "busstop_nr": "Stop point number (e.g. 02)",
+          "line": "Line number (e.g. N31)"
+        }
+      },
+      "pole": {
+        "title": "Which pole?",
+        "description": "These match “{query}”. A stop has a pole for each direction; its number is on the sign.",
+        "data": {
+          "pole": "Pole"
+        }
+      },
+      "line": {
+        "title": "Which line?",
+        "description": "The lines that stop at {stop} today.",
+        "data": {
+          "line": "Line"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_valid_times": "No valid departure times returned by the API.",
       "unknown": "An unknown error occurred.",
       "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
-      "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”)."
+      "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”).",
+      "no_stop_found": "No stop matches that. Try another part of the name, or the stop ID.",
+      "too_many_matches": "Too many stops match that. Type a bit more of the name.",
+      "no_lines": "No line stops at that pole today. Pick another pole.",
+      "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
+      "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself."
     },
     "abort": {
       "single_instance_allowed": "Only one instance is allowed.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Add a stop for line {line}",
-          "description": "Enter the stop ID and stop point number for line {line}. The new stop will use the credentials saved for this line.",
+          "description": "Another stop of line {line}. Type part of its name or its ID.",
           "data": {
-            "busstop_id": "Stop ID (e.g. 3044)",
-            "busstop_nr": "Stop point number (e.g. 02)"
+            "stop": "Stop name or ID (e.g. Marcelin or 3044)",
+            "manual": "I know the numbers: let me enter them myself"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Enter how many minutes it takes you to walk to the stop. The sensor will skip departures that leave before you can reach the stop. Enter 0 to ignore walking time.",
           "data": {
             "walking_time": "Walking time (minutes)"
+          }
+        },
+        "manual": {
+          "title": "Add a stop for line {line}",
+          "description": "Enter the stop ID and stop point number for line {line}. The new stop will use the credentials saved for this line.",
+          "data": {
+            "busstop_id": "Stop ID (e.g. 3044)",
+            "busstop_nr": "Stop point number (e.g. 02)"
+          }
+        },
+        "pole": {
+          "title": "Which pole?",
+          "description": "These match “{query}”. A stop has a pole for each direction; its number is on the sign.",
+          "data": {
+            "pole": "Pole"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_valid_times": "No valid departure times returned by the API.",
         "unknown": "An unknown error occurred.",
         "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
-        "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”)."
+        "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”).",
+        "no_stop_found": "No stop matches that. Try another part of the name, or the stop ID.",
+        "too_many_matches": "Too many stops match that. Type a bit more of the name.",
+        "no_lines": "No line stops at that pole today. Pick another pole.",
+        "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
+        "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself."
       },
       "abort": {
         "already_configured": "The selected line is already configured for this stop point.",

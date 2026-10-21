@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Indiquez la ligne et l’arrêt dont vous souhaitez afficher les départs. Vous trouverez des instructions détaillées dans la documentation sur GitHub.",
+        "description": "Saisissez votre clé API ou jeton et une partie du nom de votre arrêt (ou son ID). Vous choisirez ensuite le poteau et la ligne.",
         "data": {
           "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
-          "busstop_id": "ID de l’arrêt (p. ex. 3044)",
-          "busstop_nr": "Numéro du point d’arrêt (p. ex. 02)",
-          "line": "Numéro de la ligne (p. ex. N31)"
+          "stop": "Nom ou ID de l’arrêt (p. ex. Marcelin ou 3044)",
+          "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Jeton"
         }
+      },
+      "manual": {
+        "description": "Indiquez la ligne et l’arrêt dont vous souhaitez afficher les départs. Vous trouverez des instructions détaillées dans la documentation sur GitHub.",
+        "data": {
+          "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
+          "busstop_id": "ID de l’arrêt (p. ex. 3044)",
+          "busstop_nr": "Numéro du point d’arrêt (p. ex. 02)",
+          "line": "Numéro de la ligne (p. ex. N31)"
+        }
+      },
+      "pole": {
+        "title": "Quel poteau ?",
+        "description": "Correspondances pour « {query} ». Un arrêt a un poteau par direction ; son numéro est sur la plaque.",
+        "data": {
+          "pole": "Poteau"
+        }
+      },
+      "line": {
+        "title": "Quelle ligne ?",
+        "description": "Les lignes qui s’arrêtent aujourd’hui à {stop}.",
+        "data": {
+          "line": "Ligne"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
       "unknown": "Une erreur inconnue s’est produite.",
       "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
-      "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »)."
+      "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »).",
+      "no_stop_found": "Aucun arrêt ne correspond. Essayez une autre partie du nom ou l’ID de l’arrêt.",
+      "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom.",
+      "no_lines": "Aucune ligne ne s’arrête à ce poteau aujourd’hui. Choisissez-en un autre.",
+      "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
+      "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance est autorisée.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Ajouter un arrêt de la ligne {line}",
-          "description": "Indiquez l’identifiant de l’arrêt et le numéro du point d’arrêt pour la ligne {line}. Le nouvel arrêt utilisera les identifiants d’accès enregistrés pour cette ligne.",
+          "description": "Un autre arrêt de la ligne {line}. Tapez une partie de son nom ou son ID.",
           "data": {
-            "busstop_id": "ID de l’arrêt (p. ex. 3044)",
-            "busstop_nr": "Numéro du point d’arrêt (p. ex. 02)"
+            "stop": "Nom ou ID de l’arrêt (p. ex. Marcelin ou 3044)",
+            "manual": "Je connais les numéros : je les saisis moi-même"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Indiquez le nombre de minutes nécessaires pour rejoindre l’arrêt à pied. Le capteur ignorera les départs que vous ne pourrez pas prendre dans ce délai. Saisissez 0 pour ne pas tenir compte du temps de marche.",
           "data": {
             "walking_time": "Temps de marche (minutes)"
+          }
+        },
+        "manual": {
+          "title": "Ajouter un arrêt de la ligne {line}",
+          "description": "Indiquez l’identifiant de l’arrêt et le numéro du point d’arrêt pour la ligne {line}. Le nouvel arrêt utilisera les identifiants d’accès enregistrés pour cette ligne.",
+          "data": {
+            "busstop_id": "ID de l’arrêt (p. ex. 3044)",
+            "busstop_nr": "Numéro du point d’arrêt (p. ex. 02)"
+          }
+        },
+        "pole": {
+          "title": "Quel poteau ?",
+          "description": "Correspondances pour « {query} ». Un arrêt a un poteau par direction ; son numéro est sur la plaque.",
+          "data": {
+            "pole": "Poteau"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
         "unknown": "Une erreur inconnue s’est produite.",
         "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
-        "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »)."
+        "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »).",
+        "no_stop_found": "Aucun arrêt ne correspond. Essayez une autre partie du nom ou l’ID de l’arrêt.",
+        "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom.",
+        "no_lines": "Aucune ligne ne s’arrête à ce poteau aujourd’hui. Choisissez-en un autre.",
+        "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
+        "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même."
       },
       "abort": {
         "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",

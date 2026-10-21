@@ -268,15 +268,47 @@ class Env:
         result = await flow.async_init(DOMAIN, context={"source": "user"})
         if result["type"] != "form":
             raise HarnessError(f"the config flow did not open a form: {result}")
-        result = await flow.async_configure(
-            result["flow_id"],
-            {
-                "api_key": api_key,
-                "busstop_id": stop_id,
-                "busstop_nr": stop_nr,
-                "line": line,
-            },
+        result = await flow.async_configure(  # "I know the numbers": the form of the numbers, as the setup dialog of 1.1.x was
+            result["flow_id"], {"api_key": api_key, "stop": str(stop_id), "manual": True}
         )
+        if result["type"] == "form" and result["step_id"] == "manual":
+            result = await flow.async_configure(
+                result["flow_id"],
+                {
+                    "api_key": api_key,
+                    "busstop_id": stop_id,
+                    "busstop_nr": stop_nr,
+                    "line": line,
+                },
+            )
+        await self.settle()
+        return result
+
+    async def manual_form(self, *, api_key: str = DEFAULT_KEY) -> dict:
+        """The form of the numbers of the setup dialog ("I know the numbers" ticked on the first screen)."""
+        flow = self.hass.config_entries.flow
+        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        return await flow.async_configure(result["flow_id"], {"api_key": api_key, "stop": "7009", "manual": True})
+
+    async def add_stop_form(self, entry: ConfigEntry, *, manual: bool = True) -> dict:
+        """The form of *Add stop* on a line (the form of the numbers when ``manual``, else the first screen)."""
+        manager = self.hass.config_entries.subentries
+        form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+        if manual and form["type"] == "form":
+            form = await manager.async_configure(form["flow_id"], {"stop": "7009", "manual": True})
+        return form
+
+    async def submit_wizard(self, *, query: str, pole: str, line: str, api_key: str = DEFAULT_KEY) -> dict:
+        """Run the three screens of the setup dialog (key and search, pole, line) and return the raw result of the last one."""
+        flow = self.hass.config_entries.flow
+        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        result = await flow.async_configure(result["flow_id"], {"api_key": api_key, "stop": query})
+        if result["type"] != "form" or result["step_id"] != "pole":
+            return result
+        result = await flow.async_configure(result["flow_id"], {"pole": pole})
+        if result["type"] != "form" or result["step_id"] != "line":
+            return result
+        result = await flow.async_configure(result["flow_id"], {"line": line})
         await self.settle()
         return result
 

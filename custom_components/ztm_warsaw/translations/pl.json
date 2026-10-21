@@ -3,12 +3,11 @@
   "config": {
     "step": {
       "user": {
-        "description": "Podaj linię i przystanek, dla których chcesz wyświetlać odjazdy. Szczegółowe instrukcje znajdziesz w dokumentacji na GitHubie.",
+        "description": "Podaj klucz API lub token i fragment nazwy przystanku (albo jego ID). W następnych krokach wybierzesz słupek i linię.",
         "data": {
           "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
-          "busstop_id": "Numer zespołu przystankowego (np. 3044)",
-          "busstop_nr": "Numer słupka (np. 02)",
-          "line": "Numer linii (np. N31)"
+          "stop": "Nazwa lub ID przystanku (np. Marcelin albo 3044)",
+          "manual": "Znam numery: wpiszę je sam"
         }
       },
       "reauth_confirm": {
@@ -30,6 +29,29 @@
         "data": {
           "api_key": "Token"
         }
+      },
+      "manual": {
+        "description": "Podaj linię i przystanek, dla których chcesz wyświetlać odjazdy. Szczegółowe instrukcje znajdziesz w dokumentacji na GitHubie.",
+        "data": {
+          "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
+          "busstop_id": "Numer zespołu przystankowego (np. 3044)",
+          "busstop_nr": "Numer słupka (np. 02)",
+          "line": "Numer linii (np. N31)"
+        }
+      },
+      "pole": {
+        "title": "Który słupek?",
+        "description": "Pasują do „{query}”. Przystanek ma osobny słupek dla każdego kierunku, a jego numer jest na tabliczce.",
+        "data": {
+          "pole": "Słupek"
+        }
+      },
+      "line": {
+        "title": "Która linia?",
+        "description": "Linie, które dziś zatrzymują się na {stop}.",
+        "data": {
+          "line": "Linia"
+        }
       }
     },
     "error": {
@@ -42,7 +64,12 @@
       "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
       "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
       "unknown": "Wystąpił nieznany błąd.",
-      "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”)."
+      "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”).",
+      "no_stop_found": "Nic nie pasuje. Spróbuj innego fragmentu nazwy albo ID przystanku.",
+      "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy.",
+      "no_lines": "Dziś żadna linia nie zatrzymuje się na tym słupku. Wybierz inny.",
+      "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
+      "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jedną instancję tej integracji.",
@@ -205,10 +232,10 @@
       "step": {
         "user": {
           "title": "Dodaj przystanek dla linii {line}",
-          "description": "Podaj numer zespołu przystankowego oraz numer słupka dla linii {line}. Nowy przystanek będzie korzystać z danych dostępu zapisanych dla tej linii.",
+          "description": "Kolejny przystanek linii {line}. Wpisz fragment jego nazwy albo ID.",
           "data": {
-            "busstop_id": "Numer zespołu przystankowego (np. 3044)",
-            "busstop_nr": "Numer słupka (np. 02)"
+            "stop": "Nazwa lub ID przystanku (np. Marcelin albo 3044)",
+            "manual": "Znam numery: wpiszę je sam"
           }
         },
         "reconfigure": {
@@ -216,6 +243,21 @@
           "description": "Podaj, ile minut zajmuje Ci dojście na przystanek. Sensor pominie odjazdy, na które nie zdążysz w tym czasie. Wpisz 0, aby nie uwzględniać czasu dojścia.",
           "data": {
             "walking_time": "Czas dojścia (min)"
+          }
+        },
+        "manual": {
+          "title": "Dodaj przystanek dla linii {line}",
+          "description": "Podaj numer zespołu przystankowego oraz numer słupka dla linii {line}. Nowy przystanek będzie korzystać z danych dostępu zapisanych dla tej linii.",
+          "data": {
+            "busstop_id": "Numer zespołu przystankowego (np. 3044)",
+            "busstop_nr": "Numer słupka (np. 02)"
+          }
+        },
+        "pole": {
+          "title": "Który słupek?",
+          "description": "Pasują do „{query}”. Przystanek ma osobny słupek dla każdego kierunku, a jego numer jest na tabliczce.",
+          "data": {
+            "pole": "Słupek"
           }
         }
       },
@@ -229,7 +271,12 @@
         "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
         "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
         "unknown": "Wystąpił nieznany błąd.",
-        "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”)."
+        "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”).",
+        "no_stop_found": "Nic nie pasuje. Spróbuj innego fragmentu nazwy albo ID przystanku.",
+        "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy.",
+        "no_lines": "Dziś żadna linia nie zatrzymuje się na tym słupku. Wybierz inny.",
+        "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
+        "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam."
       },
       "abort": {
         "already_configured": "Wybrana linia jest już skonfigurowana dla tego słupka przystankowego.",
