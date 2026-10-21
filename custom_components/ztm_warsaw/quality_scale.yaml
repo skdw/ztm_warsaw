@@ -114,8 +114,8 @@ rules:
     status: todo
     comment: The rewrite of the wiki will add use cases.
   dynamic-devices:
-    status: done
-    comment: A stop added to a line gets a device of its own; one removed can be deleted from its page.
+    status: todo
+    comment: A stop added to a line gets a device of its own, but the line is reloaded to get it (automatically, within a second or two); the rule asks for entities that are added without a reload. A removed stop's device can be deleted from its page.
   entity-category:
     status: done
   entity-device-class:

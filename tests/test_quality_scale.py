@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 FILE = Path(__file__).resolve().parent.parent / "custom_components" / "ztm_warsaw" / "quality_scale.yaml"
@@ -33,9 +34,32 @@ RULES = {
 }
 
 
+class _UniqueKeys(yaml.SafeLoader):
+    """A YAML loader that refuses a mapping with the same key twice (PyYAML keeps the last one without a word)."""
+
+    def construct_mapping(self, node, deep=False):
+        """Build the mapping, after checking that no key repeats."""
+        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
+        repeated = {key for key in keys if keys.count(key) > 1}
+        if repeated:
+            raise ValueError(f"repeated YAML keys: {sorted(repeated)}")
+        return super().construct_mapping(node, deep=deep)
+
+
+def _load(text: str) -> dict:
+    """Parse YAML text, refusing repeated keys."""
+    return yaml.load(text, Loader=_UniqueKeys)  # noqa: S506 - the loader is a SafeLoader
+
+
 def _rules() -> dict:
     """The rules of the file."""
-    return yaml.safe_load(FILE.read_text())["rules"]
+    return _load(FILE.read_text())["rules"]
+
+
+def test_a_rule_written_twice_is_refused_instead_of_silently_keeping_the_last():
+    text = "rules:\n  config-flow:\n    status: done\n  config-flow:\n    status: todo\n"
+    with pytest.raises(ValueError):
+        _load(text)
 
 
 def test_every_rule_of_the_scale_is_in_the_file_and_nothing_else():
