@@ -13,7 +13,7 @@ rules:
     comment: The timetable is fetched once an hour and again when the City has replaced it (03:06); the sensors wake up at the next departure instead of polling.
   brands:
     status: done
-    comment: The icon and the logo are in brand/.
+    comment: The icon and the logo are in the Home Assistant brands repository (custom_integrations/ztm_warsaw) and also shipped in brand/ (Home Assistant 2026.3 and newer read them from there).
   common-modules:
     status: done
     comment: The coordinator is in coordinator.py and what every entity of a stop shares is in entity.py.
@@ -143,5 +143,5 @@ rules:
   inject-websession:
     status: done
   strict-typing:
-    status: done
-    comment: mypy --strict, with an empty list of known errors.
+    status: todo
+    comment: mypy --strict passes with an empty list of known errors, but the runtime data is still a plain dict behind a bare ConfigEntry; the rule asks for a typed runtime dataclass and a ConfigEntry[...] alias.
