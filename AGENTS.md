@@ -176,6 +176,7 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `tests/live/` | An opt-in check of the real API (not run in CI); `test_key_redaction.py` there needs no key and runs in every pytest run |
 | `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
 | `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `publish-wiki.yml`, `release.yml`, `scorecard.yml`, `verify-standard.yml` (the playbook's `verify-tier`, report only). A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
+| `custom_components/ztm_warsaw/runtime.py` | The typed `runtime_data` of a loaded entry (`StopRuntime`, `LineRuntime`) and `ZtmConfigEntry`, the config entry with it |
 | `custom_components/ztm_warsaw/quality_scale.yaml` | Where the integration stands on Home Assistant's Integration Quality Scale, rule by rule (`done`, `exempt` with the reason, `todo`); change a status in the pull request that changes the code. `tests/test_quality_scale.py` checks every rule is there |
 | `scripts/check_docstrings.py` | Fails when a module, class or function has no docstring (also run by pytest; see Docstrings above) |
 | `docs/wiki/` | The source of the GitHub Wiki: edit the pages here, never in the wiki's web interface. `publish-wiki.yml` copies them on a push to `main`; `scripts/check_wiki_docs.py` (also run by pytest) checks that every page exists and every link resolves |

@@ -16,7 +16,6 @@ from homeassistant.util.dt import as_local
 from .utils import get_line_badge, get_line_icon, get_line_type
 
 from homeassistant.helpers.event import async_track_point_in_time
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -28,6 +27,7 @@ from .const import NEXT_DEPARTURES, CONF_ATTRIBUTION
 from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
 from .entity import ZtmStopEntity, timetable_url as _timetable_url
+from .runtime import ZtmConfigEntry
 from .models import ZTMDepartureDataReading, WARSAW, in_swap_window, next_swap_boundary, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
@@ -564,7 +564,7 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
 
 
 # Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
+async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
     """Set up the ZTM sensors of a config entry: two for every stop it runs."""
     try:
         for subentry_id, runtime in runtimes(config_entry).items():

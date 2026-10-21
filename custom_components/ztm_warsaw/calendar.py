@@ -11,7 +11,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -20,6 +19,7 @@ from .entries import runtimes
 from .coordinator import ZTMStopCoordinator
 from .entity import ZtmStopEntity, stop_info_of as _stop_info_of
 from .models import ZTMDepartureDataReading
+from .runtime import ZtmConfigEntry
 
 PARALLEL_UPDATES = 0  # the entity only reads what its coordinator fetched: nothing to limit
 
@@ -28,7 +28,7 @@ EVENT_LENGTH = timedelta(minutes=1)
 
 
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
+async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
     """Add the timetable calendar of every stop the entry runs (disabled by default, see the class)."""
     for subentry_id, runtime in runtimes(config_entry).items():
         async_add_entities([ZTMCalendar(runtime["coordinator"])], config_subentry_id=subentry_id)

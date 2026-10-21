@@ -19,6 +19,7 @@ from homeassistant.helpers.storage import Store
 
 from .coordinator import ZTMStopCoordinator, store_key
 from .migration import async_migrate_to_lines, merged_keys_issue_id
+from .runtime import RuntimeData, StopRuntime, ZtmConfigEntry
 from .entries import (  # noqa: F401 - _entry_values and stop_key are used by the config flow and the diagnostics
     StopUnit,
     _entry_values,
@@ -70,7 +71,7 @@ async def _first_refresh(coordinators: list[ZTMStopCoordinator]) -> None:
             coordinator.start_without_timetable()
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     if not is_line_entry(entry) and _entry_values(entry) is None:
         return False  # said in the log, without the key
@@ -80,7 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     agent = await user_agent(hass)
     catalogue = hass.data.setdefault(f"{DOMAIN}_catalogue", StopCatalogue())  # one for all the entries
 
-    built: dict[str | None, dict[str, Any]] = {}
+    built: dict[str | None, StopRuntime] = {}
     for unit in units:
         client = ZTMStopClient(
             session=session,
@@ -107,7 +108,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _first_refresh([rt["coordinator"] for rt in built.values()])
 
     # A version 1 entry keeps the shape it always had; a line has its stops by subentry.
-    entry.runtime_data = {"units": built} if is_line_entry(entry) else built[None]
+    runtime: RuntimeData = {"units": built} if is_line_entry(entry) else built[None]
+    entry.runtime_data = runtime
 
     def _show_stop_names() -> None:
         """Show everything that depends on a stop's name: the notices, and the titles of the entry and of its stops.
@@ -154,8 +156,8 @@ def _snapshot(entry: ConfigEntry) -> tuple[dict[str, Any], dict[str, Any], dict[
 
 def _stop_name_of(entry: ConfigEntry, subentry_id: str | None = None) -> str | None:
     """The stop's name, once the entry has loaded and the City has given it (the coordinator holds it)."""
-    coordinator = runtimes(entry).get(subentry_id, {}).get("coordinator")
-    info = getattr(getattr(coordinator, "data", None), "stop_info", None)
+    stop = runtimes(entry).get(subentry_id)
+    info = getattr(getattr(stop["coordinator"] if stop else None, "data", None), "stop_info", None)
     name = info.get("nazwa_zespolu") if isinstance(info, dict) else None
     if not isinstance(name, str):
         return None
@@ -305,7 +307,7 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
     )
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
