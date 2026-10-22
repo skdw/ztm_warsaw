@@ -13,14 +13,16 @@
       "reauth_confirm": {
         "description": "The City of Warsaw API is rejecting the saved API key or token. Enter a new key or token from the open data portal. Your line and stop settings will be preserved.",
         "data": {
-          "api_key": "API key or token from the City of Warsaw open data portal"
+          "api_key": "API key or token from the City of Warsaw open data portal",
+          "all_lines": "Use it for every line that still has an old key"
         }
       },
       "reconfigure": {
         "title": "Warsaw Public Transport",
         "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
-          "api_key": "API key or token"
+          "api_key": "API key or token",
+          "all_lines": "Use it for every line that still has an old key"
         }
       },
       "reconfigure_token": {
@@ -52,6 +54,36 @@
         "data": {
           "line": "Line"
         }
+      },
+      "reauth_menu": {
+        "title": "Old API key",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reauth_confirm": "Paste a token",
+          "reauth_reuse": "Use the token already entered for another line"
+        }
+      },
+      "reconfigure_menu": {
+        "title": "Old API key",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reconfigure_form": "Paste a token",
+          "reconfigure_reuse": "Use the token already entered for another line"
+        }
+      },
+      "reauth_reuse": {
+        "title": "Use the token of another line",
+        "description": "More than one token is in use. Pick the one line {line} should use: each is shown by its last four characters and the lines that use it.",
+        "data": {
+          "token": "Token"
+        }
+      },
+      "reconfigure_reuse": {
+        "title": "Use the token of another line",
+        "description": "More than one token is in use. Pick the one line {line} should use: each is shown by its last four characters and the lines that use it.",
+        "data": {
+          "token": "Token"
+        }
       }
     },
     "error": {
@@ -78,7 +110,8 @@
       "unknown": "An unknown error occurred.",
       "already_configured": "The selected line is already configured for this stop point.",
       "stop_added": "The stop has been added to the existing line configuration. It will use the credentials saved for that line. To change them, choose **Configure**.",
-      "reconfigure_successful": "The new credentials have been saved and the configuration reloaded."
+      "reconfigure_successful": "The new credentials have been saved and the configuration reloaded.",
+      "reuse_rejected": "The City did not accept that token for this line. Paste a token instead."
     }
   },
   "options": {
@@ -87,7 +120,8 @@
         "title": "Warsaw Public Transport",
         "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
-          "api_key": "API key or token"
+          "api_key": "API key or token",
+          "all_lines": "Use it for every line that still has an old key"
         }
       },
       "token": {
@@ -96,6 +130,21 @@
         "data": {
           "api_key": "Token (leave empty to keep the current one)",
           "show_vehicles": "Show the vehicles of this line on the map"
+        }
+      },
+      "menu": {
+        "title": "Old API key",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "paste": "Paste a token",
+          "reuse": "Use the token already entered for another line"
+        }
+      },
+      "reuse": {
+        "title": "Use the token of another line",
+        "description": "More than one token is in use. Pick the one line {line} should use: each is shown by its last four characters and the lines that use it.",
+        "data": {
+          "token": "Token"
         }
       }
     },
@@ -111,7 +160,8 @@
       "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
     },
     "abort": {
-      "unknown": "An unknown error occurred."
+      "unknown": "An unknown error occurred.",
+      "reuse_rejected": "The City did not accept that token for this line. Paste a token instead."
     }
   },
   "entity": {

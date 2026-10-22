@@ -197,7 +197,125 @@ async def error_for(hass: HomeAssistant, user_input: Mapping[str, Any], *, check
     return key, key_works
 
 
-class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,unused-ignore]
+CONF_ALL_LINES = "all_lines"  # the checkbox of the paste step: use the token for every line that still has an old key
+CONF_TOKEN = "token"  # the field of the step that picks one of several tokens (the number of the token in the list shown)
+
+
+def line_label(entry: ConfigEntry) -> str:
+    """The line of the entry whose key is replaced, for the texts of the dialogs."""
+    units = stop_units(entry)
+    return line_of(entry) or (units[0].line if units else "")
+
+
+def _other_entries(hass: HomeAssistant, entry: ConfigEntry) -> list[ConfigEntry]:
+    """The other entries of the integration, whose key can be read."""
+    return [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and entry_api_key(e)]
+
+
+def tokens_of_others(hass: HomeAssistant, entry: ConfigEntry) -> list[tuple[str, list[str]]]:
+    """The different tokens the other entries of the integration have, each with the lines that use it, in the order they are met
+    (a token is the account's: one serves every line, but there may be more than one account's)."""
+    found: dict[str, list[str]] = {}
+    for other in _other_entries(hass, entry):
+        key = entry_api_key(other) or ""
+        if key_kind(key) == "token":
+            lines = found.setdefault(key, [])
+            line = line_label(other)
+            if line and line not in lines:
+                lines.append(line)
+    return list(found.items())
+
+
+def legacy_others(hass: HomeAssistant, entry: ConfigEntry) -> list[ConfigEntry]:
+    """The other entries that still have an old key and could take a new token as well."""
+    return [e for e in _other_entries(hass, entry) if key_kind(entry_api_key(e) or "") == "legacy" and key_can_change(e)]
+
+
+def token_choices(tokens: list[tuple[str, list[str]]]) -> dict[str, str]:
+    """The tokens to pick from, by their number: each is told by its last four characters and the lines that use it (never the whole token)."""
+    return {str(n): f"…{key[-4:]}  ·  {', '.join(lines) or '-'}" for n, (key, lines) in enumerate(tokens)}
+
+
+async def use_token(hass: HomeAssistant, entry: ConfigEntry, token: str) -> bool:
+    """Give the entry a token another line has, when the City accepts it for this line (it is checked like a pasted one and never shown)."""
+    error, works = await key_error(hass, entry, token)
+    if error is not None and not works:
+        return False
+    save_key(hass, entry, token)
+    await close_reauth(hass, entry)
+    return True
+
+
+async def give_to_other_lines(hass: HomeAssistant, entry: ConfigEntry, key: str) -> None:
+    """Give the token to every other line that still has an old key, where the City accepts it for that line."""
+    for other in legacy_others(hass, entry):
+        error, works = await key_error(hass, other, key)
+        if error is None or works:
+            save_key(hass, other, key)
+            await close_reauth(hass, other)
+
+
+class KeyChoice:
+    """What the dialogs that replace an old key share: the pick between several tokens another line has, and the use of the one picked.
+    A dialog says which entry it changes (``_key_entry``) and how it ends (``_key_done``)."""
+
+    hass: HomeAssistant
+
+    def _key_entry(self) -> ConfigEntry:
+        """The entry whose key is replaced."""
+        raise NotImplementedError
+
+    def _key_done(self) -> Any:
+        """End the dialog after the key was replaced."""
+        raise NotImplementedError
+
+    def _key_menu(self, step_id: str, options: list[str], entry: ConfigEntry) -> ConfigFlowResult:
+        """A menu of the ways to replace an old key (shown only when a token of another line could be reused)."""
+        return self.async_show_menu(  # type: ignore[attr-defined,no-any-return]
+            step_id=step_id, menu_options=options, description_placeholders={"line": line_label(entry), "portal": KEY_PORTAL_URL}
+        )
+
+    def _offers_reuse(self, entry: ConfigEntry) -> bool:
+        """Whether the key is an old one and another line has a token that could replace it."""
+        return key_kind(entry_api_key(entry) or "") == "legacy" and bool(tokens_of_others(self.hass, entry))
+
+    def _all_lines_field(self, entry: ConfigEntry) -> dict[Any, Any]:
+        """The checkbox that gives a pasted token to every line with an old key: asked only when there is another such line."""
+        if key_kind(entry_api_key(entry) or "") == "legacy" and legacy_others(self.hass, entry):
+            return {vol.Optional(CONF_ALL_LINES, default=True): bool}
+        return {}
+
+    async def _reuse_step(self, step_id: str, user_input: dict[str, Any] | None) -> Any:
+        """Use the token another line has: at once when there is one, after a pick when there are several; aborts when the City does not
+        accept it for this line (pasting another is still possible by opening the dialog again)."""
+        entry = self._key_entry()
+        tokens = tokens_of_others(self.hass, entry)
+        if not tokens or not key_can_change(entry):
+            return self.async_abort(reason="unknown")  # type: ignore[attr-defined]
+        if len(tokens) == 1:
+            return await self._use_token(entry, tokens[0][0])
+        choices = token_choices(tokens)
+        if user_input is not None and user_input.get(CONF_TOKEN) in choices:
+            return await self._use_token(entry, tokens[int(user_input[CONF_TOKEN])][0])
+        return self.async_show_form(  # type: ignore[attr-defined]
+            step_id=step_id,
+            data_schema=_form({vol.Required(CONF_TOKEN): vol.In(choices)}),
+            description_placeholders={"line": line_label(entry)},
+        )
+
+    async def _use_token(self, entry: ConfigEntry, token: str) -> Any:
+        """Replace the key with the token and end the dialog, or abort when the City refuses it for this line."""
+        if not await use_token(self.hass, entry, token):
+            return self.async_abort(reason="reuse_rejected")  # type: ignore[attr-defined]
+        return self._key_done()
+
+    async def _also_for_other_lines(self, entry: ConfigEntry, key: str, user_input: dict[str, Any]) -> None:
+        """A token that was pasted goes to every other line with an old key too, when the box was ticked."""
+        if user_input.get(CONF_ALL_LINES) and key_kind(key) == "token":
+            await give_to_other_lines(self.hass, entry, key)
+
+
+class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,unused-ignore]
     """The dialog that adds a line (or, for a line that is set up, one more stop of it)."""
 
     VERSION = 2  # a line with its stops as subentries; a version 1 entry (one stop) is converted into a line at startup (migration.py)
@@ -372,9 +490,34 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         outcome = await self._finish(user_input)
         return outcome if not isinstance(outcome, str) else self._manual_form({"base": outcome})
 
+    def _key_entry(self) -> ConfigEntry:
+        """The entry whose key is replaced: the one a reauth was started for, or the one *Reconfigure* was chosen on."""
+        if self.source == config_entries.SOURCE_REAUTH:
+            entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+            if entry is None:
+                raise RuntimeError("the entry of the reauth is gone")
+            return entry
+        return self._get_reconfigure_entry()
+
+    def _key_done(self) -> ConfigFlowResult:
+        """The key is replaced: a reauth is successful, a reconfiguration ends."""
+        return self.async_abort(reason="reauth_successful" if self.source == config_entries.SOURCE_REAUTH else "reconfigure_successful")
+
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
-        """Home Assistant starts this when the City rejects the key of an entry: it asks for a new key."""
+        """Home Assistant starts this when the City rejects the key of an entry (and when an old key is found, as the City's old API is gone):
+        it asks for a new key; an old key may also be replaced by a token another line has."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if entry is not None and key_can_change(entry) and self._offers_reuse(entry):
+            return self._key_menu("reauth_menu", ["reauth_confirm", "reauth_reuse"], entry)
         return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_menu(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Home Assistant wants a step for every menu it shows (a choice is routed past it): the same menu again."""
+        return self._key_menu("reauth_menu", ["reauth_confirm", "reauth_reuse"], self._key_entry())
+
+    async def async_step_reauth_reuse(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Use the token another line has for the entry of the reauth (see ``KeyChoice``)."""
+        return await self._reuse_step("reauth_reuse", user_input)  # type: ignore[no-any-return]
 
     async def async_step_reauth_confirm(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """Ask for a new API key or token for an entry whose key the City rejects; the rest of the entry stays."""
@@ -387,15 +530,32 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             error, self.key_works = await key_error(self.hass, entry, key)
             if error is None or self.key_works:  # that the line does not run today is not the key's fault
                 save_key(self.hass, entry, key)
+                await self._also_for_other_lines(entry, key, user_input)
                 return self.async_abort(reason="reauth_successful")
             errors["base"] = error
         return self.async_show_form(
-            step_id="reauth_confirm", data_schema=_form({vol.Required(CONF_API_KEY): str}), errors=errors
+            step_id="reauth_confirm", data_schema=_form({vol.Required(CONF_API_KEY): str, **self._all_lines_field(entry)}), errors=errors
         )
 
     async def async_step_reconfigure(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
-        """*Reconfigure* on a line (Home Assistant's own menu item): replace its API key or token, nudging an old key to a token."""
+        """*Reconfigure* on a line (Home Assistant's own menu item): replace its API key or token, nudging an old key to a token.
+        An old key, when another line has a token, first offers to use that token."""
+        entry = self._get_reconfigure_entry()
+        if user_input is None and key_can_change(entry) and self._offers_reuse(entry):
+            return self._key_menu("reconfigure_menu", ["reconfigure_form", "reconfigure_reuse"], entry)
         return await self._reconfigure_key(user_input)
+
+    async def async_step_reconfigure_menu(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Home Assistant wants a step for every menu it shows (a choice is routed past it): the same menu again."""
+        return self._key_menu("reconfigure_menu", ["reconfigure_form", "reconfigure_reuse"], self._key_entry())
+
+    async def async_step_reconfigure_form(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """The form of the new key, chosen from the menu of *Reconfigure*."""
+        return await self._reconfigure_key(None)
+
+    async def async_step_reconfigure_reuse(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Use the token another line has for the entry of *Reconfigure* (see ``KeyChoice``)."""
+        return await self._reuse_step("reconfigure_reuse", user_input)  # type: ignore[no-any-return]
 
     async def async_step_reconfigure_token(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """The same step for an entry that already has a token: its form does not ask for an old key."""
@@ -415,11 +575,12 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
             if error is None or works:  # that the line does not run today is not the key's fault
                 save_key(self.hass, entry, key)
                 await close_reauth(self.hass, entry)
+                await self._also_for_other_lines(entry, key, user_input)
                 return self.async_abort(reason="reconfigure_successful")
             errors["base"] = error
         return self.async_show_form(
             step_id="reconfigure" if key_kind(api_key) == "legacy" else "reconfigure_token",
-            data_schema=_form({vol.Required(CONF_API_KEY): str}),
+            data_schema=_form({vol.Required(CONF_API_KEY): str, **self._all_lines_field(entry)}),
             errors=errors,
             description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
         )
@@ -526,16 +687,40 @@ async def close_reauth(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
 
 
-class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
+class ZtmWarsawOptionsFlow(KeyChoice, config_entries.OptionsFlow):
     """*Configure*: replace the API key or token of the entry, e.g. an old key by a token of the new API."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Keep the entry whose key is changed."""
         self._config_entry = config_entry
 
+    def _key_entry(self) -> ConfigEntry:
+        """The entry *Configure* was chosen on."""
+        return self._config_entry
+
+    def _key_done(self) -> ConfigFlowResult:
+        """The key is replaced: the dialog ends and the options stay as they are."""
+        return self.async_create_entry(title="", data=dict(self._config_entry.options))
+
     async def async_step_init(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The step of *Configure* for an entry with an old (UUID) key: the form for the new key, nudging to a token. An entry that has a token gets ``async_step_token``; both go through ``_change_key``."""
+        """The step of *Configure* for an entry with an old (UUID) key: the form for the new key, nudging to a token (a menu first when
+        another line has a token that could be used). An entry that has a token gets ``async_step_token``; both go through ``_change_key``."""
+        entry = self._config_entry
+        if user_input is None and key_can_change(entry) and self._offers_reuse(entry):
+            return self._key_menu("menu", ["paste", "reuse"], entry)
         return await self._change_key(user_input)
+
+    async def async_step_menu(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Home Assistant wants a step for every menu it shows (a choice is routed past it): the same menu again."""
+        return self._key_menu("menu", ["paste", "reuse"], self._config_entry)
+
+    async def async_step_paste(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """The form of the new key, chosen from the menu of *Configure*."""
+        return await self._change_key(None)
+
+    async def async_step_reuse(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Use the token another line has (see ``KeyChoice``)."""
+        return await self._reuse_step("reuse", user_input)  # type: ignore[no-any-return]
 
     async def async_step_token(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
         """The same step for an entry that already has a token: its form does not ask for an old key."""
@@ -568,9 +753,10 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
             if error is None or works:  # that the line does not run today is not the key's fault
                 save_key(self.hass, entry, key)
                 await close_reauth(self.hass, entry)
+                await self._also_for_other_lines(entry, key, user_input)
                 return self.async_create_entry(title="", data=self._options_with(user_input, has_token))  # read after the key was saved: it may drop an option
             errors["base"] = error
-        schema: dict[Any, Any] = {vol.Required(CONF_API_KEY): str}
+        schema: dict[Any, Any] = {vol.Required(CONF_API_KEY): str, **self._all_lines_field(entry)}
         if has_token:
             schema = {
                 vol.Optional(CONF_API_KEY, default=""): str,

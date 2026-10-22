@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 
-from custom_components.ztm_warsaw import repairs
+from custom_components.ztm_warsaw import repairs, config_flow
 from custom_components.ztm_warsaw.const import DOMAIN
 
 from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN
@@ -331,7 +331,7 @@ async def test_e2e_41_a_line_for_which_the_city_refuses_the_token_keeps_its_old_
         """The City accepts the token for the first line and refuses it for the second."""
         return ("invalid_token_or_unavailable", False) if entry.entry_id == second.entry_id else (None, True)
 
-    with patch.object(repairs, "key_error", refuse_for_the_second):
+    with patch.object(repairs, "key_error", refuse_for_the_second), patch.object(config_flow, "key_error", refuse_for_the_second):
         await manager.async_configure(form["flow_id"], {"api_key": DEFAULT_TOKEN, "all_lines": True})
         await env.settle()
     assert (first.data["api_key"], second.data["api_key"]) == (DEFAULT_TOKEN, DEFAULT_KEY)

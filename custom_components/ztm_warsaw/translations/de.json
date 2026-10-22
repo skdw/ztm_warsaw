@@ -13,14 +13,16 @@
       "reauth_confirm": {
         "description": "Die API der Stadt Warschau lehnt den gespeicherten API-Schlüssel oder das Token ab. Gib einen neuen Schlüssel oder ein neues Token vom Open-Data-Portal ein. Die Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
-          "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau"
+          "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
+          "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
         }
       },
       "reconfigure": {
         "title": "Öffentlicher Nahverkehr Warschau",
         "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
-          "api_key": "API-Schlüssel oder Token"
+          "api_key": "API-Schlüssel oder Token",
+          "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
         }
       },
       "reconfigure_token": {
@@ -52,6 +54,36 @@
         "data": {
           "line": "Linie"
         }
+      },
+      "reauth_menu": {
+        "title": "Alter API-Schlüssel",
+        "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau, die nicht mehr funktioniert.**\n\nWähle, wie du ihn durch ein Token ersetzt. Ein Token bekommst du unter [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reauth_confirm": "Token einfügen",
+          "reauth_reuse": "Das Token einer anderen Linie verwenden"
+        }
+      },
+      "reconfigure_menu": {
+        "title": "Alter API-Schlüssel",
+        "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau, die nicht mehr funktioniert.**\n\nWähle, wie du ihn durch ein Token ersetzt. Ein Token bekommst du unter [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reconfigure_form": "Token einfügen",
+          "reconfigure_reuse": "Das Token einer anderen Linie verwenden"
+        }
+      },
+      "reauth_reuse": {
+        "title": "Das Token einer anderen Linie verwenden",
+        "description": "Es sind mehrere Token im Einsatz. Wähle das, das die Linie {line} verwenden soll: Jedes wird mit seinen letzten vier Zeichen und den Linien angezeigt, die es nutzen.",
+        "data": {
+          "token": "Token"
+        }
+      },
+      "reconfigure_reuse": {
+        "title": "Das Token einer anderen Linie verwenden",
+        "description": "Es sind mehrere Token im Einsatz. Wähle das, das die Linie {line} verwenden soll: Jedes wird mit seinen letzten vier Zeichen und den Linien angezeigt, die es nutzen.",
+        "data": {
+          "token": "Token"
+        }
       }
     },
     "error": {
@@ -78,7 +110,8 @@
       "unknown": "Ein unbekannter Fehler ist aufgetreten.",
       "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",
       "stop_added": "Die Haltestelle wurde zur bestehenden Konfiguration der Linie hinzugefügt. Sie verwendet die für diese Linie gespeicherten Zugangsdaten. Du kannst sie unter **Konfigurieren** ändern.",
-      "reconfigure_successful": "Die neuen Zugangsdaten wurden gespeichert und die Konfiguration neu geladen."
+      "reconfigure_successful": "Die neuen Zugangsdaten wurden gespeichert und die Konfiguration neu geladen.",
+      "reuse_rejected": "Die Stadt hat dieses Token für diese Linie nicht akzeptiert. Füge stattdessen ein Token ein."
     }
   },
   "options": {
@@ -87,7 +120,8 @@
         "title": "Öffentlicher Nahverkehr Warschau",
         "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
-          "api_key": "API-Schlüssel oder Token"
+          "api_key": "API-Schlüssel oder Token",
+          "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
         }
       },
       "token": {
@@ -96,6 +130,21 @@
         "data": {
           "api_key": "Token (leer lassen, um das aktuelle zu behalten)",
           "show_vehicles": "Fahrzeuge dieser Linie auf der Karte anzeigen"
+        }
+      },
+      "menu": {
+        "title": "Alter API-Schlüssel",
+        "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau, die nicht mehr funktioniert.**\n\nWähle, wie du ihn durch ein Token ersetzt. Ein Token bekommst du unter [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "paste": "Token einfügen",
+          "reuse": "Das Token einer anderen Linie verwenden"
+        }
+      },
+      "reuse": {
+        "title": "Das Token einer anderen Linie verwenden",
+        "description": "Es sind mehrere Token im Einsatz. Wähle das, das die Linie {line} verwenden soll: Jedes wird mit seinen letzten vier Zeichen und den Linien angezeigt, die es nutzen.",
+        "data": {
+          "token": "Token"
         }
       }
     },
@@ -111,7 +160,8 @@
       "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
     },
     "abort": {
-      "unknown": "Ein unbekannter Fehler ist aufgetreten."
+      "unknown": "Ein unbekannter Fehler ist aufgetreten.",
+      "reuse_rejected": "Die Stadt hat dieses Token für diese Linie nicht akzeptiert. Füge stattdessen ein Token ein."
     }
   },
   "entity": {
