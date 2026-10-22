@@ -19,7 +19,7 @@ from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
 from .coordinator import ZTMStopCoordinator
-from .entity import ZtmStopEntity
+from .entity import ZtmStopEntity, stop_place
 from .vehicles import MAX_AGE, WANTED_WITHIN, Vehicle, VehicleFeed, distance_m
 
 # What ``Status`` can say (the attribute is for a card or a template, in English like the other attributes).
@@ -132,12 +132,8 @@ class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
         if self._wanted_line() is None:  # not yet: another follower of the line may have made the feed hold a vehicle, but this departure is far
             return None
         vehicle = self._shown()
-        info = self._stop_info()
-        try:
-            stop_lat, stop_lon = float(info["szer_geo"]), float(info["dlug_geo"])
-        except (KeyError, TypeError, ValueError):
-            return None
-        return round(distance_m(vehicle.latitude, vehicle.longitude, stop_lat, stop_lon)) if vehicle else None
+        place = stop_place(self._stop_info())
+        return round(distance_m(vehicle.latitude, vehicle.longitude, *place)) if vehicle and place else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

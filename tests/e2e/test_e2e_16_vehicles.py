@@ -228,3 +228,12 @@ async def test_e2e_45_no_distance_while_the_departure_is_far_even_when_another_f
     state = env.hass.states.get(SENSOR)
     assert state.attributes["Status"] == "too_early"
     assert state.state == "unknown"
+
+
+@pytest.mark.parametrize("bad", [("nan", "21.0"), ("52.2", "inf"), ("95", "21.0"), ("52.2", "181"), ("x", "21.0")])
+async def test_e2e_45_a_stop_position_that_is_not_a_place_gives_no_distance(env, bad):
+    entry = await _entry(env, rows=[_row()])
+    coordinator = entry.runtime_data["coordinator"]
+    coordinator.data.stop_info = {**coordinator.data.stop_info, "szer_geo": bad[0], "dlug_geo": bad[1]}
+    await env.advance(seconds=31)
+    assert env.hass.states.get(SENSOR).state == "unknown", bad
