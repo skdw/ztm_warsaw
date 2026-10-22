@@ -1,10 +1,11 @@
-"""The vehicle of the next departure, as a pin on the map.
+"""How far the vehicle of the next departure is from the stop, in metres: a sensor, for automations ("the bus is 500 m away").
 
 A departure in the timetable names its brigade, and the City reports where every vehicle of a line and brigade is, so the
-vehicle that will make the next departure can be found and followed (``vehicles.py``). The entity is off by default; it
-asks the City for positions only once it is switched on and only while the next departure is near. When there is no
-vehicle to show (it has not started yet, the City does not report it, or its position is old) the entity has no position
-and its ``Status`` says why, instead of showing a place the vehicle is no longer at.
+vehicle that will make the next departure can be found (``vehicles.py``). The sensor is off by default; it asks the City
+for positions only once it is switched on and only while the next departure is near. It has no coordinates on purpose: the pins of
+the vehicles on the map are the business of the line (``geo_location.py``), and a position here would put the same vehicle on the
+map once more for every stop of the line. When there is no vehicle to measure (it has not started yet, the City does not report it,
+or its position is old) the sensor has no value and its ``Status`` says why.
 """
 
 from __future__ import annotations
@@ -12,18 +13,14 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.device_tracker import TrackerEntity  # type: ignore[attr-defined]  # exported at runtime in every version, but not declared so by 2026.10
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.const import UnitOfLength
+from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
 from .coordinator import ZTMStopCoordinator
 from .entity import ZtmStopEntity
-from .entries import runtimes
-from .runtime import ZtmConfigEntry
-from .vehicles import MAX_AGE, WANTED_WITHIN, Vehicle, VehicleFeed, distance_m, feed_for
-
-PARALLEL_UPDATES = 0  # the feed fetches the positions once for all the entities: nothing to limit per entity
+from .vehicles import MAX_AGE, WANTED_WITHIN, Vehicle, VehicleFeed, distance_m
 
 # What ``Status`` can say (the attribute is for a card or a template, in English like the other attributes).
 TRACKING = "tracking"
@@ -35,29 +32,23 @@ CITY_UNAVAILABLE = "city_unavailable"
 NO_TIMETABLE = "no_timetable"
 
 
-# Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
-async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
-    """Add the vehicle tracker of every stop whose key is a token (only the new host knows where the vehicles are)."""
-    for subentry_id, runtime in runtimes(config_entry).items():
-        client = runtime["client"]
-        if client.uses_token:
-            feed = feed_for(hass, client)
-            async_add_entities([ZTMVehicleTracker(runtime["coordinator"], feed)], config_subentry_id=subentry_id)
-
-
-class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
-    """The vehicle that will make the next departure of one line at one pole."""
+class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
+    """The distance in metres between the stop and the vehicle that will make the next departure of its line."""
 
     _attr_entity_registry_enabled_default = False  # it asks the City for positions: for those who want them
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.METERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator: ZTMStopCoordinator, feed: VehicleFeed):
-        """Name the tracker after its stop and put it on the device of that stop."""
+        """Name the sensor after its stop and put it on the device of that stop."""
         line, stop_id, stop_nr = coordinator.line, coordinator.stop_id, coordinator.stop_nr
         super().__init__(coordinator, line, stop_nr)
         self._feed = feed
-        self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_vehicle"
-        self._attr_name = f"Line {line} from {stop_id}/{stop_nr} Vehicle"
-        self._attr_translation_key = "vehicle"  # its icon is in icons.json
+        self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_vehicle_distance"
+        self._attr_name = f"Line {line} from {stop_id}/{stop_nr} Vehicle distance"
+        self._attr_translation_key = "vehicle_distance"  # its icon is in icons.json
 
     async def async_added_to_hass(self) -> None:
         """Follow the feed while the entity is on: the feed polls for it when its next departure is near."""
@@ -67,7 +58,7 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
 
     def _take_stop_name(self) -> None:
         """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
-        name = self._name_with_stop("Vehicle")
+        name = self._name_with_stop("Vehicle distance")
         if name:
             self._attr_name = name
 
@@ -82,6 +73,10 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
         """The positions (or the time) changed: show them."""
         self.async_write_ha_state()
 
+    def _walk(self) -> timedelta:
+        """The time the user needs to walk to the stop (none when no walking time is set)."""
+        return timedelta(minutes=self.coordinator.walking_minutes)
+
     def _next_departure(self) -> Any:
         """The departure the main sensor shows as the next one (the first that is not sooner than the walking time), or None
         (no timetable that may be shown, or none ahead)."""
@@ -91,12 +86,8 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
         upcoming = self.coordinator.upcoming(now + self._walk())
         return upcoming[0] if upcoming else None
 
-    def _walk(self) -> timedelta:
-        """The time the user needs to walk to the stop (none when no walking time is set)."""
-        return timedelta(minutes=self.coordinator.walking_minutes)
-
     def _wanted_line(self) -> str | None:
-        """The line to look for while the next departure is near (counting from when the user has to leave), else None
+        """The line to look for while the next departure is near (counted from when the user has to leave), else None
         (then nothing is asked of the City)."""
         departure = self._next_departure()
         if departure is None or not departure.brygada or departure.moment - dt_util.utcnow() > WANTED_WITHIN + self._walk():
@@ -116,7 +107,7 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
         return vehicle if vehicle is not None and vehicle.age(dt_util.utcnow()) <= MAX_AGE else None
 
     def _status(self) -> str:
-        """Why the tracker shows what it shows."""
+        """Why the sensor shows what it shows."""
         departure = self._next_departure()
         if departure is None:
             return NO_TIMETABLE
@@ -131,34 +122,26 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
         return OLD_POSITION if self._vehicle() is not None else NO_VEHICLE
 
     @property
-    def latitude(self) -> float | None:
-        """Where the vehicle is, or None when there is none to show."""
-        vehicle = self._shown()
-        return vehicle.latitude if vehicle else None
-
-    @property
-    def longitude(self) -> float | None:
-        """Where the vehicle is, or None when there is none to show."""
-        vehicle = self._shown()
-        return vehicle.longitude if vehicle else None
-
-    @property
     def available(self) -> bool:
         """Available while the coordinator holds a timetable that may be shown (without a vehicle the state is unknown)."""
         return self.coordinator.is_usable(dt_util.utcnow())
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """The status, and for a vehicle that is shown its number, brigade, the time of the position and how far it is from the stop."""
-        attrs: dict[str, Any] = {"Status": self._status(), "Line": self.coordinator.line}
+    def native_value(self) -> int | None:
+        """The distance in metres from the stop to the vehicle, or None when there is no vehicle to measure."""
         vehicle = self._shown()
-        if vehicle is None:
-            return attrs
-        attrs.update({"Vehicle number": vehicle.number, "Brigade": vehicle.brigade, "Position time": vehicle.moment.isoformat()})
         info = self._stop_info()
         try:
             stop_lat, stop_lon = float(info["szer_geo"]), float(info["dlug_geo"])
         except (KeyError, TypeError, ValueError):
-            return attrs
-        attrs["Distance to stop"] = round(distance_m(vehicle.latitude, vehicle.longitude, stop_lat, stop_lon))
+            return None
+        return round(distance_m(vehicle.latitude, vehicle.longitude, stop_lat, stop_lon)) if vehicle else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The status, and for a vehicle that is shown its number, brigade and the time of its position."""
+        attrs: dict[str, Any] = {"Status": self._status(), "Line": self.coordinator.line}
+        vehicle = self._shown()
+        if vehicle is not None:
+            attrs.update({"Vehicle number": vehicle.number, "Brigade": vehicle.brigade, "Position time": vehicle.moment.isoformat()})
         return attrs

@@ -7,7 +7,7 @@ This integration displays in Home Assistant when the next bus, tram or train of 
 | The next departure and the three after it | a sensor per stop |
 | What is going on, in words | a *Status* sensor ("The last departure of the day has gone") |
 | The first and the last departure of the day | attributes of the sensor |
-| The bus on the map (optional) | a *Vehicle* entity, needs a token |
+| Stops and vehicles on the map (vehicles optional) | pins for every pole and for each vehicle of a line, vehicles need a token |
 | The whole day in the calendar (optional) | a calendar entity |
 
 The integration displays **scheduled** departures. It does not know about delays or disruptions.

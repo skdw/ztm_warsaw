@@ -92,9 +92,10 @@
       },
       "token": {
         "title": "Warszawski Transport Publiczny",
-        "description": "**Zmień token dostępu do API.**\n\nJeśli dotychczasowy token wygasł lub chcesz go zastąpić, wklej nowy token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nUstawienia linii i przystanków zostaną zachowane.",
+        "description": "**Zmień token dostępu do API albo wybierz, co linia pokazuje na mapie.**\n\nAby wymienić token, wklej nowy ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zostaw pole puste, żeby zachować obecny token.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
-          "api_key": "Token"
+          "api_key": "Token (zostaw puste, aby zachować obecny)",
+          "show_vehicles": "Pokaż pojazdy tej linii na mapie"
         }
       }
     },
@@ -130,11 +131,9 @@
           "city_error": "Nie udało się pobrać rozkładu",
           "old_api": "Stare API nie działa: wymień klucz na token"
         }
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "name": "Pojazd"
+      },
+      "vehicle_distance": {
+        "name": "Odległość pojazdu"
       }
     }
   },

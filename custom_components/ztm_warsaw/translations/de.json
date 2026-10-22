@@ -92,9 +92,10 @@
       },
       "token": {
         "title": "Öffentlicher Nahverkehr Warschau",
-        "description": "**API-Zugriffstoken ändern.**\n\nWenn dein bisheriges Token abgelaufen ist oder du es ersetzen möchtest, füge ein neues Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "description": "**Ändere dein API-Zugangstoken oder wähle, was die Linie auf der Karte zeigt.**\n\nZum Ersetzen füge ein neues Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Lass das Feld leer, um das aktuelle Token zu behalten.\n\nDie Einstellungen der Linie und der Haltestellen bleiben erhalten.",
         "data": {
-          "api_key": "Token"
+          "api_key": "Token (leer lassen, um das aktuelle zu behalten)",
+          "show_vehicles": "Fahrzeuge dieser Linie auf der Karte anzeigen"
         }
       }
     },
@@ -130,11 +131,9 @@
           "city_error": "Fahrplan konnte nicht abgerufen werden",
           "old_api": "Die alte API funktioniert nicht mehr: Ersetze den Schlüssel durch ein Token"
         }
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "name": "Fahrzeug"
+      },
+      "vehicle_distance": {
+        "name": "Fahrzeugabstand"
       }
     }
   },

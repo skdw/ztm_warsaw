@@ -61,7 +61,7 @@
 
 La integración muestra en Home Assistant **cuándo sale de tu parada el próximo autobús, tranvía o tren**. Para cada línea en el punto de parada que elijas crea un sensor que puedes poner en un panel o usar en una automatización, por ejemplo para recibir un aviso cuando toca salir de casa. Usa los datos abiertos de la ciudad de Varsovia, así que no necesitas hardware adicional.
 
-La integración lee horarios, por eso muestra salidas **programadas**. No muestra retrasos ni incidencias, no tiene horarios de otros días que no sean el día de servicio actual y no planifica viajes (para eso está [wtp.waw.pl](https://wtp.waw.pl)). Con un token también puedes ver en el mapa el vehículo que hará la próxima salida.
+La integración lee horarios, por eso muestra salidas **programadas**. No muestra retrasos ni incidencias, no tiene horarios de otros días que no sean el día de servicio actual y no planifica viajes (para eso está [wtp.waw.pl](https://wtp.waw.pl)). Con un token también puedes ver en el mapa los vehículos de tus líneas.
 
 ---
 

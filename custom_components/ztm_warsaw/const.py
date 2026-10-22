@@ -10,6 +10,7 @@ CONF_BUSSTOP_ID = "busstop_id"
 CONF_BUSSTOP_NR = "busstop_nr"
 CONF_LINE = "line"
 CONF_DEPARTURES = "departures"  # still stored in the entry (the shape is frozen), no longer asked
+CONF_SHOW_VEHICLES = "show_vehicles"  # an option of a line: its vehicles are pins on the map (a token is needed)
 CONF_WALKING_TIME = "walking_time"  # minutes from the user to the stop, kept in the data of the stop (0: no walking time)
 MAX_WALKING_TIME = 120
 NEXT_DEPARTURES = 3  # the departures after the next one that the sensor lists (Next 1 ... Next 3)
@@ -28,4 +29,4 @@ def legacy_api_retired() -> bool:
     return LEGACY_API_RETIRED
 
 
-PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.DEVICE_TRACKER]
+PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.GEO_LOCATION]

@@ -23,8 +23,8 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Works with the City's new API**: log in with a token from the new portal, and each key goes only to the right server.
 - **Change your key any time**: **Configure** on an entry swaps the key or token, so there is nothing to remove and add again.
 - **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
-- **The stop on the map**: the sensor has `latitude` and `longitude`, so it shows as a pin on the map card.
-- **A badge with the line number**: on the map card the pin shows the line instead of odd initials like "L1M", in the colours of ZTM's own signs: ordinary lines light with a purple ring, fast ones red, night ones blue, trams light yellow. The same badge replaces the bus or tram icon in your cards.
+- **Stops and vehicles on the map**: every stop pole is one pin with a sign and its number, however many of your lines stop there, and the lines are written under it. A line can also show its vehicles as pins with the badge of the line (*Configure* on the line, token needed), so nothing is drawn twice.
+- **A badge with the line number**: a vehicle on the map shows the badge of its line, in the colours of ZTM's own signs: ordinary lines light with a purple ring, fast ones red, night ones blue, trams light yellow. The same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
 - **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
@@ -39,7 +39,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Reconfigure the key from Home Assistant's own menu**: *Reconfigure* on a line replaces its API key or token, like *Configure* does, and an old key is nudged to a token.
 - **Choose the token to reuse**: when your lines have different tokens, the notice about an old key lets you pick one by its last four characters and the lines that use it.
 - **When the first and the last bus is**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure` for the day, so a card can still say "the last bus left at 23:41" when the state is *unknown* after the last departure, after a restart or for a sensor added late.
-- **The vehicle on the map** (off by default, needs a token): switch on *Vehicle* in a stop's entity settings to see the bus or tram that will make the next departure as a pin, with its number and how far it is from the stop. When the City does not report it, it is not shown.
+- **How far the bus is** (off by default, needs a token): switch on *Vehicle distance* in a stop's entity settings to get the distance in metres of the vehicle that will make the next departure, for an automation such as "the bus is 500 m away".
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.

@@ -58,7 +58,6 @@ class BadgeStyle:
     text: str = "#ffffff"
     ring: str = "#ffffff"
     dashed: bool = False  # a dashed ring: a periodic line (3xx, 4xx, 8xx, E-x)
-    moon: bool = False  # a night line
 
 
 # The colour is the class of the line, as the City sets them apart on its posts and timetables: a dark number with a purple
@@ -73,7 +72,7 @@ _STYLES = {
     "zone": BadgeStyle(fill="#558b2f"),  # 7xx
     "zone periodic": BadgeStyle(fill="#558b2f", dashed=True),  # 8xx
     "special": BadgeStyle(fill="#607d8b"),  # 9xx, the replacement lines Z, the cemetery lines C
-    "night": BadgeStyle(fill="#34479a", moon=True),
+    "night": BadgeStyle(fill="#34479a"),
     "express": BadgeStyle(fill="#e64a19", dashed=True),  # E-x
     "local": BadgeStyle(fill="#00838f"),  # L-x
     "tram": BadgeStyle(fill="#ffe9a8", text="#2b2f36", ring="#f2a900"),
@@ -109,11 +108,28 @@ def get_line_badge(line: str) -> str | None:
     size = {1: 26, 2: 22, 3: 17}.get(len(code), 13)
     stroke = f'stroke="{style.ring}" stroke-width="3"' + (' stroke-dasharray="5 3"' if style.dashed else "")
     body = f'<circle cx="24" cy="24" r="22" fill="{style.fill}" {stroke}/>'
-    moon = '<path transform="translate(7 0) scale(.8)" d="M38 7a6 6 0 1 0 4 9a5 5 0 1 1-4-9z" fill="#ffd54f"/>' if style.moon else ""
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
-        f"{body}{moon}"
+        f"{body}"
         f'<text x="24" y="25" fill="{style.text}" font-family="Arial,sans-serif" font-weight="700" font-size="{size}" '
         f'text-anchor="middle" dominant-baseline="central">{code}</text></svg>'
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+
+def get_stop_badge(pole: str) -> str | None:
+    """The badge of a stop pole as a data URI, the pin of the stop on the map card: a sign with the number of the pole on a post, in a
+    navy circle (a circle, because Home Assistant crops a picture of an entity to one). It is told apart from the badge of a line, which
+    is a colour with the number of the line. None for a pole that is not one or two digits, so nothing unchecked is written into the image."""
+    if not re.fullmatch(r"\d{1,2}", pole):
+        return None
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
+        '<circle cx="24" cy="24" r="22" fill="#1d3557" stroke="#ffffff" stroke-width="3"/>'
+        '<rect x="9" y="7" width="30" height="20" rx="3" fill="#ffd54f"/>'
+        f'<text x="24" y="17.5" fill="#1d3557" font-family="Arial,sans-serif" font-weight="800" font-size="15" text-anchor="middle" dominant-baseline="central">{pole}</text>'
+        '<rect x="22.4" y="27" width="3.2" height="12" fill="#ffffff"/>'
+        '<rect x="16" y="38.5" width="16" height="2.6" rx="1.3" fill="#ffffff"/>'
+        "</svg>"
     )
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()

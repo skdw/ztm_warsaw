@@ -61,7 +61,7 @@
 
 L’intégration affiche dans Home Assistant **l’heure du prochain bus, tramway ou train à votre arrêt**. Pour chaque ligne au point d’arrêt choisi, elle crée un capteur que vous pouvez placer sur un tableau de bord ou utiliser dans une automatisation, par exemple pour recevoir une notification quand il est temps de partir. Elle utilise les données ouvertes de la ville de Varsovie : aucun matériel supplémentaire n’est nécessaire.
 
-L’intégration lit les horaires, elle affiche donc des départs **prévus**. Elle ne montre ni retards ni perturbations, ne connaît pas les horaires des autres jours que la journée de service en cours et ne calcule pas d’itinéraire (pour cela, voir [wtp.waw.pl](https://wtp.waw.pl)). Avec un jeton, vous pouvez aussi voir sur la carte le véhicule qui assurera le prochain départ.
+L’intégration lit les horaires, elle affiche donc des départs **prévus**. Elle ne montre ni retards ni perturbations, ne connaît pas les horaires des autres jours que la journée de service en cours et ne calcule pas d’itinéraire (pour cela, voir [wtp.waw.pl](https://wtp.waw.pl)). Avec un jeton, vous pouvez aussi voir sur la carte les véhicules de vos lignes.
 
 ---
 

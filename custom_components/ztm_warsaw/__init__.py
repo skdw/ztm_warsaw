@@ -9,7 +9,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS, legacy_api_retired
@@ -138,6 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
 
     for sid in waiting:
         entry.async_on_unload(built[sid]["coordinator"].async_add_listener(_on_update))
+    _forget_the_trackers_of_b6(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     seen = _snapshot(entry)
     seen_refs = {unit.ref for unit in units}
@@ -248,6 +249,15 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
+
+
+def _forget_the_trackers_of_b6(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """1.2.0b6 had a device tracker of the next vehicle at every stop; the pins of the vehicles are the line's now, and the distance is a sensor.
+    The registry entries of those trackers would stay behind as entities that nothing provides: they are removed."""
+    registry = er.async_get(hass)
+    for tracker in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if tracker.domain == "device_tracker" and tracker.platform == DOMAIN:
+            registry.async_remove(tracker.entity_id)
 
 
 def _legacy_severity() -> ir.IssueSeverity:

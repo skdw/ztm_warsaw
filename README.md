@@ -61,7 +61,7 @@
 
 The integration displays in Home Assistant **when the next bus, tram or train leaves your stop**. For every line at the stop pole you choose, it creates one sensor that you can put on a dashboard or use in an automation, for example to get a notification when it is time to leave home. It uses the City of Warsaw's open data, so you need no extra hardware.
 
-The integration reads timetables, so it displays **scheduled** departures. It does not show delays or disruptions, it has no timetables for days other than the current service day, and it does not plan journeys (use [wtp.waw.pl](https://wtp.waw.pl) for that). With a token you can also see on the map the vehicle that will make the next departure.
+The integration reads timetables, so it displays **scheduled** departures. It does not show delays or disruptions, it has no timetables for days other than the current service day, and it does not plan journeys (use [wtp.waw.pl](https://wtp.waw.pl) for that). With a token you can also see the vehicles of your lines on the map.
 
 ---
 

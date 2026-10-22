@@ -92,9 +92,10 @@
       },
       "token": {
         "title": "Warsaw Public Transport",
-        "description": "**Change your API access token.**\n\nIf your current token has expired or you want to replace it, paste a new token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nYour line and stop settings will be preserved.",
+        "description": "**Change your API access token, or choose what the line shows on the map.**\n\nTo replace the token, paste a new one from [dane.um.warszawa.pl/pl/key-api]({portal}). Leave the field empty to keep the current token.\n\nYour line and stop settings will be preserved.",
         "data": {
-          "api_key": "Token"
+          "api_key": "Token (leave empty to keep the current one)",
+          "show_vehicles": "Show the vehicles of this line on the map"
         }
       }
     },
@@ -130,11 +131,9 @@
           "city_error": "Could not get the timetable",
           "old_api": "The old API no longer works: replace the key with a token"
         }
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "name": "Vehicle"
+      },
+      "vehicle_distance": {
+        "name": "Vehicle distance"
       }
     }
   },

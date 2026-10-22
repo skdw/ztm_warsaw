@@ -92,9 +92,10 @@
       },
       "token": {
         "title": "Trasporto pubblico di Varsavia",
-        "description": "**Modifica il token di accesso all’API.**\n\nSe il token attuale è scaduto o vuoi sostituirlo, incolla un nuovo token da [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
+        "description": "**Cambia il token di accesso all’API o scegli cosa mostra la linea sulla mappa.**\n\nPer sostituire il token, incolla un token nuovo da [dane.um.warszawa.pl/pl/key-api]({portal}). Lascia il campo vuoto per tenere il token attuale.\n\nLe impostazioni della linea e delle fermate restano.",
         "data": {
-          "api_key": "Token"
+          "api_key": "Token (lascia vuoto per tenere quello attuale)",
+          "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
         }
       }
     },
@@ -130,11 +131,9 @@
           "city_error": "Impossibile ottenere l’orario",
           "old_api": "La vecchia API non funziona più: sostituisci la chiave con un token"
         }
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "name": "Veicolo"
+      },
+      "vehicle_distance": {
+        "name": "Distanza del veicolo"
       }
     }
   },

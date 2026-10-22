@@ -7,7 +7,6 @@ state only when it changed. The names of the attributes are part of the public c
 
 import logging
 from typing import Any
-import math
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from homeassistant.util import dt as dt_util
@@ -28,6 +27,8 @@ from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
 from .entity import ZtmStopEntity, timetable_url as _timetable_url
 from .runtime import ZtmConfigEntry
+from .vehicle_sensor import ZTMVehicleDistanceSensor
+from .vehicles import feed_for
 from .models import ZTMDepartureDataReading, WARSAW, in_swap_window, next_swap_boundary, next_warsaw_midnight
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,15 +62,9 @@ _STOP_ATTRIBUTES = {
 
 
 def _stop_attributes(stop_info: dict[str, Any]) -> dict[str, Any]:
-    """The attributes that describe the stop; its position (``latitude`` and ``longitude``) only when it is a real place, so it can be a pin on the map."""
-    attrs = {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
-    try:  # the standard names, so that the stop is a pin on Home Assistant's map card
-        latitude, longitude = float(stop_info["szer_geo"]), float(stop_info["dlug_geo"])
-    except (KeyError, TypeError, ValueError):
-        return attrs
-    if not (math.isfinite(latitude) and math.isfinite(longitude) and -90 <= latitude <= 90 and -180 <= longitude <= 180):
-        return attrs  # not a place ("nan" parses as a float, and a NaN would make every update look like a change)
-    return {**attrs, "latitude": latitude, "longitude": longitude}
+    """The attributes that describe the stop. They carry no ``latitude`` and ``longitude`` on purpose: a sensor with a position is a pin on the map,
+    and a stop pole served by several lines would then be drawn once for each (the pole is one pin of the map layer, ``geo_location.py``)."""
+    return {name: stop_info.get(key, NOT_AVAILABLE) for name, key in _STOP_ATTRIBUTES.items()}
 
 
 def _departure_attrs(label: str, dep: ZTMDepartureDataReading, day: str, time_str: str | None = None) -> dict[str, Any]:
@@ -593,7 +588,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
                 for position in range(1, NEXT_DEPARTURES + 1)
             ]
             status = ZTMStatusSensor(coordinator, line, stop_id, stop_number)
-            async_add_entities([entity, status, diag_sensor, *following], config_subentry_id=subentry_id)
+            client = runtime["client"]
+            distance = [ZTMVehicleDistanceSensor(coordinator, feed_for(hass, client))] if client.uses_token else []
+            async_add_entities([entity, status, diag_sensor, *following, *distance], config_subentry_id=subentry_id)
 
             _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s", line, stop_id, stop_number)
 

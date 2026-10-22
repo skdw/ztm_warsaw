@@ -128,8 +128,6 @@ GOLDEN_ENTITY_ATTRS_WITH_SERVICE = {
     "Stop, Street ID",
     "Stop, Latitude",
     "Stop, Longitude",
-    "latitude",  # the standard names: the stop is a pin on the map card
-    "longitude",
     "Stop, Timezone",
     "attribution",
     "device_class",
@@ -154,8 +152,6 @@ GOLDEN_ENTITY_ATTRS_NO_SERVICE = {
     "Stop, Street ID",
     "Stop, Latitude",
     "Stop, Longitude",
-    "latitude",  # the standard names: the stop is a pin on the map card
-    "longitude",
     "Stop, Timezone",
     "attribution",
     "device_class",
@@ -483,10 +479,12 @@ async def test_e2e_05_the_options_flow_does_not_ask_for_the_number_of_departures
     assert "departures" not in [str(k) for k in form["data_schema"].schema]
 
 
-async def test_e2e_05_the_stop_is_a_pin_on_the_map(env):
+async def test_e2e_05_a_line_sensor_has_no_position_so_a_pole_is_not_drawn_once_for_each_line(env):
     await env.add_entry()
     attrs = env.state().attributes
-    assert (attrs["latitude"], attrs["longitude"]) == (float(attrs["Stop, Latitude"]), float(attrs["Stop, Longitude"]))
+    assert "latitude" not in attrs
+    assert "longitude" not in attrs
+    assert float(attrs["Stop, Latitude"]) and float(attrs["Stop, Longitude"]), "the stop's position is still an attribute to read"
 
 
 async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env):
@@ -686,15 +684,13 @@ async def test_e2e_05_the_same_key_again_still_reloads_the_entry_once(env):
     assert reload.call_count == 1, "no data changed, so no listener: Configure schedules the reload itself"
 
 
-async def test_e2e_05_a_stop_position_that_is_not_a_place_is_not_published():
+async def test_e2e_05_the_stop_attributes_carry_the_position_under_their_own_names_only():
     from custom_components.ztm_warsaw.sensor import _stop_attributes
 
-    ok = _stop_attributes({"szer_geo": "52.2", "dlug_geo": "21.0"})
-    assert (ok["latitude"], ok["longitude"]) == (52.2, 21.0)
-    for bad in (("nan", "21"), ("52", "inf"), ("91", "21"), ("52", "181"), ("x", "21"), (None, None)):
-        attrs = _stop_attributes({"szer_geo": bad[0], "dlug_geo": bad[1]})
-        assert "latitude" not in attrs, bad
-        assert "longitude" not in attrs, bad
+    attrs = _stop_attributes({"szer_geo": "52.2", "dlug_geo": "21.0"})
+    assert (attrs["Stop, Latitude"], attrs["Stop, Longitude"]) == ("52.2", "21.0")
+    assert "latitude" not in attrs
+    assert "longitude" not in attrs
 
 
 async def test_e2e_05_configure_aborts_for_an_entry_whose_data_cannot_be_read(env):
