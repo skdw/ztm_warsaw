@@ -27,7 +27,8 @@
         "title": "¿Qué parada?",
         "description": "Escribe parte del nombre de la parada (o su ID).",
         "data": {
-          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)"
+          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)",
+          "manual": "Conozco los números: los introduciré yo"
         }
       },
       "pick": {

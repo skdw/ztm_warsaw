@@ -453,6 +453,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         self._line = ""
         self._query = ""
         self._tokens: list[tuple[str, list[str]]] = []
+        self._offered: list[str] = []  # the tokens the choice screen showed, in that order
         self._found: list[dict[str, Any]] = []  # the poles the search found
         self._stop_poles: list[dict[str, Any]] = []  # the poles of the stop picked that have lines today, each with where it goes
         self._pole_lines: list[str] = []  # the lines of the pole picked
@@ -497,20 +498,23 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         return self._user_form()
 
     async def async_step_use_token(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The menu's first choice: the token that is in use (when more than one is, which of them is asked first)."""
+        """The menu's first choice: the token that is in use (when more than one is, which of them is asked first). What was offered
+        is remembered, so that a token removed meanwhile cannot make the choice mean another one."""
         self._tokens = tokens_in_use(self.hass)
         if not self._tokens:  # the token was removed while the menu was open
             return self._user_form()
         if len(self._tokens) > 1 and user_input is None:
+            self._offered = [key for key, _lines in self._tokens]
             choices = [SelectOptionDict(value=n, label=label) for n, label in token_choices(self._tokens).items()]
             schema = _form(
                 {vol.Required(CONF_TOKEN, default=choices[0]["value"]): SelectSelector(SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST))}
             )
             return self.async_show_form(step_id="use_token", data_schema=schema)
+        offered = self._offered if user_input else [key for key, _lines in self._tokens]
         number = int(user_input[CONF_TOKEN]) if user_input else 0
-        if number >= len(self._tokens):  # a token was removed while the choice was open
+        if number >= len(offered) or offered[number] not in dict(self._tokens):  # that token is gone: ask again what is left
             return self._token_menu()
-        self._key = self._tokens[number][0]
+        self._key = offered[number]
         return self._stop_form()
 
     def _asks_for_vehicles(self) -> bool:
@@ -519,14 +523,15 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
 
     def _stop_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
         """The second step: part of the stop's name (or its ID)."""
-        return self.async_show_form(
-            step_id="stop", data_schema=_form({vol.Required(CONF_QUERY, default=self._query): str}), errors=errors or {}
-        )
+        schema = _form({vol.Required(CONF_QUERY, default=self._query): str, vol.Optional(CONF_MANUAL, default=False): bool})
+        return self.async_show_form(step_id="stop", data_schema=schema, errors=errors or {})
 
     async def async_step_stop(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The catalogue of stops is searched for what was typed; the stops found are offered next (one found is not asked about)."""
         if user_input is None:
             return self._stop_form()
+        if user_input.get(CONF_MANUAL):  # also with a token picked from those in use: its numbers can be typed too
+            return await self.async_step_manual()
         self._query = user_input[CONF_QUERY].strip()
         readable, poles = await search_poles(self.hass, self._key, self._query)
         if readable is not True:  # the list of stops could not be read: the numbers can still be typed

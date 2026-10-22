@@ -27,7 +27,8 @@
         "title": "Quel arrêt ?",
         "description": "Saisissez une partie du nom de l’arrêt (ou son ID).",
         "data": {
-          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)"
+          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)",
+          "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "pick": {

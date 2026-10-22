@@ -27,7 +27,8 @@
         "title": "Which stop?",
         "description": "Type part of the stop's name (or its ID).",
         "data": {
-          "query": "Stop name or ID (e.g. Rondo Daszyńskiego or 3044)"
+          "query": "Stop name or ID (e.g. Rondo Daszyńskiego or 3044)",
+          "manual": "I know the numbers: let me enter them myself"
         }
       },
       "pick": {

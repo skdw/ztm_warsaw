@@ -395,3 +395,26 @@ async def test_e2e_43_a_token_picked_by_a_number_that_is_gone_shows_the_menu_aga
     await env.hass.config_entries.async_remove(other.entry_id)
     again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "1"})
     assert (again["type"], again["step_id"]) == ("menu", "user_existing")
+
+
+async def test_e2e_43_the_numbers_can_be_typed_with_a_token_picked_from_those_in_use(env):
+    first = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    menu = await _first(env)
+    search = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert [str(k) for k in search["data_schema"].schema] == ["query", "manual"]
+    manual = await env.hass.config_entries.flow.async_configure(search["flow_id"], {"query": "", "manual": True})
+    assert manual["step_id"] == "manual"
+    done = await env.hass.config_entries.flow.async_configure(manual["flow_id"], {"busstop_id": 7009, "busstop_nr": "02", "line": LINE})
+    assert (done["type"], done["reason"]) == ("abort", "stop_added")
+    assert first.data["api_key"] == DEFAULT_TOKEN
+
+
+async def test_e2e_43_a_choice_of_tokens_means_the_token_that_was_shown_even_when_another_one_is_removed(env):
+    gone = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    kept_token = DEFAULT_TOKEN[:-4] + "ZZZZ"
+    await env.add_entry(api_key=kept_token, line="523")
+    menu = await _first(env)
+    pick = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    await env.hass.config_entries.async_remove(gone.entry_id)  # the token that was number 0 on the screen
+    again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "0"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing"), "token 0 was the removed one: nothing is guessed"

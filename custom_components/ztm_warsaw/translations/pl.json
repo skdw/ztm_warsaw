@@ -27,7 +27,8 @@
         "title": "Który przystanek?",
         "description": "Wpisz fragment nazwy przystanku (albo jego ID).",
         "data": {
-          "query": "Nazwa lub ID przystanku (np. Rondo Daszyńskiego albo 3044)"
+          "query": "Nazwa lub ID przystanku (np. Rondo Daszyńskiego albo 3044)",
+          "manual": "Znam numery: wpiszę je sam"
         }
       },
       "pick": {

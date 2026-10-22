@@ -27,7 +27,8 @@
         "title": "Welche Haltestelle?",
         "description": "Tippe einen Teil des Haltestellennamens (oder die ID).",
         "data": {
-          "query": "Haltestellenname oder ID (z. B. Rondo Daszyńskiego oder 3044)"
+          "query": "Haltestellenname oder ID (z. B. Rondo Daszyńskiego oder 3044)",
+          "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
       "pick": {
