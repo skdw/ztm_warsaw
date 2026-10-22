@@ -1,6 +1,6 @@
 # 🚍 Warsaw Public Transport (ztm_warsaw)
 
-A Home Assistant integration that shows when the next bus, tram or train of **one line leaves one stop pole in Warsaw**. It reads the City of Warsaw's open data, so it needs no extra hardware. You get a sensor for your dashboard and for automations such as "tell me when to leave".
+This integration displays in Home Assistant when the next bus, tram or train of **one line leaves one stop pole in Warsaw**. It reads the City of Warsaw's open data, so you need no extra hardware. For each line at a stop it creates a sensor that you can put on a dashboard and use in automations, for example one that tells you when to leave.
 
 | You get | How |
 |---|---|
@@ -10,7 +10,7 @@ A Home Assistant integration that shows when the next bus, tram or train of **on
 | The bus on the map (optional) | a *Vehicle* entity, needs a token |
 | The whole day in the calendar (optional) | a calendar entity |
 
-It shows **scheduled** departures. There are no delays or disruption alerts.
+The integration displays **scheduled** departures. It does not know about delays or disruptions.
 
 ## Quick start
 
