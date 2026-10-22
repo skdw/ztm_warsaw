@@ -16,7 +16,6 @@ a map card lists them with ``geo_location_sources: [ztm_warsaw]``.
 from __future__ import annotations
 
 import logging
-import math
 from collections.abc import Callable
 from typing import Any
 
@@ -26,7 +25,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_SHOW_VEHICLES, DOMAIN
 from .coordinator import ZTMStopCoordinator
-from .entity import stop_info_of
+from .entity import stop_info_of, stop_place
 from .entries import runtimes
 from .runtime import ZtmConfigEntry
 from .utils import get_line_badge, get_stop_badge
@@ -42,17 +41,6 @@ LAYERS_KEY = f"{DOMAIN}_map"  # in hass.data: the MapLayers of the instance
 def _line_order(line: str) -> tuple[int, int, str]:
     """The order lines are listed in: numbers first (126 before 176), then the others (N64, S3)."""
     return (0, int(line), line) if line.isdigit() else (1, 0, line)
-
-
-def _place(info: dict[str, Any]) -> tuple[float, float] | None:
-    """The latitude and longitude in a stop's record, or None when it is not a real place (a NaN would make every update look like a change)."""
-    try:
-        latitude, longitude = float(info["szer_geo"]), float(info["dlug_geo"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    if math.isfinite(latitude) and math.isfinite(longitude) and -90 <= latitude <= 90 and -180 <= longitude <= 180:
-        return latitude, longitude
-    return None
 
 
 class _Pin(GeolocationEvent):
@@ -163,7 +151,7 @@ class MapLayers:
             for runtime in runtimes(entry).values():
                 coordinator: ZTMStopCoordinator = runtime["coordinator"]
                 info = stop_info_of(coordinator)
-                place = _place(info)
+                place = stop_place(info)
                 if place is None:
                     continue
                 pole = (str(coordinator.stop_id), str(coordinator.stop_nr))
