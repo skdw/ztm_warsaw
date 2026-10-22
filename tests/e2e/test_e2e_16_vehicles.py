@@ -256,3 +256,16 @@ async def test_e2e_45_a_distance_sensor_that_an_earlier_version_left_disabled_is
     await env.hass.config_entries.async_reload(entry.entry_id)
     await env.settle()
     assert env.entity_registry.async_get(SENSOR).disabled_by == RegistryEntryDisabler.USER
+
+
+async def test_e2e_45_a_customized_distance_sensor_is_only_switched_off_when_the_vehicles_go_and_comes_back_as_it_was(env):
+    entry = await _entry(env, rows=[_row()])
+    env.entity_registry.async_update_entity(SENSOR, name="Bus is near")
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: False})
+    await env.settle()
+    kept = env.entity_registry.async_get(SENSOR)
+    assert (kept.name, kept.disabled_by) == ("Bus is near", RegistryEntryDisabler.INTEGRATION)
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: True})
+    await env.settle()
+    back = env.entity_registry.async_get(SENSOR)
+    assert (back.name, back.disabled_by) == ("Bus is near", None)

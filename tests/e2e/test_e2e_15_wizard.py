@@ -418,3 +418,16 @@ async def test_e2e_43_a_choice_of_tokens_means_the_token_that_was_shown_even_whe
     await env.hass.config_entries.async_remove(gone.entry_id)  # the token that was number 0 on the screen
     again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "0"})
     assert (again["type"], again["step_id"]) == ("menu", "user_existing"), "token 0 was the removed one: nothing is guessed"
+
+
+async def test_e2e_43_a_menu_that_showed_one_token_does_not_use_another_one_that_is_left_after_a_removal(env):
+    gone = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")
+    # one token is shown by the menu when the other line has none of its own: remove the second and start again
+    await env.hass.config_entries.async_remove(next(e for e in env.hass.config_entries.async_entries(DOMAIN) if e.data["line"] == "523").entry_id)
+    menu = await _first(env)
+    assert DEFAULT_TOKEN[-4:] in menu["description_placeholders"]["tokens"]
+    await env.hass.config_entries.async_remove(gone.entry_id)
+    await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")  # a different token is now the only one
+    again = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing"), "the token the menu showed is gone: nothing is guessed"

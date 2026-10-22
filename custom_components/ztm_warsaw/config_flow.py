@@ -467,7 +467,9 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
 
     def _token_menu(self) -> ConfigFlowResult:
-        """The first screen when a line is set up with a token already: use that token, or paste another."""
+        """The first screen when a line is set up with a token already: use that token, or paste another. The tokens it stands for are
+        remembered, so that a choice made later cannot mean a token that took their place."""
+        self._offered = [key for key, _lines in self._tokens]
         return self.async_show_menu(
             step_id="user_existing",
             menu_options=["use_token", "paste_token"],
@@ -510,7 +512,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 {vol.Required(CONF_TOKEN, default=choices[0]["value"]): SelectSelector(SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST))}
             )
             return self.async_show_form(step_id="use_token", data_schema=schema)
-        offered = self._offered if user_input else [key for key, _lines in self._tokens]
+        offered = self._offered or [key for key, _lines in self._tokens]
         number = int(user_input[CONF_TOKEN]) if user_input else 0
         if number >= len(offered) or offered[number] not in dict(self._tokens):  # that token is gone: ask again what is left
             return self._token_menu()

@@ -572,12 +572,24 @@ def _enable_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) 
             registry.async_update_entity(entity.entity_id, disabled_by=None)
 
 
-def _remove_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
-    """Take the distance sensors of the entry out of the registry: the line does not show its vehicles (any more)."""
+def _customized(entity: er.RegistryEntry) -> bool:
+    """Whether the user changed something of an entity: its name, its icon, its ID, or switched it off themselves."""
+    return bool(
+        entity.name or entity.icon or entity.disabled_by == er.RegistryEntryDisabler.USER or entity.entity_id != f"sensor.{entity.unique_id}"
+    )
+
+
+def _retire_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
+    """The line does not show its vehicles (any more): a distance sensor that nobody changed leaves the registry, one that the user
+    customized is only switched off by the integration, so that its name, ID and settings are there when the vehicles come back."""
     registry = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
-        if entity.domain == "sensor" and entity.platform == DOMAIN and entity.unique_id.endswith("_vehicle_distance"):
+        if entity.domain != "sensor" or entity.platform != DOMAIN or not entity.unique_id.endswith("_vehicle_distance"):
+            continue
+        if not _customized(entity):
             registry.async_remove(entity.entity_id)
+        elif entity.disabled_by is None:
+            registry.async_update_entity(entity.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
@@ -587,7 +599,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
     if shows_vehicles:
         _enable_distance_sensors(hass, config_entry)
     else:
-        _remove_distance_sensors(hass, config_entry)
+        _retire_distance_sensors(hass, config_entry)
     try:
         for subentry_id, runtime in runtimes(config_entry).items():
             coordinator: ZTMStopCoordinator = runtime["coordinator"]
