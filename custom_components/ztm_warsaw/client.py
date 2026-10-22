@@ -460,10 +460,10 @@ class ZTMStopClient:
                 chunks.append(chunk)
             text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
             if 500 <= resp.status <= 599 and attempt < self._max_retries:
-                _LOGGER.warning("HTTP %s from %s; retrying (%s/%s)", resp.status, url, attempt + 1, self._max_retries)
+                self._say_failed(url, f"HTTP {resp.status}", attempt, final=False)
                 return _RETRY
             if resp.status != 200:
-                _LOGGER.error("HTTP %s from %s", resp.status, url)
+                self._say_failed(url, f"HTTP {resp.status}", attempt, final=True)
                 return None
             if not expect_json:
                 return text

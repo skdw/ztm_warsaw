@@ -555,3 +555,15 @@ async def test_e2e_16_a_long_outage_is_said_once_and_asked_less_and_less_often(e
     caplog.clear()
     await env.advance(seconds=3700)
     assert any("answers again" in r.getMessage() for r in caplog.records)
+
+
+async def test_e2e_16_an_outage_with_http_errors_is_said_once_like_one_with_resets(env, caplog):
+    """The City answering 500 for hours is an outage too: the log says so once."""
+    caplog.set_level(logging.DEBUG)
+    await env.add_entry()
+    env.city.always(None, Http(500))
+    caplog.clear()
+    await env.advance(seconds=3600 * 3)
+    loud = [r for r in caplog.records if r.levelno >= logging.WARNING and r.name.startswith("custom_components.ztm_warsaw")]
+    assert 0 < len(loud) <= 8, f"said at the start of the outage, not at every try: {[r.getMessage()[:70] for r in loud]}"
+    assert any("HTTP 500" in r.getMessage() for r in caplog.records), "and the status is in the message"
