@@ -47,3 +47,4 @@ after the colon.
 - [ ] Lint, type check and tests that exist for the code I touched pass locally (`ruff check .`, `mypy custom_components/ztm_warsaw`, `pytest`)
 - [ ] Domain, config entry keys, unique IDs, device identifiers and attribute names are unchanged, or a migration is included
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` for any user-visible change
+- [ ] A user-facing text is changed in all eight languages and read again as a native-language editor (see `docs/LOCALIZATION.md`), or this pull request changes no user-facing text; open terminology questions are listed above
