@@ -260,7 +260,7 @@ async def test_e2e_16_a_five_minute_outage_spanning_a_refresh_keeps_the_cached_s
     assert coord.data is cached, "the last good timetable is what is served during the outage"
     assert coord.last_update_success_time == stamp
     assert shows_a_future_departure(env), "stale-but-available is the intended short-outage behavior"
-    assert any(r.levelno >= logging.WARNING and "keeping" in r.getMessage() for r in caplog.records), "and it says so"
+    assert any(r.levelno >= logging.WARNING and "old API" in r.getMessage() for r in caplog.records), "and it says so (an old key: the City's old API)"
 
     env.city.heal()  # five minutes later the city is back; the next refresh is the next hourly tick
     await env.hourly_tick()
@@ -567,3 +567,17 @@ async def test_e2e_16_an_outage_with_http_errors_is_said_once_like_one_with_rese
     loud = [r for r in caplog.records if r.levelno >= logging.WARNING and r.name.startswith("custom_components.ztm_warsaw")]
     assert 0 < len(loud) <= 8, f"said at the start of the outage, not at every try: {[r.getMessage()[:70] for r in loud]}"
     assert any("HTTP 500" in r.getMessage() for r in caplog.records), "and the status is in the message"
+
+
+async def test_e2e_16_an_old_api_that_does_not_answer_is_said_once_for_all_the_stops(env, caplog):
+    """The old API can be switched off for good: one clear line tells the user to get a token, however many stops there are."""
+    caplog.set_level(logging.DEBUG)
+    await env.add_entry()
+    await env.add_entry(line="523")
+    env.city.always(None, Reset())
+    caplog.clear()
+    await env.advance(seconds=3600 * 3)
+    loud = [r for r in caplog.records if r.levelno >= logging.WARNING and r.name.startswith("custom_components.ztm_warsaw")]
+    assert len(loud) == 1, [r.getMessage()[:80] for r in loud]
+    assert "old API" in loud[0].getMessage()
+    assert "token" in loud[0].getMessage()

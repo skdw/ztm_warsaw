@@ -344,7 +344,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
                 self._outage()
                 if self.data is not None and not self._api_error:
                     _LOGGER.log(  # said once when it starts, not again at every try of a long outage
-                        logging.WARNING if self._failures == 0 else logging.DEBUG,
+                        logging.WARNING if self._failures == 0 and self.client.uses_token else logging.DEBUG,  # the old API's outage is said once by the client
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
                         self.name,
                     )

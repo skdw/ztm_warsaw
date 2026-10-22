@@ -110,6 +110,7 @@ class StopCatalogue:
         self._locks: dict[bool, asyncio.Lock] = {}  # one per kind of host: a slow host does not hold up the other
         self._index: dict[bool, tuple[float, dict[str, dict[str, dict[str, Any]]]]] = {}  # per host kind (token or not): (when, index)
         self._failed: dict[bool, float] = {}
+        self.old_api_said = False  # the log has said once that the City's old API does not answer (shared by every stop of this instance)
 
     async def _load(self, client: "ZTMStopClient") -> tuple[bool | None, dict[str, dict[str, dict[str, Any]]] | None]:
         """``(readable, index)``: the index of the catalogue for the host of this client's key, downloaded when it is not kept
@@ -436,6 +437,16 @@ class ZTMStopClient:
 
     def _say_failed(self, url: str, reason: str, attempt: int, final: bool) -> None:
         """Log a failed request: loudly when an outage starts, at debug level while it goes on (it is said once, not at every try)."""
+        if self._legacy:  # the old API: one clear line for all the stops, the rest only for debugging
+            if final and not self._catalogue.old_api_said:
+                self._catalogue.old_api_said = True
+                _LOGGER.warning(
+                    "The City of Warsaw's old API (api.um.warszawa.pl) does not answer and may have been switched off. "
+                    "Replace the old key with a token: see the notice in Settings > Repairs (%s)", reason)
+            else:
+                _LOGGER.debug("Request to %s failed: %s", url, reason)
+            self._outage_said = self._outage_said or final
+            return
         if final:
             _LOGGER.log(logging.DEBUG if self._outage_said else logging.ERROR, "Request to %s failed: %s", url, reason)
             self._outage_said = True
@@ -445,8 +456,11 @@ class ZTMStopClient:
     def _say_answered(self, result: Any) -> None:
         """An answer after an outage that was said: say that the City is back (once)."""
         if result is not None and self._outage_said:
-            _LOGGER.info("The City of Warsaw answers again")
             self._outage_said = False
+            if not self._legacy or self._catalogue.old_api_said:
+                _LOGGER.info("The City of Warsaw answers again")
+            if self._legacy:
+                self._catalogue.old_api_said = False
 
     async def _attempt(self, url: str, params: dict[str, Any] | None, expect_json: bool, method: str, json_body: dict[str, Any] | None,
                        headers: dict[str, str] | None, wrap: bool, attempt: int, limit: int) -> Any:
@@ -486,7 +500,7 @@ class ZTMStopClient:
     def _say_no_response(self) -> None:
         """Log that the timetable could not be fetched, once for a run of failures (then at debug level)."""
         _LOGGER.log(
-            logging.DEBUG if self._no_response_said else logging.WARNING,
+            logging.DEBUG if self._no_response_said or self._legacy else logging.WARNING,  # the old API's outage is said once, in _say_failed
             "Timetable fetch failed (no response) for %s",
             _ctxp(self._params),
         )
