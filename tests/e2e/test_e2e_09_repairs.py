@@ -366,7 +366,8 @@ async def test_e2e_41_with_several_tokens_the_user_picks_one_by_its_end_and_its_
     entry, second_token, manager = await _two_tokens(env)
     menu = await _menu(env, manager, entry)
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "reuse"})
-    assert form["type"] == "form" and form["step_id"] == "reuse"
+    assert form["type"] == "form"
+    assert form["step_id"] == "reuse"
     choices = list(form["data_schema"].schema.values())[0].container
     assert len(choices) == 2
     assert any(label.endswith(f"{DEFAULT_TOKEN[-4:]}  ·  {OTHER_LINE}") for label in choices.values())
@@ -387,4 +388,14 @@ async def test_e2e_41_a_token_picked_but_not_accepted_for_the_line_is_not_saved(
     env.city.valid_tokens.discard(second_token)
     done = await manager.async_configure(form["flow_id"], {"token": next(k for k, v in choices.items() if THIRD_LINE in v)})
     assert (done["type"], done["reason"]) == ("abort", "reuse_rejected")
+    assert entry.data["api_key"] == DEFAULT_KEY
+
+
+async def test_e2e_41_an_answer_that_is_not_one_of_the_choices_shows_the_choices_again(env):
+    entry, _second_token, manager = await _two_tokens(env)
+    menu = await _menu(env, manager, entry)
+    handler = manager._progress[menu["flow_id"]]  # the running flow: the form itself refuses an answer that is not listed
+    again = await handler.async_step_reuse({"token": "7"})
+    assert again["type"] == "form"
+    assert again["step_id"] == "reuse"
     assert entry.data["api_key"] == DEFAULT_KEY
