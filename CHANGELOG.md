@@ -23,8 +23,8 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Works with the City's new API**: log in with a token from the new portal, and each key goes only to the right server.
 - **Change your key any time**: **Configure** on an entry swaps the key or token, so there is nothing to remove and add again.
 - **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
-- **Stops and vehicles on the map**: every stop pole is one pin with a sign and its number, however many of your lines stop there, and the lines are written under it. A line can also show its vehicles as pins with the badge of the line (*Configure* on the line, token needed), so nothing is drawn twice.
-- **A badge with the line number**: a vehicle on the map shows the badge of its line, in the colours of ZTM's own signs: ordinary lines light with a purple ring, fast ones red, night ones blue, trams light yellow. The same badge replaces the bus or tram icon in your cards.
+- **Stops and vehicles on the map**: every stop pole is one pin with its number, however many of your lines stop there, and a line can show its vehicles as pins too (*Configure* on the line, token needed).
+- **A badge with the line number**: a vehicle on the map shows the badge of its line, in the colours of ZTM's own signs, and the same badge replaces the bus or tram icon in your cards.
 - **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
 - **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.

@@ -62,10 +62,11 @@ class _Pin(GeolocationEvent):
     _attr_source = DOMAIN
 
     def _set_place(self, latitude: float, longitude: float) -> None:
-        """Move the pin and work out how far it is from the home of the Home Assistant instance (in kilometres, which is the state)."""
+        """Move the pin and work out how far it is from the home of the Home Assistant instance, which is the state. Home Assistant gives
+        it in the length unit of the instance (kilometres, or miles for US customary units), and that is what is kept."""
         self._attr_latitude, self._attr_longitude = latitude, longitude
         home = self.hass.config.distance(latitude, longitude) if self.hass is not None else None
-        self._attr_distance = round(home / 1000, 1) if home is not None else None
+        self._attr_distance = round(home, 1) if home is not None else None
 
     def _publish(self) -> None:
         """Write the new state, when the pin is on the map already."""

@@ -484,7 +484,8 @@ async def test_e2e_05_a_line_sensor_has_no_position_so_a_pole_is_not_drawn_once_
     attrs = env.state().attributes
     assert "latitude" not in attrs
     assert "longitude" not in attrs
-    assert float(attrs["Stop, Latitude"]) and float(attrs["Stop, Longitude"]), "the stop's position is still an attribute to read"
+    assert float(attrs["Stop, Latitude"]), "the stop's position is still an attribute to read"
+    assert float(attrs["Stop, Longitude"])
 
 
 async def test_e2e_05_options_change_does_not_redownload_the_stop_catalogue(env):

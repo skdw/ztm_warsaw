@@ -129,6 +129,8 @@ class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         """The distance in metres from the stop to the vehicle, or None when there is no vehicle to measure."""
+        if self._wanted_line() is None:  # not yet: another follower of the line may have made the feed hold a vehicle, but this departure is far
+            return None
         vehicle = self._shown()
         info = self._stop_info()
         try:
