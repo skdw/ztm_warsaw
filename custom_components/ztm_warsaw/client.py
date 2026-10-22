@@ -9,7 +9,6 @@ Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; n
 """
 
 import asyncio
-import hashlib
 import time
 import logging
 from typing import Any, Optional
@@ -345,10 +344,9 @@ class ZTMStopClient:
         """Whether the key is a token of the new host (and not an old key); the shared catalogue keeps one index per kind."""
         return not self._legacy
 
-    @property
-    def key_id(self) -> str:
-        """A short fingerprint of the key that tells keys apart (one shared feed of positions per token) without holding the key."""
-        return hashlib.sha256(str(self._params["apikey"]).encode()).hexdigest()[:16]
+    def has_same_key_as(self, other: "ZTMStopClient") -> bool:
+        """Whether both clients use the same key (they then share one feed of vehicle positions); the key itself is not handed out."""
+        return bool(self._params["apikey"] == other._params["apikey"])
 
     async def get_lines(self) -> list[str] | None:
         """The lines that stop at this pole today; None when the request failed. Raises ZTMApiError like get()."""

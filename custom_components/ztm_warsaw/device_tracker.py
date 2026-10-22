@@ -39,7 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
     for subentry_id, runtime in runtimes(config_entry).items():
         client = runtime["client"]
         if client.uses_token:
-            feed = feed_for(hass, client, client.key_id)
+            feed = feed_for(hass, client)
             async_add_entities([ZTMVehicleTracker(runtime["coordinator"], feed)], config_subentry_id=subentry_id)
 
 

@@ -96,6 +96,10 @@ class VehicleFeed:
         self._skip = 0  # polls still to skip after a failure
         self.failed = False  # the last poll failed (cleared by the next that worked)
 
+    def uses_key_of(self, client: ZTMStopClient) -> bool:
+        """Whether this feed asks the City with the same key as ``client`` does."""
+        return self._client.has_same_key_as(client)
+
     @callback
     def subscribe(self, wanted: Wanted, changed: CALLBACK_TYPE) -> CALLBACK_TYPE:
         """Follow the feed: ``wanted`` says which line to look for (None: nothing now), ``changed`` is called after each poll.
@@ -125,23 +129,12 @@ class VehicleFeed:
 
     async def poll(self) -> None:
         """Ask the City for the vehicles of the lines that are wanted now (nothing is asked when none is), then tell the followers."""
-        lines = {line for line in (wanted() for wanted in list(self._wants)) if line}
+        lines = {line.upper() for line in (wanted() for wanted in tuple(self._wants)) if line}
         if not lines:
             self._vehicles = {}
             self._notify()  # the followers' state depends on the time too
             return
-        kinds = {TRAM if TRAM_LINE.fullmatch(line) else BUS for line in lines}
-        found: dict[tuple[str, str], list[Vehicle]] = {}
-        failed = False
-        for kind in sorted(kinds):
-            rows = await self._client.get_vehicles(kind)
-            if rows is None:
-                failed = True
-                continue
-            for row in rows:
-                vehicle = _vehicle_of(row)
-                if vehicle is not None and vehicle.line in {line.upper() for line in lines}:
-                    found.setdefault((vehicle.line, vehicle.brigade), []).append(vehicle)
+        found, failed = await self._fetch(lines)
         if failed:
             self._failures += 1
             self._skip = min(2 ** (self._failures - 1) - 1, int(MAX_BACKOFF / POLL_EVERY))
@@ -155,10 +148,24 @@ class VehicleFeed:
         self.failed = failed
         self._notify()
 
+    async def _fetch(self, lines: set[str]) -> tuple[dict[tuple[str, str], list[Vehicle]], bool]:
+        """The positions of the vehicles of ``lines`` by (line, brigade), and whether any of the City's answers was missing."""
+        found: dict[tuple[str, str], list[Vehicle]] = {}
+        failed = False
+        for kind in sorted({TRAM if TRAM_LINE.fullmatch(line) else BUS for line in lines}):
+            rows = await self._client.get_vehicles(kind)
+            if rows is None:
+                failed = True
+                continue
+            for vehicle in filter(None, map(_vehicle_of, rows)):
+                if vehicle.line in lines:
+                    found.setdefault((vehicle.line, vehicle.brigade), []).append(vehicle)
+        return found, failed
+
     @callback
     def _notify(self) -> None:
         """Tell the followers that the positions (or the time) changed."""
-        for changed in list(self._wants.values()):
+        for changed in tuple(self._wants.values()):
             changed()
 
     def find(self, line: str, brigade: object) -> Vehicle | None:
@@ -168,10 +175,12 @@ class VehicleFeed:
         return max(candidates, key=lambda v: v.moment) if candidates else None
 
 
-def feed_for(hass: HomeAssistant, client: ZTMStopClient, token: str) -> VehicleFeed:
-    """The one feed of this token (every entity with it shares the positions and the polling)."""
-    feeds: dict[str, VehicleFeed] = hass.data.setdefault(f"{DOMAIN}_vehicles", {})
-    feed = feeds.get(token)
-    if feed is None:
-        feed = feeds[token] = VehicleFeed(hass, client)
+def feed_for(hass: HomeAssistant, client: ZTMStopClient) -> VehicleFeed:
+    """The one feed of the key this client uses (every entity with that key shares the positions and the polling)."""
+    feeds: list[VehicleFeed] = hass.data.setdefault(f"{DOMAIN}_vehicles", [])
+    for feed in feeds:
+        if feed.uses_key_of(client):
+            return feed
+    feed = VehicleFeed(hass, client)
+    feeds.append(feed)
     return feed

@@ -90,7 +90,8 @@ async def test_e2e_45_the_tracker_is_off_by_default_and_costs_the_city_nothing(e
     env.city.vehicles = [_row()]
     await env.add_entry(api_key=DEFAULT_TOKEN)
     entity = env.entity_registry.async_get(TRACKER)
-    assert entity is not None and entity.disabled_by is not None
+    assert entity is not None
+    assert entity.disabled_by is not None
     assert env.hass.states.get(TRACKER) is None
     await env.advance(seconds=65)
     assert env.city.count("vehicles") == 0
