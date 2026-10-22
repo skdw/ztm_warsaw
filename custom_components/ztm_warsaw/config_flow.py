@@ -7,6 +7,7 @@ step asks for a new key when the City rejects the old one.
 """
 
 import asyncio
+from itertools import islice
 import logging
 import re
 from collections.abc import Mapping
@@ -152,7 +153,7 @@ async def pole_directions(
     async def hint(pole: dict[str, Any]) -> str:
         """Where the first lines of this pole head."""
         heads: list[str] = []
-        for line in (lines.get(pole["stop_nr"]) or [])[:2]:
+        for line in islice(lines.get(pole["stop_nr"]) or [], 2):
             head = await direction_of(hass, key, pole, line)
             if head and head not in heads:
                 heads.append(head)
