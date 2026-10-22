@@ -14,6 +14,7 @@ from homeassistant.util.dt import as_local
 
 from .utils import get_line_badge, get_line_icon, get_line_type
 
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -22,7 +23,7 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.const import EntityCategory
 
-from .const import NEXT_DEPARTURES, CONF_ATTRIBUTION
+from .const import CONF_ATTRIBUTION, CONF_SHOW_VEHICLES, DOMAIN, NEXT_DEPARTURES
 from .coordinator import ZTMStopCoordinator
 from .entries import runtimes
 from .entity import ZtmStopEntity, timetable_url as _timetable_url
@@ -562,8 +563,43 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
 
 
 # Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
+def _enable_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
+    """Switch on the distance sensors that an earlier version registered as disabled (they were off by default): only the
+    integration's own disabling is lifted, a sensor the user switched off stays off."""
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if entity.unique_id.endswith("_vehicle_distance") and entity.disabled_by == er.RegistryEntryDisabler.INTEGRATION:
+            registry.async_update_entity(entity.entity_id, disabled_by=None)
+
+
+def _customized(entity: er.RegistryEntry) -> bool:
+    """Whether the user changed something of an entity: its name, its icon, its ID, or switched it off themselves."""
+    return bool(
+        entity.name or entity.icon or entity.disabled_by == er.RegistryEntryDisabler.USER or entity.entity_id != f"sensor.{entity.unique_id}"
+    )
+
+
+def _retire_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
+    """The line does not show its vehicles (any more): a distance sensor that nobody changed leaves the registry, one that the user
+    customized is only switched off by the integration, so that its name, ID and settings are there when the vehicles come back."""
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if entity.domain != "sensor" or entity.platform != DOMAIN or not entity.unique_id.endswith("_vehicle_distance"):
+            continue
+        if not _customized(entity):
+            registry.async_remove(entity.entity_id)
+        elif entity.disabled_by is None:
+            registry.async_update_entity(entity.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+
+
 async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
-    """Set up the ZTM sensors of a config entry: two for every stop it runs."""
+    """Set up the ZTM sensors of a config entry: those of every stop it runs, and with a token and *Show the vehicles of this line on the
+    map* ticked, the distance of the vehicle of the next departure of each stop (a line that does not show its vehicles has none)."""
+    shows_vehicles = bool(config_entry.options.get(CONF_SHOW_VEHICLES, False))
+    if shows_vehicles:
+        _enable_distance_sensors(hass, config_entry)
+    else:
+        _retire_distance_sensors(hass, config_entry)
     try:
         for subentry_id, runtime in runtimes(config_entry).items():
             coordinator: ZTMStopCoordinator = runtime["coordinator"]
@@ -589,7 +625,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
             ]
             status = ZTMStatusSensor(coordinator, line, stop_id, stop_number)
             client = runtime["client"]
-            distance = [ZTMVehicleDistanceSensor(coordinator, feed_for(hass, client))] if client.uses_token else []
+            distance = [ZTMVehicleDistanceSensor(coordinator, feed_for(hass, client))] if client.uses_token and shows_vehicles else []
             async_add_entities([entity, status, diag_sensor, *following, *distance], config_subentry_id=subentry_id)
 
             _LOGGER.info("Successfully set up ZTM sensors for line %s at stop %s/%s", line, stop_id, stop_number)

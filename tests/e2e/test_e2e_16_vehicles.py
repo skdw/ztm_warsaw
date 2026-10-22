@@ -9,7 +9,7 @@ import pytest
 from homeassistant.helpers.entity_registry import RegistryEntryDisabler
 from homeassistant.util import dt as dt_util
 
-from custom_components.ztm_warsaw.const import DOMAIN
+from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES, DOMAIN
 
 from .fake_city import DEFAULT_TOKEN, WARSAW, Http, stop_name_for
 
@@ -25,13 +25,9 @@ def _row(*, line="151", brigade="1", number="1234", seconds_ago=10, lat=52.2297,
 
 
 async def _entry(env, *, rows=(), enabled=True, api_key=DEFAULT_TOKEN, line="151"):
-    """An entry with its distance sensor switched on in the registry before the setup (the same write as in the UI) and the City holding ``rows``."""
+    """An entry that shows its vehicles (``enabled``) and the City holding ``rows``."""
     env.city.vehicles = list(rows)
-    entry = await env.add_entry(setup=False, api_key=api_key, line=line)
-    env.entity_registry.async_get_or_create(
-        "sensor", DOMAIN, f"line_{line}_from_7009_01_vehicle_distance", config_entry=entry,
-        disabled_by=None if enabled else RegistryEntryDisabler.INTEGRATION, suggested_object_id=f"line_{line}_from_7009_01_vehicle_distance",
-    )
+    entry = await env.add_entry(setup=False, api_key=api_key, line=line, options={CONF_SHOW_VEHICLES: enabled})
     await env.hass.config_entries.async_setup(entry.entry_id)
     await env.settle()
     return entry
@@ -75,19 +71,27 @@ async def test_e2e_45_nothing_is_asked_while_the_next_departure_is_far(env):
     with patch("custom_components.ztm_warsaw.vehicle_sensor.WANTED_WITHIN", timedelta(minutes=1)):
         await _entry(env, rows=[_row()])
         await env.advance(seconds=65)
-    assert env.city.count("vehicles") == 0
-    assert env.hass.states.get(SENSOR).attributes["Status"] == "too_early"
+    assert env.hass.states.get(SENSOR).attributes["Status"] == "too_early", "the line's pins on the map ask the City themselves"
 
 
-async def test_e2e_45_the_sensor_is_off_by_default_and_costs_the_city_nothing(env):
+async def test_e2e_45_a_line_that_does_not_show_its_vehicles_has_no_distance_sensor_and_costs_the_city_nothing(env):
     env.city.vehicles = [_row()]
     await env.add_entry(api_key=DEFAULT_TOKEN)
-    entity = env.entity_registry.async_get(SENSOR)
-    assert entity is not None
-    assert entity.disabled_by is not None
-    assert env.hass.states.get(SENSOR) is None
+    assert env.entity_registry.async_get(SENSOR) is None
     await env.advance(seconds=65)
     assert env.city.count("vehicles") == 0
+
+
+async def test_e2e_45_the_sensor_goes_when_the_line_stops_showing_its_vehicles_and_comes_back_when_it_does_again(env):
+    entry = await _entry(env, rows=[_row()])
+    assert env.entity_registry.async_get(SENSOR) is not None
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: False})
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR) is None
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: True})
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR) is not None
+    assert env.hass.states.get(SENSOR) is not None, "on from the start: nothing has to be switched on by hand"
 
 
 async def test_e2e_45_an_old_key_has_no_vehicle_sensor(env):
@@ -128,7 +132,7 @@ async def test_e2e_45_unloading_the_entry_stops_the_polling(env):
 
 
 async def test_e2e_45_the_distance_follows_the_departure_the_sensor_shows_when_there_is_a_walking_time(env):
-    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, data={
+    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, options={CONF_SHOW_VEHICLES: True}, data={
         "api_key": DEFAULT_TOKEN, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 3,
     })
     env.entity_registry.async_get_or_create(
@@ -174,7 +178,6 @@ async def test_e2e_45_without_a_timetable_that_may_be_shown_nothing_is_asked_and
     env.city.reset_counts()
     await env.advance(seconds=65)
     assert env.hass.states.get(SENSOR).state == "unavailable"
-    assert env.city.count("vehicles") == 0
 
 
 async def test_e2e_45_after_the_last_departure_there_is_no_timetable_to_follow(env):
@@ -237,3 +240,32 @@ async def test_e2e_45_a_stop_position_that_is_not_a_place_gives_no_distance(env,
     coordinator.data.stop_info = {**coordinator.data.stop_info, "szer_geo": bad[0], "dlug_geo": bad[1]}
     await env.advance(seconds=31)
     assert env.hass.states.get(SENSOR).state == "unknown", bad
+
+
+async def test_e2e_45_a_distance_sensor_that_an_earlier_version_left_disabled_is_switched_on_but_one_the_user_switched_off_is_not(env):
+    env.city.vehicles = [_row()]
+    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, options={CONF_SHOW_VEHICLES: True})
+    env.entity_registry.async_get_or_create(
+        "sensor", DOMAIN, "line_151_from_7009_01_vehicle_distance", config_entry=entry,
+        disabled_by=RegistryEntryDisabler.INTEGRATION, suggested_object_id="line_151_from_7009_01_vehicle_distance",
+    )
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR).disabled_by is None
+    env.entity_registry.async_update_entity(SENSOR, disabled_by=RegistryEntryDisabler.USER)
+    await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR).disabled_by == RegistryEntryDisabler.USER
+
+
+async def test_e2e_45_a_customized_distance_sensor_is_only_switched_off_when_the_vehicles_go_and_comes_back_as_it_was(env):
+    entry = await _entry(env, rows=[_row()])
+    env.entity_registry.async_update_entity(SENSOR, name="Bus is near")
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: False})
+    await env.settle()
+    kept = env.entity_registry.async_get(SENSOR)
+    assert (kept.name, kept.disabled_by) == ("Bus is near", RegistryEntryDisabler.INTEGRATION)
+    env.hass.config_entries.async_update_entry(entry, options={CONF_SHOW_VEHICLES: True})
+    await env.settle()
+    back = env.entity_registry.async_get(SENSOR)
+    assert (back.name, back.disabled_by) == ("Bus is near", None)

@@ -10,18 +10,25 @@
         }
       },
       "user_existing": {
-        "description": "Ya hay una línea configurada con un token. Elige ese token o pega otro más abajo. Después elegirás la parada, la dirección en la que viajas y la línea.",
+        "description": "Ya hay una línea configurada con un token ({tokens}). Úsalo o pega otro. Después elegirás la parada, la dirección en la que viajas y la línea.",
+        "menu_options": {
+          "use_token": "Usar el token que ya se usa",
+          "paste_token": "Pegar otro token"
+        }
+      },
+      "use_token": {
+        "title": "¿Qué token?",
+        "description": "Hay más de un token en uso. Elige uno: cada uno se muestra por sus últimos cuatro caracteres y las líneas que lo usan.",
         "data": {
-          "token": "Token que ya se usa",
-          "api_key": "O pega otra clave API o token (se usa en lugar del elegido arriba)",
-          "manual": "Conozco los números: los introduciré yo"
+          "token": "Token"
         }
       },
       "stop": {
         "title": "¿Qué parada?",
         "description": "Escribe parte del nombre de la parada (o su ID).",
         "data": {
-          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)"
+          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)",
+          "manual": "Conozco los números: los introduciré yo"
         }
       },
       "pick": {
@@ -55,7 +62,7 @@
       },
       "reconfigure": {
         "title": "Transporte público de Varsovia",
-        "description": "**Esta configuración utiliza la API antigua de la ciudad de Varsovia ({current}).**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPara cambiar a la nueva API:\n\n1. Obtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Pégalo en el campo de abajo.\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "description": "**Esta configuración utiliza la API antigua de la ciudad de Varsovia ({current}).**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPara cambiar a la nueva API:\n\n1. Obtén un token en [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Pégalo en el campo de abajo.\n\nSe conservarán los ajustes de la línea y de las paradas.",
         "data": {
           "api_key": "Clave API o token",
           "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
@@ -63,7 +70,7 @@
       },
       "reconfigure_token": {
         "title": "Transporte público de Varsovia",
-        "description": "**Cambia el token de acceso a la API.**\n\nSi el token actual ha caducado o quieres sustituirlo, pega un nuevo token de [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "description": "**Cambia el token de acceso a la API.**\n\nSi el token actual ha caducado o quieres sustituirlo, pega un nuevo token de [dane.um.warszawa.pl/pl/key‑api]({portal}).\n\nSe conservarán los ajustes de la línea y de las paradas.",
         "data": {
           "api_key": "Token"
         }
@@ -79,7 +86,7 @@
       },
       "reauth_menu": {
         "title": "Clave API antigua",
-        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reauth_confirm": "Pegar un token",
           "reauth_reuse": "Usar el token ya introducido para otra línea"
@@ -87,7 +94,7 @@
       },
       "reconfigure_menu": {
         "title": "Clave API antigua",
-        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reconfigure_form": "Pegar un token",
           "reconfigure_reuse": "Usar el token ya introducido para otra línea"
@@ -140,7 +147,7 @@
     "step": {
       "init": {
         "title": "Transporte público de Varsovia",
-        "description": "**Esta configuración utiliza la API antigua de la ciudad de Varsovia ({current}).**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPara cambiar a la nueva API:\n\n1. Obtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Pégalo en el campo de abajo.\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "description": "**Esta configuración utiliza la API antigua de la ciudad de Varsovia ({current}).**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPara cambiar a la nueva API:\n\n1. Obtén un token en [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Pégalo en el campo de abajo.\n\nSe conservarán los ajustes de la línea y de las paradas.",
         "data": {
           "api_key": "Clave API o token",
           "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
@@ -148,7 +155,7 @@
       },
       "token": {
         "title": "Transporte público de Varsovia",
-        "description": "**Cambia tu token de acceso a la API o elige qué muestra la línea en el mapa.**\n\nPara sustituir el token, pega uno nuevo de [dane.um.warszawa.pl/pl/key-api]({portal}). Deja el campo vacío para conservar el token actual.\n\nSe conservarán los ajustes de la línea y de las paradas.",
+        "description": "**Cambia tu token de acceso a la API o elige qué muestra la línea en el mapa.**\n\nPara sustituir el token, pega uno nuevo de [dane.um.warszawa.pl/pl/key‑api]({portal}). Deja el campo vacío para conservar el token actual.\n\nSe conservarán los ajustes de la línea y de las paradas.",
         "data": {
           "api_key": "Token (déjalo vacío para conservar el actual)",
           "show_vehicles": "Mostrar en el mapa los vehículos de esta línea"
@@ -156,7 +163,7 @@
       },
       "menu": {
         "title": "Clave API antigua",
-        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia, que ya no funciona.**\n\nElige cómo sustituirla por un token. Puedes conseguir uno en [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "paste": "Pegar un token",
           "reuse": "Usar el token ya introducido para otra línea"
@@ -220,7 +227,7 @@
         "step": {
           "token": {
             "title": "Sustituir la clave antigua por un token",
-            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key‑api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
             "data": {
               "api_key": "Token",
               "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
@@ -228,7 +235,7 @@
           },
           "init": {
             "title": "Clave API antigua",
-            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key‑api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
             "menu_options": {
               "token": "Pegar un token",
               "ignore": "Conservar la clave antigua e ignorar este aviso",
@@ -268,7 +275,7 @@
         "step": {
           "token": {
             "title": "Sustituir la clave antigua por un token",
-            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key-api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nPega abajo un token de [dane.um.warszawa.pl/pl/key‑api]({portal}). Sustituirá la clave antigua y se conservarán los ajustes de las paradas.",
             "data": {
               "api_key": "Token",
               "all_lines": "Usarlo para cada línea que aún tiene una clave antigua"
@@ -276,7 +283,7 @@
           },
           "init": {
             "title": "Clave API antigua",
-            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key-api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
+            "description": "**La línea {line} utiliza una clave de la API antigua de la ciudad de Varsovia.**\n\nLa API antigua de la ciudad ha dejado de responder, así que esta línea no recibe horarios hasta que sustituyas la clave por un token. Recomendamos cambiar a la nueva API, que requiere un token.\n\nObtén un token en [dane.um.warszawa.pl/pl/key‑api]({portal}) y selecciona «Pegar un token» para sustituir la clave antigua. Se conservarán los ajustes de las paradas. También puedes seguir usando la clave antigua e ignorar este aviso.",
             "menu_options": {
               "token": "Pegar un token",
               "ignore": "Conservar la clave antigua e ignorar este aviso",

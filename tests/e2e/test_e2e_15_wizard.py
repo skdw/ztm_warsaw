@@ -259,30 +259,50 @@ async def test_e2e_43_ticking_the_vehicles_for_a_line_that_is_set_up_turns_them_
     assert entry.options.get("show_vehicles") is True
 
 
-async def test_e2e_43_a_token_already_in_use_can_be_picked_instead_of_pasted_again(env):
+async def test_e2e_43_a_token_already_in_use_is_offered_in_a_menu_and_used_without_pasting_it_again(env):
     first = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
-    form = await _first(env)
-    assert (form["type"], form["step_id"]) == ("form", "user_existing")
-    assert [str(k) for k in form["data_schema"].schema] == ["token", "api_key", "manual"]
-    (choice,) = form["data_schema"].schema["token"].config["options"]
-    assert choice["label"] == f"…{DEFAULT_TOKEN[-4:]}  ·  {LINE}", "told by its last four characters and its lines, never whole"
-    search = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"token": choice["value"]})
-    assert (search["type"], search["step_id"]) == ("form", "stop"), "no token was pasted"
+    menu = await _first(env)
+    assert (menu["type"], menu["step_id"]) == ("menu", "user_existing")
+    assert menu["menu_options"] == ["use_token", "paste_token"]
+    assert f"…{DEFAULT_TOKEN[-4:]}  ·  {LINE}" in menu["description_placeholders"]["tokens"], "told by its last four characters and its lines, never whole"
+    assert DEFAULT_TOKEN not in str(menu)
+    search = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (search["type"], search["step_id"]) == ("form", "stop"), "one token in use: no pasting and no choice"
     lines = await env.hass.config_entries.flow.async_configure(search["flow_id"], {"query": "7009/01"})
     done = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": "N25"})
     assert done["type"] == "create_entry", done
     assert done["result"].data["api_key"] == first.data["api_key"]
 
 
-async def test_e2e_43_a_token_pasted_below_wins_over_the_one_in_use_and_a_bad_paste_is_refused(env):
+async def test_e2e_43_with_more_than_one_token_in_use_the_one_to_use_is_asked(env):
     await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
-    form = await _first(env)
-    refused = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"token": "0", "api_key": "not a key"})
-    assert (refused["step_id"], refused["errors"]) == ("user_existing", {"base": "invalid_api_key"})
-    key_field = next(k for k in refused["data_schema"].schema if str(k) == "api_key")
-    assert key_field.default() == "not a key"
-    again = await env.hass.config_entries.flow.async_configure(refused["flow_id"], {"token": "0", "api_key": DEFAULT_KEY})
-    assert again["step_id"] == "stop", "an old key pasted is a key: it is checked like one"
+    other = DEFAULT_TOKEN[:-4] + "ZZZZ"
+    await env.add_entry(api_key=other, line="523")
+    menu = await _first(env)
+    pick = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (pick["type"], pick["step_id"]) == ("form", "use_token")
+    labels = [o["label"] for o in pick["data_schema"].schema["token"].config["options"]]
+    assert len(labels) == 2
+    assert all(DEFAULT_TOKEN not in label for label in labels)
+    search = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "1"})
+    assert (search["type"], search["step_id"]) == ("form", "stop")
+
+
+async def test_e2e_43_pasting_another_token_from_the_menu_is_the_plain_form_of_the_key(env):
+    await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    menu = await _first(env)
+    form = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "paste_token"})
+    assert (form["type"], form["step_id"]) == ("form", "user")
+    assert [str(k) for k in form["data_schema"].schema] == ["api_key", "manual"]
+    refused = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"api_key": "not a key"})
+    assert (refused["step_id"], refused["errors"]) == ("user", {"base": "invalid_api_key"})
+    ok = await env.hass.config_entries.flow.async_configure(refused["flow_id"], {"api_key": DEFAULT_KEY})
+    assert ok["step_id"] == "stop", "an old key pasted is a key: it is checked like one"
+    numbers = await env.hass.config_entries.flow.async_configure(
+        (await env.hass.config_entries.flow.async_configure((await _first(env))["flow_id"], {"next_step_id": "paste_token"}))["flow_id"],
+        {"api_key": DEFAULT_TOKEN, "manual": True},
+    )
+    assert numbers["step_id"] == "manual"
 
 
 async def test_e2e_43_an_old_key_in_use_is_not_offered_as_a_token(env):
@@ -291,15 +311,10 @@ async def test_e2e_43_an_old_key_in_use_is_not_offered_as_a_token(env):
     assert (form["step_id"], [str(k) for k in form["data_schema"].schema]) == ("user", ["api_key", "manual"])
 
 
-async def test_e2e_43_a_token_picked_from_those_in_use_is_not_put_in_the_form_of_the_numbers(env):
+async def test_e2e_43_a_menu_asked_for_again_shows_itself_again(env):
     await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
-    form = await _first(env)
-    manual = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"token": "0", "manual": True})
-    assert manual["step_id"] == "manual"
-    key_field = next(k for k in manual["data_schema"].schema if str(k) == "api_key")
-    assert key_field.default() == "", "the whole token is not sent to the browser"
-    done = await env.hass.config_entries.flow.async_configure(manual["flow_id"], {"busstop_id": 7009, "busstop_nr": "02", "line": LINE})
-    assert (done["type"], done["reason"]) == ("abort", "stop_added")
+    menu = await _first(env)
+    assert (await env.hass.config_entries.flow.async_configure(menu["flow_id"], None))["step_id"] == "user_existing"
 
 
 async def test_e2e_43_the_poles_of_a_stop_are_told_apart_by_the_places_their_first_lines_go(env):
@@ -362,3 +377,57 @@ async def test_e2e_43_a_screen_asked_for_again_shows_itself_again(env):
     assert (await flow.async_configure(lines["flow_id"], None))["step_id"] == "line"
     search = await _search(env, "no such stop anywhere")
     assert (await flow.async_configure(search["flow_id"], None))["step_id"] == "stop"
+
+
+async def test_e2e_43_a_token_that_disappears_while_the_menu_is_open_goes_back_to_the_form_of_the_key(env):
+    entry = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    menu = await _first(env)
+    await env.hass.config_entries.async_remove(entry.entry_id)
+    form = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (form["type"], form["step_id"]) == ("form", "user")
+
+
+async def test_e2e_43_a_token_picked_by_a_number_that_is_gone_shows_the_menu_again(env):
+    await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    other = await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")
+    menu = await _first(env)
+    pick = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    await env.hass.config_entries.async_remove(other.entry_id)
+    again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "1"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing")
+
+
+async def test_e2e_43_the_numbers_can_be_typed_with_a_token_picked_from_those_in_use(env):
+    first = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    menu = await _first(env)
+    search = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert [str(k) for k in search["data_schema"].schema] == ["query", "manual"]
+    manual = await env.hass.config_entries.flow.async_configure(search["flow_id"], {"query": "", "manual": True})
+    assert manual["step_id"] == "manual"
+    done = await env.hass.config_entries.flow.async_configure(manual["flow_id"], {"busstop_id": 7009, "busstop_nr": "02", "line": LINE})
+    assert (done["type"], done["reason"]) == ("abort", "stop_added")
+    assert first.data["api_key"] == DEFAULT_TOKEN
+
+
+async def test_e2e_43_a_choice_of_tokens_means_the_token_that_was_shown_even_when_another_one_is_removed(env):
+    gone = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    kept_token = DEFAULT_TOKEN[:-4] + "ZZZZ"
+    await env.add_entry(api_key=kept_token, line="523")
+    menu = await _first(env)
+    pick = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    await env.hass.config_entries.async_remove(gone.entry_id)  # the token that was number 0 on the screen
+    again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "0"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing"), "token 0 was the removed one: nothing is guessed"
+
+
+async def test_e2e_43_a_menu_that_showed_one_token_does_not_use_another_one_that_is_left_after_a_removal(env):
+    gone = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")
+    # one token is shown by the menu when the other line has none of its own: remove the second and start again
+    await env.hass.config_entries.async_remove(next(e for e in env.hass.config_entries.async_entries(DOMAIN) if e.data["line"] == "523").entry_id)
+    menu = await _first(env)
+    assert DEFAULT_TOKEN[-4:] in menu["description_placeholders"]["tokens"]
+    await env.hass.config_entries.async_remove(gone.entry_id)
+    await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")  # a different token is now the only one
+    again = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing"), "the token the menu showed is gone: nothing is guessed"

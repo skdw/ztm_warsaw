@@ -10,18 +10,25 @@
         }
       },
       "user_existing": {
-        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous. Vous choisirez ensuite l’arrêt, la direction dans laquelle vous voyagez et la ligne.",
+        "description": "Une ligne est déjà configurée avec un jeton ({tokens}). Utilisez-le ou collez-en un autre. Vous choisirez ensuite l’arrêt, la direction dans laquelle vous voyagez et la ligne.",
+        "menu_options": {
+          "use_token": "Utiliser le jeton déjà utilisé",
+          "paste_token": "Coller un autre jeton"
+        }
+      },
+      "use_token": {
+        "title": "Quel jeton ?",
+        "description": "Plus d’un jeton est utilisé. Choisissez-en un : chacun est indiqué par ses quatre derniers caractères et les lignes qui l’utilisent.",
         "data": {
-          "token": "Jeton déjà utilisé",
-          "api_key": "Ou collez une autre clé API ou un autre jeton (il remplace celui choisi ci-dessus)",
-          "manual": "Je connais les numéros : je les saisis moi-même"
+          "token": "Jeton"
         }
       },
       "stop": {
         "title": "Quel arrêt ?",
         "description": "Saisissez une partie du nom de l’arrêt (ou son ID).",
         "data": {
-          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)"
+          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)",
+          "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "pick": {
@@ -55,7 +62,7 @@
       },
       "reconfigure": {
         "title": "Transports publics de Varsovie",
-        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
           "api_key": "Clé API ou jeton",
           "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -63,7 +70,7 @@
       },
       "reconfigure_token": {
         "title": "Transports publics de Varsovie",
-        "description": "**Modifiez votre jeton d’accès à l’API.**\n\nSi votre jeton actuel a expiré ou si vous souhaitez le remplacer, collez un nouveau jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Modifiez votre jeton d’accès à l’API.**\n\nSi votre jeton actuel a expiré ou si vous souhaitez le remplacer, collez un nouveau jeton provenant de [dane.um.warszawa.pl/pl/key‑api]({portal}).\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
           "api_key": "Jeton"
         }
@@ -79,7 +86,7 @@
       },
       "reauth_menu": {
         "title": "Ancienne clé API",
-        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reauth_confirm": "Coller un jeton",
           "reauth_reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
@@ -87,7 +94,7 @@
       },
       "reconfigure_menu": {
         "title": "Ancienne clé API",
-        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reconfigure_form": "Coller un jeton",
           "reconfigure_reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
@@ -140,7 +147,7 @@
     "step": {
       "init": {
         "title": "Transports publics de Varsovie",
-        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
           "api_key": "Clé API ou jeton",
           "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -148,7 +155,7 @@
       },
       "token": {
         "title": "Transports publics de Varsovie",
-        "description": "**Changez votre jeton d’accès à l’API ou choisissez ce que la ligne affiche sur la carte.**\n\nPour remplacer le jeton, collez-en un nouveau depuis [dane.um.warszawa.pl/pl/key-api]({portal}). Laissez le champ vide pour garder le jeton actuel.\n\nLes réglages de la ligne et des arrêts sont conservés.",
+        "description": "**Changez votre jeton d’accès à l’API ou choisissez ce que la ligne affiche sur la carte.**\n\nPour remplacer le jeton, collez-en un nouveau depuis [dane.um.warszawa.pl/pl/key‑api]({portal}). Laissez le champ vide pour garder le jeton actuel.\n\nLes réglages de la ligne et des arrêts sont conservés.",
         "data": {
           "api_key": "Jeton (laissez vide pour garder l’actuel)",
           "show_vehicles": "Afficher les véhicules de cette ligne sur la carte"
@@ -156,7 +163,7 @@
       },
       "menu": {
         "title": "Ancienne clé API",
-        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "paste": "Coller un jeton",
           "reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
@@ -220,7 +227,7 @@
         "step": {
           "token": {
             "title": "Remplacer l’ancienne clé par un jeton",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key‑api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
               "api_key": "Jeton",
               "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -228,7 +235,7 @@
           },
           "init": {
             "title": "Ancienne clé API",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key‑api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
               "ignore": "Garder l’ancienne clé et ignorer cet avis",
@@ -268,7 +275,7 @@
         "step": {
           "token": {
             "title": "Remplacer l’ancienne clé par un jeton",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key‑api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
               "api_key": "Jeton",
               "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -276,7 +283,7 @@
           },
           "init": {
             "title": "Ancienne clé API",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key‑api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
               "ignore": "Garder l’ancienne clé et ignorer cet avis",
