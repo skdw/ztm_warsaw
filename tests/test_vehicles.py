@@ -57,3 +57,18 @@ def test_the_hour_that_repeats_when_the_clocks_go_back_is_settled_by_the_time_no
     assert second is not None
     assert (first.moment.hour, second.moment.hour) == (0, 1)
     assert timedelta(0) <= datetime(2026, 10, 25, 1, 31, tzinfo=timezone.utc) - second.moment < timedelta(minutes=3)
+
+
+async def test_an_old_key_is_not_asked_for_positions_and_an_answer_that_is_not_a_list_is_none():
+    """Only the new host knows where the vehicles are; a bare error object instead of a list is no positions."""
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.ztm_warsaw.client import ZTMStopClient
+
+    legacy = ZTMStopClient(None, "11111111-2222-3333-4444-555555555555", "7009", "01", "151")  # type: ignore[arg-type]
+    assert await legacy.get_vehicles(1) is None, "an old key makes no request (there is no session to ask with)"
+    token = ZTMStopClient(None, "aaa.bbb.ccc", "7009", "01", "151")  # type: ignore[arg-type]
+    with patch.object(ZTMStopClient, "_get_with_retry", AsyncMock(return_value={"result": {"error": "no"}})):
+        assert await token.get_vehicles(1) is None
+    with patch.object(ZTMStopClient, "_get_with_retry", AsyncMock(return_value={"result": [{"Lines": "1"}]})):
+        assert await token.get_vehicles(1) == [{"Lines": "1"}]

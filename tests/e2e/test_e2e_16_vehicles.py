@@ -194,3 +194,34 @@ async def test_e2e_45_without_the_position_of_the_stop_there_is_no_distance(env)
     attrs = env.hass.states.get(TRACKER).attributes
     assert attrs["Status"] == "tracking"
     assert "Distance to stop" not in attrs
+
+
+async def test_e2e_45_without_a_timetable_that_may_be_shown_nothing_is_asked_and_the_tracker_is_unavailable(env):
+    entry = await _entry(env, rows=[_row()])
+    entry.runtime_data["coordinator"].last_update_success = False  # the sensors refuse the timetable too
+    env.city.reset_counts()
+    await env.advance(seconds=65)
+    assert env.hass.states.get(TRACKER).state == "unavailable"
+    assert env.city.count("vehicles") == 0
+
+
+async def test_e2e_45_after_the_last_departure_there_is_no_timetable_to_follow(env):
+    entry = await _entry(env, rows=[_row()])
+    entry.runtime_data["coordinator"].data.departures = []  # nothing is left of the day
+    await env.advance(seconds=31)
+    state = env.hass.states.get(TRACKER)
+    assert state.state == "unknown"
+    assert state.attributes["Status"] == "no_timetable"
+
+
+async def test_e2e_45_a_new_timetable_or_a_stop_name_that_arrives_late_is_shown(env):
+    entry = await _entry(env, rows=[_row()])
+    coordinator = entry.runtime_data["coordinator"]
+    coordinator.data.stop_info = {}  # the City has not given the stop's name yet
+    coordinator.async_set_updated_data(coordinator.data)
+    await env.settle()
+    assert env.hass.states.get(TRACKER).attributes["Status"] == "tracking"
+    coordinator.data.stop_info = {"nazwa_zespolu": "Late Name"}
+    coordinator.async_set_updated_data(coordinator.data)
+    await env.settle()
+    assert env.hass.states.get(TRACKER).attributes["friendly_name"] == "Line 151 Late Name 01 Vehicle"
