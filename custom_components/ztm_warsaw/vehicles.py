@@ -67,13 +67,22 @@ class Vehicle:
         return now - self.moment
 
 
-def _vehicle_of(row: Any) -> Vehicle | None:
-    """One row of the City's answer as a Vehicle, or None when it is not a position that can be used."""
+def _moment_of(text: str, now: datetime) -> datetime:
+    """The UTC moment of a Warsaw wall-clock time. In the hour that is repeated when the clocks go back it is ambiguous: of the
+    two moments it can be, the one that is not ahead of ``now`` and nearest to it is taken (a fresh position is fresh in either hour)."""
+    wall = datetime.fromisoformat(text.replace(" ", "T"))
+    candidates = [wall.replace(tzinfo=WARSAW, fold=fold).astimezone(dt_util.UTC) for fold in (0, 1)]
+    past = [c for c in candidates if c <= now + timedelta(seconds=60)]
+    return max(past) if past else min(candidates)
+
+
+def _vehicle_of(row: Any, now: datetime) -> Vehicle | None:
+    """One row of the City's answer as a Vehicle, or None when it is not a position that can be used (``now`` settles the hour that repeats when the clocks go back)."""
     if not isinstance(row, dict):
         return None
     try:
         latitude, longitude = float(row["Lat"]), float(row["Lon"])
-        moment = datetime.fromisoformat(str(row["Time"]).replace(" ", "T")).replace(tzinfo=WARSAW).astimezone(dt_util.UTC)
+        moment = _moment_of(str(row["Time"]), now)
         line, brigade, number = str(row["Lines"]).strip(), brigade_key(row["Brigade"]), str(row["VehicleNumber"]).strip()
     except (KeyError, TypeError, ValueError):
         return None
@@ -157,7 +166,8 @@ class VehicleFeed:
             if rows is None:
                 failed = True
                 continue
-            for vehicle in filter(None, map(_vehicle_of, rows)):
+            now = dt_util.utcnow()
+            for vehicle in filter(None, (_vehicle_of(row, now) for row in rows)):
                 if vehicle.line in lines:
                     found.setdefault((vehicle.line, vehicle.brigade), []).append(vehicle)
         return found, failed

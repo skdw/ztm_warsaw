@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from custom_components.ztm_warsaw.vehicles import _vehicle_of, brigade_key, distance_m
 
+NOW = datetime(2026, 10, 22, 7, 0, tzinfo=timezone.utc)
 ROW = {"Lines": "n64", "Brigade": "05", "Lat": 52.2, "Lon": 21.0, "Time": "2026-10-22 08:49:15", "VehicleNumber": " 4414 "}
 
 
@@ -18,7 +20,7 @@ def test_a_brigade_is_the_same_with_or_without_a_leading_zero():
 
 
 def test_a_row_becomes_a_vehicle_with_a_normalised_line_brigade_and_number():
-    vehicle = _vehicle_of(ROW)
+    vehicle = _vehicle_of(ROW, NOW)
     assert vehicle is not None
     assert (vehicle.line, vehicle.brigade, vehicle.number) == ("N64", "5", "4414")
     assert vehicle.moment.isoformat() == "2026-10-22T06:49:15+00:00", "the City's time is Warsaw wall-clock time"
@@ -37,10 +39,21 @@ def test_a_row_becomes_a_vehicle_with_a_normalised_line_brigade_and_number():
     ],
 )
 def test_a_row_that_is_not_a_usable_position_is_dropped(broken):
-    assert _vehicle_of(broken) is None
+    assert _vehicle_of(broken, NOW) is None
 
 
 def test_distances_are_in_metres():
     assert distance_m(52.0, 21.0, 52.0, 21.0) == 0
     one_degree = distance_m(52.0, 21.0, 53.0, 21.0)
     assert math.isclose(one_degree, 111_195, rel_tol=0.01)
+
+
+def test_the_hour_that_repeats_when_the_clocks_go_back_is_settled_by_the_time_now():
+    """On 25 October 2026 02:30 happens twice (00:30 and 01:30 UTC): a fresh position is fresh in either hour."""
+    row = {**ROW, "Time": "2026-10-25 02:30:00"}
+    first = _vehicle_of(row, datetime(2026, 10, 25, 0, 31, tzinfo=timezone.utc))
+    second = _vehicle_of(row, datetime(2026, 10, 25, 1, 31, tzinfo=timezone.utc))
+    assert first is not None
+    assert second is not None
+    assert (first.moment.hour, second.moment.hour) == (0, 1)
+    assert timedelta(0) <= datetime(2026, 10, 25, 1, 31, tzinfo=timezone.utc) - second.moment < timedelta(minutes=3)
