@@ -101,10 +101,10 @@ changed once without a migration; do not repeat that.
 
 ### Languages
 
-- Every text a user reads is written in natural language, in all eight languages, following [docs/LOCALIZATION.md](docs/LOCALIZATION.md): it
-  covers the style, the meaning of the transport words (stop, pole, line), the self-review that comes after the translation and what a pull
-  request says about it. Passing `tests/test_translations.py` and `tests/test_readmes.py` only proves the structure. Do not claim that a native
-  speaker reviewed a translation, and name a terminology question in the pull request instead of settling it silently.
+- Every text a user reads is written in natural, idiomatic language, in all eight languages, following [docs/LOCALIZATION.md](docs/LOCALIZATION.md): it
+  covers the principles, the meaning of the transport words (stop, boarding place, line), the self-review after a translation and what a pull
+  request says about it. Passing `tests/test_translations.py` and `tests/test_readmes.py` only proves the structure. Do not call a text
+  approved by a native speaker when nobody checked it, and name a terminology question in the pull request instead of settling it silently.
 
 ### Secrets
 
