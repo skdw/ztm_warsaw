@@ -111,6 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
             "until the key is replaced with a token (see the notices in Settings > Repairs)"
         )
     if any(rt["client"].retired for rt in built.values()):
+        _title_line_plainly(hass, entry)  # the reauth notice is named after the title: "Line 151", not the stops
         entry.async_start_reauth(hass)  # the line says on the integration page that its key has to be replaced (a flow already open is not doubled)
     _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most
     await _first_refresh([rt["coordinator"] for rt in built.values()])
@@ -273,7 +274,8 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
     api_key = entry_api_key(entry)
     issue_id = f"legacy_key_{entry.entry_id}"
     units = stop_units(entry)
-    if api_key is None or key_kind(api_key) != "legacy" or (not units and not is_line_entry(entry)):
+    if api_key is None or key_kind(api_key) != "legacy" or (not units and not is_line_entry(entry)) or legacy_api_retired():
+        # while the old API is gone, Home Assistant's own reauth notice (one per entry) offers the same choices
         ir.async_delete_issue(hass, DOMAIN, issue_id)
         return
     if is_line_entry(entry):  # the key is the line's, whether it has stops left or not
