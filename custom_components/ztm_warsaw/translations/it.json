@@ -13,14 +13,16 @@
       "reauth_confirm": {
         "description": "L’API della città di Varsavia rifiuta la chiave API o il token salvato. Inserisci una nuova chiave o un nuovo token dal portale dei dati aperti. Le impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
-          "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia"
+          "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
+          "all_lines": "Usalo per ogni linea che ha ancora una vecchia chiave"
         }
       },
       "reconfigure": {
         "title": "Trasporto pubblico di Varsavia",
         "description": "**Questa configurazione utilizza la vecchia API della città di Varsavia ({current}).**\n\nLa vecchia API della città ha smesso di rispondere, quindi questa linea non riceve orari finché non sostituisci la chiave con un token. Consigliamo di passare alla nuova API, che richiede un token.\n\nPer passare alla nuova API:\n\n1. Ottieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Incollalo nel campo qui sotto.\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
-          "api_key": "Chiave API o token"
+          "api_key": "Chiave API o token",
+          "all_lines": "Usalo per ogni linea che ha ancora una vecchia chiave"
         }
       },
       "reconfigure_token": {
@@ -52,6 +54,36 @@
         "data": {
           "line": "Linea"
         }
+      },
+      "reauth_menu": {
+        "title": "Vecchia chiave API",
+        "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia, che non funziona più.**\n\nScegli come sostituirla con un token. Puoi ottenerne uno su [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reauth_confirm": "Incolla un token",
+          "reauth_reuse": "Usa il token già inserito per un’altra linea"
+        }
+      },
+      "reconfigure_menu": {
+        "title": "Vecchia chiave API",
+        "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia, che non funziona più.**\n\nScegli come sostituirla con un token. Puoi ottenerne uno su [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reconfigure_form": "Incolla un token",
+          "reconfigure_reuse": "Usa il token già inserito per un’altra linea"
+        }
+      },
+      "reauth_reuse": {
+        "title": "Usa il token di un’altra linea",
+        "description": "Sono in uso più token. Scegli quello che la linea {line} deve usare: ognuno è mostrato con gli ultimi quattro caratteri e le linee che lo usano.",
+        "data": {
+          "token": "Token"
+        }
+      },
+      "reconfigure_reuse": {
+        "title": "Usa il token di un’altra linea",
+        "description": "Sono in uso più token. Scegli quello che la linea {line} deve usare: ognuno è mostrato con gli ultimi quattro caratteri e le linee che lo usano.",
+        "data": {
+          "token": "Token"
+        }
       }
     },
     "error": {
@@ -78,7 +110,8 @@
       "unknown": "Si è verificato un errore sconosciuto.",
       "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",
       "stop_added": "La fermata è stata aggiunta alla configurazione esistente della linea. Utilizzerà le credenziali salvate per quella linea. Per modificarle, scegli **Configura**.",
-      "reconfigure_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata."
+      "reconfigure_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata.",
+      "reuse_rejected": "La città non ha accettato quel token per questa linea. Incolla invece un token."
     }
   },
   "options": {
@@ -87,7 +120,8 @@
         "title": "Trasporto pubblico di Varsavia",
         "description": "**Questa configurazione utilizza la vecchia API della città di Varsavia ({current}).**\n\nLa vecchia API della città ha smesso di rispondere, quindi questa linea non riceve orari finché non sostituisci la chiave con un token. Consigliamo di passare alla nuova API, che richiede un token.\n\nPer passare alla nuova API:\n\n1. Ottieni un token su [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Incollalo nel campo qui sotto.\n\nLe impostazioni della linea e delle fermate verranno mantenute.",
         "data": {
-          "api_key": "Chiave API o token"
+          "api_key": "Chiave API o token",
+          "all_lines": "Usalo per ogni linea che ha ancora una vecchia chiave"
         }
       },
       "token": {
@@ -96,6 +130,21 @@
         "data": {
           "api_key": "Token (lascia vuoto per tenere quello attuale)",
           "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
+        }
+      },
+      "menu": {
+        "title": "Vecchia chiave API",
+        "description": "**La linea {line} utilizza una chiave della vecchia API della città di Varsavia, che non funziona più.**\n\nScegli come sostituirla con un token. Puoi ottenerne uno su [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "paste": "Incolla un token",
+          "reuse": "Usa il token già inserito per un’altra linea"
+        }
+      },
+      "reuse": {
+        "title": "Usa il token di un’altra linea",
+        "description": "Sono in uso più token. Scegli quello che la linea {line} deve usare: ognuno è mostrato con gli ultimi quattro caratteri e le linee che lo usano.",
+        "data": {
+          "token": "Token"
         }
       }
     },
@@ -111,7 +160,8 @@
       "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi."
     },
     "abort": {
-      "unknown": "Si è verificato un errore sconosciuto."
+      "unknown": "Si è verificato un errore sconosciuto.",
+      "reuse_rejected": "La città non ha accettato quel token per questa linea. Incolla invece un token."
     }
   },
   "entity": {

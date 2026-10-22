@@ -110,6 +110,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
             "A key for the City of Warsaw's old API is in use, and that API has stopped working: the line gets no new timetable "
             "until the key is replaced with a token (see the notices in Settings > Repairs)"
         )
+    if any(rt["client"].retired for rt in built.values()):
+        entry.async_start_reauth(hass)  # the line says on the integration page that its key has to be replaced (a flow already open is not doubled)
     _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most
     await _first_refresh([rt["coordinator"] for rt in built.values()])
 

@@ -13,14 +13,16 @@
       "reauth_confirm": {
         "description": "L’API de la ville de Varsovie rejette la clé API ou le jeton enregistré. Saisissez une nouvelle clé ou un nouveau jeton provenant du portail de données ouvertes. Les réglages de la ligne et des arrêts seront conservés.",
         "data": {
-          "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie"
+          "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
+          "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
         }
       },
       "reconfigure": {
         "title": "Transports publics de Varsovie",
         "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
-          "api_key": "Clé API ou jeton"
+          "api_key": "Clé API ou jeton",
+          "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
         }
       },
       "reconfigure_token": {
@@ -52,6 +54,36 @@
         "data": {
           "line": "Ligne"
         }
+      },
+      "reauth_menu": {
+        "title": "Ancienne clé API",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reauth_confirm": "Coller un jeton",
+          "reauth_reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
+        }
+      },
+      "reconfigure_menu": {
+        "title": "Ancienne clé API",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reconfigure_form": "Coller un jeton",
+          "reconfigure_reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
+        }
+      },
+      "reauth_reuse": {
+        "title": "Utiliser le jeton d’une autre ligne",
+        "description": "Plusieurs jetons sont utilisés. Choisissez celui que la ligne {line} doit utiliser : chacun est indiqué par ses quatre derniers caractères et les lignes qui l’utilisent.",
+        "data": {
+          "token": "Jeton"
+        }
+      },
+      "reconfigure_reuse": {
+        "title": "Utiliser le jeton d’une autre ligne",
+        "description": "Plusieurs jetons sont utilisés. Choisissez celui que la ligne {line} doit utiliser : chacun est indiqué par ses quatre derniers caractères et les lignes qui l’utilisent.",
+        "data": {
+          "token": "Jeton"
+        }
       }
     },
     "error": {
@@ -78,7 +110,8 @@
       "unknown": "Une erreur inconnue s’est produite.",
       "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",
       "stop_added": "L’arrêt a été ajouté à la configuration existante de la ligne. Il utilisera les identifiants d’accès enregistrés pour cette ligne. Pour les modifier, choisissez **Configurer**.",
-      "reconfigure_successful": "Les nouveaux identifiants d’accès ont été enregistrés et la configuration a été rechargée."
+      "reconfigure_successful": "Les nouveaux identifiants d’accès ont été enregistrés et la configuration a été rechargée.",
+      "reuse_rejected": "La ville n’a pas accepté ce jeton pour cette ligne. Collez plutôt un jeton."
     }
   },
   "options": {
@@ -87,7 +120,8 @@
         "title": "Transports publics de Varsovie",
         "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
-          "api_key": "Clé API ou jeton"
+          "api_key": "Clé API ou jeton",
+          "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
         }
       },
       "token": {
@@ -96,6 +130,21 @@
         "data": {
           "api_key": "Jeton (laissez vide pour garder l’actuel)",
           "show_vehicles": "Afficher les véhicules de cette ligne sur la carte"
+        }
+      },
+      "menu": {
+        "title": "Ancienne clé API",
+        "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie, qui ne fonctionne plus.**\n\nChoisissez comment la remplacer par un jeton. Vous en obtenez un sur [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "paste": "Coller un jeton",
+          "reuse": "Utiliser le jeton déjà saisi pour une autre ligne"
+        }
+      },
+      "reuse": {
+        "title": "Utiliser le jeton d’une autre ligne",
+        "description": "Plusieurs jetons sont utilisés. Choisissez celui que la ligne {line} doit utiliser : chacun est indiqué par ses quatre derniers caractères et les lignes qui l’utilisent.",
+        "data": {
+          "token": "Jeton"
         }
       }
     },
@@ -111,7 +160,8 @@
       "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
     },
     "abort": {
-      "unknown": "Une erreur inconnue s’est produite."
+      "unknown": "Une erreur inconnue s’est produite.",
+      "reuse_rejected": "La ville n’a pas accepté ce jeton pour cette ligne. Collez plutôt un jeton."
     }
   },
   "entity": {

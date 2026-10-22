@@ -13,14 +13,16 @@
       "reauth_confirm": {
         "description": "API m.st. Warszawy odrzuca używany klucz API lub token. Podaj nowy klucz lub token z portalu otwartych danych miasta. Ustawienia linii i przystanków zostaną zachowane.",
         "data": {
-          "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy"
+          "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
+          "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
         }
       },
       "reconfigure": {
         "title": "Warszawski Transport Publiczny",
         "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
-          "api_key": "Klucz API lub token"
+          "api_key": "Klucz API lub token",
+          "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
         }
       },
       "reconfigure_token": {
@@ -52,6 +54,36 @@
         "data": {
           "line": "Linia"
         }
+      },
+      "reauth_menu": {
+        "title": "Stary klucz API",
+        "description": "**Linia {line} używa klucza do starego API m.st. Warszawy, które już nie działa.**\n\nWybierz, jak wymienić go na token. Token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reauth_confirm": "Wklej token",
+          "reauth_reuse": "Użyj tokenu wpisanego już dla innej linii"
+        }
+      },
+      "reconfigure_menu": {
+        "title": "Stary klucz API",
+        "description": "**Linia {line} używa klucza do starego API m.st. Warszawy, które już nie działa.**\n\nWybierz, jak wymienić go na token. Token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "reconfigure_form": "Wklej token",
+          "reconfigure_reuse": "Użyj tokenu wpisanego już dla innej linii"
+        }
+      },
+      "reauth_reuse": {
+        "title": "Użyj tokenu innej linii",
+        "description": "W użyciu jest kilka tokenów. Wybierz ten, którego ma używać linia {line}: każdy jest pokazany czterema ostatnimi znakami i liniami, które z niego korzystają.",
+        "data": {
+          "token": "Token"
+        }
+      },
+      "reconfigure_reuse": {
+        "title": "Użyj tokenu innej linii",
+        "description": "W użyciu jest kilka tokenów. Wybierz ten, którego ma używać linia {line}: każdy jest pokazany czterema ostatnimi znakami i liniami, które z niego korzystają.",
+        "data": {
+          "token": "Token"
+        }
       }
     },
     "error": {
@@ -78,7 +110,8 @@
       "unknown": "Wystąpił nieznany błąd.",
       "already_configured": "Wybrana linia jest już skonfigurowana dla tego słupka przystankowego.",
       "stop_added": "Dodano przystanek do istniejącej konfiguracji linii. Będzie korzystać z zapisanych dla niej danych dostępu. Aby je zmienić, wybierz **Konfiguruj**.",
-      "reconfigure_successful": "Zapisano nowe dane dostępu i ponownie wczytano konfigurację."
+      "reconfigure_successful": "Zapisano nowe dane dostępu i ponownie wczytano konfigurację.",
+      "reuse_rejected": "Miasto nie przyjęło tego tokenu dla tej linii. Wklej zamiast tego token."
     }
   },
   "options": {
@@ -87,7 +120,8 @@
         "title": "Warszawski Transport Publiczny",
         "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
-          "api_key": "Klucz API lub token"
+          "api_key": "Klucz API lub token",
+          "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
         }
       },
       "token": {
@@ -96,6 +130,21 @@
         "data": {
           "api_key": "Token (zostaw puste, aby zachować obecny)",
           "show_vehicles": "Pokaż pojazdy tej linii na mapie"
+        }
+      },
+      "menu": {
+        "title": "Stary klucz API",
+        "description": "**Linia {line} używa klucza do starego API m.st. Warszawy, które już nie działa.**\n\nWybierz, jak wymienić go na token. Token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "menu_options": {
+          "paste": "Wklej token",
+          "reuse": "Użyj tokenu wpisanego już dla innej linii"
+        }
+      },
+      "reuse": {
+        "title": "Użyj tokenu innej linii",
+        "description": "W użyciu jest kilka tokenów. Wybierz ten, którego ma używać linia {line}: każdy jest pokazany czterema ostatnimi znakami i liniami, które z niego korzystają.",
+        "data": {
+          "token": "Token"
         }
       }
     },
@@ -111,7 +160,8 @@
       "unknown": "Wystąpił nieznany błąd."
     },
     "abort": {
-      "unknown": "Wystąpił nieznany błąd."
+      "unknown": "Wystąpił nieznany błąd.",
+      "reuse_rejected": "Miasto nie przyjęło tego tokenu dla tej linii. Wklej zamiast tego token."
     }
   },
   "entity": {
