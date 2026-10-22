@@ -129,6 +129,11 @@
           "city_error": "Не вдалося отримати розклад"
         }
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "Транспорт"
+      }
     }
   },
   "issues": {

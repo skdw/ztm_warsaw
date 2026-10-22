@@ -63,7 +63,7 @@ Die Integration zeigt **planmäßige Abfahrten** auf Grundlage der offenen Daten
 
 Die Daten stammen aus veröffentlichten Fahrplänen. Dabei gelten folgende Einschränkungen:
 
-- keine Fahrzeugpositionen in Echtzeit, Verspätungen oder Störungsmeldungen — die API liefert planmäßige Abfahrten, die einmal täglich aktualisiert werden;
+- keine Verspätungen oder Störungsmeldungen — die API liefert planmäßige Abfahrten, die einmal täglich aktualisiert werden. Das Fahrzeug der nächsten Abfahrt lässt sich als optionale Entität auf der Karte zeigen (braucht ein Token, siehe Wiki);
 - Fahrpläne nur für den aktuellen Betriebstag — die öffentliche API stellt keine anderen Tage bereit;
 - keine Routen- oder Umsteigeplanung — nutze dafür [wtp.waw.pl](https://wtp.waw.pl).
 

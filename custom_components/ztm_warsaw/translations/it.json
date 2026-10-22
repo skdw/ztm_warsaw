@@ -129,6 +129,11 @@
           "city_error": "Impossibile ottenere l’orario"
         }
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "Veicolo"
+      }
     }
   },
   "issues": {

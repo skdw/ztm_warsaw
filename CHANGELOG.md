@@ -39,6 +39,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Reconfigure the key from Home Assistant's own menu**: *Reconfigure* on a line replaces its API key or token, like *Configure* does, and an old key is nudged to a token.
 - **Lines say which stops they have**: a line is titled like "Line 176 · Marcelin 01, Marcelin 02", so the list of lines (for example when you add a stop) shows which is which. A title you chose yourself stays.
 - **When the first and the last bus is**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure` for the day, so a card can still say "the last bus left at 23:41" when the state is *unknown* after the last departure, after a restart or for a sensor added late.
+- **The vehicle on the map** (off by default, needs a token): switch on *Vehicle* in a stop's entity settings to see the bus or tram that will make the next departure as a pin, with its number and how far it is from the stop. When the City does not report it, it is not shown.
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
