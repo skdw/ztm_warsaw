@@ -185,6 +185,20 @@ class VehicleFeed:
         return max(candidates, key=lambda v: v.moment) if candidates else None
 
 
+    def vehicles_of(self, line: str) -> list[Vehicle]:
+        """The vehicles of this line seen within ``MAX_AGE``, one per vehicle number (its newest position): what is on the map now."""
+        wanted = str(line).upper()
+        newest: dict[str, Vehicle] = {}
+        now = dt_util.utcnow()
+        for (vehicle_line, _brigade), seen in self._vehicles.items():
+            if vehicle_line != wanted:
+                continue
+            for vehicle in seen:
+                if vehicle.age(now) <= MAX_AGE and (vehicle.number not in newest or vehicle.moment > newest[vehicle.number].moment):
+                    newest[vehicle.number] = vehicle
+        return list(newest.values())
+
+
 def feed_for(hass: HomeAssistant, client: ZTMStopClient) -> VehicleFeed:
     """The one feed of the key this client uses (every entity with that key shares the positions and the polling)."""
     feeds: list[VehicleFeed] = hass.data.setdefault(f"{DOMAIN}_vehicles", [])

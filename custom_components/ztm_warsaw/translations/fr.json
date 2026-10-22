@@ -92,9 +92,10 @@
       },
       "token": {
         "title": "Transports publics de Varsovie",
-        "description": "**Modifiez votre jeton d’accès à l’API.**\n\nSi votre jeton actuel a expiré ou si vous souhaitez le remplacer, collez un nouveau jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Changez votre jeton d’accès à l’API ou choisissez ce que la ligne affiche sur la carte.**\n\nPour remplacer le jeton, collez-en un nouveau depuis [dane.um.warszawa.pl/pl/key-api]({portal}). Laissez le champ vide pour garder le jeton actuel.\n\nLes réglages de la ligne et des arrêts sont conservés.",
         "data": {
-          "api_key": "Jeton"
+          "api_key": "Jeton (laissez vide pour garder l’actuel)",
+          "show_vehicles": "Afficher les véhicules de cette ligne sur la carte"
         }
       }
     },
@@ -130,11 +131,9 @@
           "city_error": "Impossible d’obtenir l’horaire",
           "old_api": "L’ancienne API ne fonctionne plus : remplacez la clé par un jeton"
         }
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "name": "Véhicule"
+      },
+      "vehicle_distance": {
+        "name": "Distance du véhicule"
       }
     }
   },

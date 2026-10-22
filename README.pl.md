@@ -61,7 +61,7 @@
 
 Integracja wyświetla w Home Assistant, **kiedy z Twojego przystanku odjedzie najbliższy autobus, tramwaj albo pociąg**. Dla każdej linii na wybranym słupku tworzy jeden sensor, który możesz umieścić na pulpicie albo wykorzystać w automatyzacji, na przykład żeby dostać powiadomienie, kiedy trzeba wyjść z domu. Dane bierze z otwartych danych m.st. Warszawy, więc nie potrzebujesz żadnego dodatkowego sprzętu.
 
-Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. Nie pokazuje opóźnień ani utrudnień, nie zna rozkładów na inne dni niż bieżąca doba rozkładowa i nie planuje podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Jeśli masz token, możesz dodatkowo zobaczyć na mapie pojazd, który obsłuży najbliższy odjazd.
+Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. Nie pokazuje opóźnień ani utrudnień, nie zna rozkładów na inne dni niż bieżąca doba rozkładowa i nie planuje podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Jeśli masz token, możesz dodatkowo zobaczyć na mapie pojazdy swoich linii.
 
 ---
 

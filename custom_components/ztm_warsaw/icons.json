@@ -25,16 +25,14 @@
           "city_error": "mdi:alert-circle-outline",
           "old_api": "mdi:key-alert-outline"
         }
+      },
+      "vehicle_distance": {
+        "default": "mdi:bus-marker"
       }
     },
     "calendar": {
       "timetable": {
         "default": "mdi:calendar-clock"
-      }
-    },
-    "device_tracker": {
-      "vehicle": {
-        "default": "mdi:bus-marker"
       }
     }
   }

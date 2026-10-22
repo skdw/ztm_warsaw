@@ -61,7 +61,7 @@
 
 Die Integration zeigt in Home Assistant, **wann an deiner Haltestelle der nächste Bus, die nächste Straßenbahn oder der nächste Zug abfährt**. Für jede Linie an der gewählten Halteposition legt sie einen Sensor an, den du in ein Dashboard setzen oder in einer Automation nutzen kannst, zum Beispiel für eine Benachrichtigung, wann du losgehen musst. Sie nutzt die offenen Daten der Stadt Warschau, du brauchst also keine zusätzliche Hardware.
 
-Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. Verspätungen und Störungen zeigt sie nicht, Fahrpläne für andere Tage als den aktuellen Betriebstag kennt sie nicht, und Reisen plant sie nicht (dafür gibt es [wtp.waw.pl](https://wtp.waw.pl)). Mit einem Token kannst du zusätzlich auf der Karte sehen, welches Fahrzeug die nächste Abfahrt fährt.
+Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. Verspätungen und Störungen zeigt sie nicht, Fahrpläne für andere Tage als den aktuellen Betriebstag kennt sie nicht, und Reisen plant sie nicht (dafür gibt es [wtp.waw.pl](https://wtp.waw.pl)). Mit einem Token kannst du zusätzlich die Fahrzeuge deiner Linien auf der Karte sehen.
 
 ---
 

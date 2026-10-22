@@ -61,7 +61,7 @@
 
 L’integrazione mostra in Home Assistant **quando parte dalla tua fermata il prossimo autobus, tram o treno**. Per ogni linea al punto di fermata scelto crea un sensore che puoi mettere in una dashboard o usare in un’automazione, per esempio per ricevere una notifica quando è ora di uscire di casa. Usa i dati aperti della città di Varsavia, quindi non serve hardware aggiuntivo.
 
-L’integrazione legge gli orari, perciò mostra partenze **programmate**. Non mostra ritardi né disservizi, non conosce gli orari di giorni diversi dal giorno di servizio in corso e non pianifica viaggi (per questo c’è [wtp.waw.pl](https://wtp.waw.pl)). Con un token puoi anche vedere sulla mappa il veicolo che effettuerà la prossima partenza.
+L’integrazione legge gli orari, perciò mostra partenze **programmate**. Non mostra ritardi né disservizi, non conosce gli orari di giorni diversi dal giorno di servizio in corso e non pianifica viaggi (per questo c’è [wtp.waw.pl](https://wtp.waw.pl)). Con un token puoi anche vedere sulla mappa i veicoli delle tue linee.
 
 ---
 

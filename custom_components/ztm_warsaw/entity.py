@@ -5,6 +5,7 @@ that stop, reads the stop's record from the same coordinator and takes the stop'
 it. Those are here, once, instead of in each platform.
 """
 
+import math
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
@@ -26,6 +27,18 @@ def stop_info_of(coordinator: ZTMStopCoordinator | None) -> dict[str, Any]:
     except (AttributeError, TypeError):
         pass
     return {}
+
+
+def stop_place(info: dict[str, Any]) -> tuple[float, float] | None:
+    """The latitude and longitude in a stop's record, or None when it is not a real place (a NaN or a value out of range would
+    make every update look like a change, or put a pin in the sea and a distance of nothing)."""
+    try:
+        latitude, longitude = float(info["szer_geo"]), float(info["dlug_geo"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if math.isfinite(latitude) and math.isfinite(longitude) and -90 <= latitude <= 90 and -180 <= longitude <= 180:
+        return latitude, longitude
+    return None
 
 
 def timetable_url(line: str) -> str:

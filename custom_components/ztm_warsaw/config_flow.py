@@ -47,6 +47,7 @@ from .const import (
     CONF_DEPARTURES,
     CONF_LINE,
     CONF_WALKING_TIME,
+    CONF_SHOW_VEHICLES,
     DOMAIN,
     KEY_PORTAL_URL,
     MAX_WALKING_TIME,
@@ -540,6 +541,13 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
         """The same step for an entry that already has a token: its form does not ask for an old key."""
         return await self._change_key(user_input)
 
+    def _options_with(self, user_input: dict[str, Any], has_token: bool) -> dict[str, Any]:
+        """The options of the entry as they are now, with the choice of the vehicles on the map when the line has a token."""
+        options = dict(self._config_entry.options)
+        if has_token:
+            options[CONF_SHOW_VEHICLES] = bool(user_input.get(CONF_SHOW_VEHICLES, False))
+        return options
+
     async def _change_key(self, user_input: dict[str, str] | None) -> ConfigFlowResult:
         """Ask for the new key (the nudge to a token for an old key, a plain form for a token), check it with the City and save it.
 
@@ -549,18 +557,28 @@ class ZtmWarsawOptionsFlow(config_entries.OptionsFlow):
         api_key = entry_api_key(entry)
         if api_key is None or not key_can_change(entry):
             return self.async_abort(reason="unknown")
+        has_token = key_kind(api_key) == "token"
         errors = {}
         if user_input is not None:
-            key = user_input[CONF_API_KEY].strip()
+            key = (user_input.get(CONF_API_KEY) or "").strip()
+            # A line with a token also chooses here whether its vehicles are on the map; leaving the token empty keeps the one it has.
+            if has_token and not key:
+                return self.async_create_entry(title="", data=self._options_with(user_input, has_token))
             error, works = await key_error(self.hass, entry, key)
             if error is None or works:  # that the line does not run today is not the key's fault
                 save_key(self.hass, entry, key)
                 await close_reauth(self.hass, entry)
-                return self.async_create_entry(title="", data=dict(entry.options))
+                return self.async_create_entry(title="", data=self._options_with(user_input, has_token))  # read after the key was saved: it may drop an option
             errors["base"] = error
+        schema: dict[Any, Any] = {vol.Required(CONF_API_KEY): str}
+        if has_token:
+            schema = {
+                vol.Optional(CONF_API_KEY, default=""): str,
+                vol.Required(CONF_SHOW_VEHICLES, default=bool(entry.options.get(CONF_SHOW_VEHICLES, False))): bool,
+            }
         return self.async_show_form(
             step_id="init" if key_kind(api_key) == "legacy" else "token",  # an old key is nudged to the token, a token is not
-            data_schema=_form({vol.Required(CONF_API_KEY): str}),
+            data_schema=_form(schema),
             errors=errors,
             description_placeholders={"current": _host_of(api_key), "portal": KEY_PORTAL_URL},
         )

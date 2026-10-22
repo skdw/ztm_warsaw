@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from custom_components.ztm_warsaw.utils import get_line_badge, get_line_class
+from custom_components.ztm_warsaw.utils import get_line_badge, get_line_class, get_stop_badge
 
 PREFIX = "data:image/svg+xml;base64,"
 
@@ -70,10 +70,9 @@ def test_every_badge_has_the_same_border_width():
     assert widths == {"3"}
 
 
-def test_the_moon_is_only_on_a_night_line_and_does_not_shrink_or_move_the_number():
-    night = _svg("N25")
-    assert "<path" in night
-    assert "<path" not in _svg("126")
+def test_a_night_line_has_no_moon_and_its_number_is_as_big_as_any_other():
+    """The moon of the first beta hid the digits at the size of a pin: a night line is told apart by its blue alone."""
+    assert "<path" not in _svg("N25")
     _, night_text, _ = _parts("N25")
     _, day_text, _ = _parts("126")
     assert (night_text.get("font-size"), night_text.get("y")) == (day_text.get("font-size"), day_text.get("y"))
@@ -96,3 +95,17 @@ def test_every_badge_is_a_circle(line):
     _, _, root = _parts(line)
     assert not [el for el in root.iter() if el.tag.endswith("rect")]
     assert [el for el in root.iter() if el.tag.endswith("circle")]
+
+
+def test_the_badge_of_a_stop_pole_is_a_sign_with_its_number_and_is_not_a_line_badge():
+    badge = get_stop_badge("05")
+    assert badge is not None
+    root = ET.fromstring(base64.b64decode(badge[len(PREFIX):]).decode())
+    assert next(el for el in root.iter() if el.tag.endswith("text")).text == "05"
+    assert not any(c in badge for c in " ()\"'\\\n")
+    assert badge != get_line_badge("5")
+
+
+@pytest.mark.parametrize("pole", ["", "123", "a1", "<b>", "1 2", "é1"])
+def test_the_badge_of_a_stop_pole_refuses_anything_that_is_not_one_or_two_digits(pole):
+    assert get_stop_badge(pole) is None
