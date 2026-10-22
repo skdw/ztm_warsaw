@@ -347,3 +347,44 @@ async def test_e2e_41_the_steps_abort_when_their_entry_or_a_donor_token_is_gone(
     await env.hass.config_entries.async_remove(entry.entry_id)
     gone = await handler.async_step_token()
     assert (gone["type"], gone["reason"]) == ("abort", "unknown")
+
+
+THIRD_LINE = "523"
+
+
+async def _two_tokens(env):
+    """A line with an old key, and two other lines that have different tokens; returns the entry, the second token and the flow manager."""
+    entry = await env.add_entry_via_flow(line=LINE)
+    second_token = DEFAULT_TOKEN[:-4] + "wXyZ"
+    env.city.valid_tokens.update({DEFAULT_TOKEN, second_token})
+    await env.add_entry_via_flow(line=OTHER_LINE, api_key=DEFAULT_TOKEN)
+    await env.add_entry_via_flow(line=THIRD_LINE, api_key=second_token)
+    return entry, second_token, await _flows(env)
+
+
+async def test_e2e_41_with_several_tokens_the_user_picks_one_by_its_end_and_its_lines(env):
+    entry, second_token, manager = await _two_tokens(env)
+    menu = await _menu(env, manager, entry)
+    form = await manager.async_configure(menu["flow_id"], {"next_step_id": "reuse"})
+    assert form["type"] == "form" and form["step_id"] == "reuse"
+    choices = list(form["data_schema"].schema.values())[0].container
+    assert len(choices) == 2
+    assert any(label.endswith(f"{DEFAULT_TOKEN[-4:]}  ·  {OTHER_LINE}") for label in choices.values())
+    assert any(label.endswith(f"wXyZ  ·  {THIRD_LINE}") for label in choices.values())
+    assert not any(DEFAULT_TOKEN in label or second_token in label for label in choices.values()), "only the end of a token is shown"
+    pick = next(key for key, label in choices.items() if THIRD_LINE in label)
+    done = await manager.async_configure(form["flow_id"], {"token": pick})
+    await env.settle()
+    assert done["type"] == "create_entry", done
+    assert entry.data["api_key"] == second_token
+
+
+async def test_e2e_41_a_token_picked_but_not_accepted_for_the_line_is_not_saved(env):
+    entry, second_token, manager = await _two_tokens(env)
+    menu = await _menu(env, manager, entry)
+    form = await manager.async_configure(menu["flow_id"], {"next_step_id": "reuse"})
+    choices = list(form["data_schema"].schema.values())[0].container
+    env.city.valid_tokens.discard(second_token)
+    done = await manager.async_configure(form["flow_id"], {"token": next(k for k, v in choices.items() if THIRD_LINE in v)})
+    assert (done["type"], done["reason"]) == ("abort", "reuse_rejected")
+    assert entry.data["api_key"] == DEFAULT_KEY

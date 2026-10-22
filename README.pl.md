@@ -112,7 +112,7 @@ Dane pochodzą z rozkładu jazdy. Integracja ma następujące ograniczenia:
 Integracja obsługuje dane dostępu do obu API m.st. Warszawy:
 
 - **Token do nowego API (zalecany):** na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) podaj pseudonim, zaakceptuj regulamin i pobierz swój token. To długi ciąg znaków z trzech części oddzielonych kropkami.
-- **Klucz do starego API:** klucz ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl) wygląda tak: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Stare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API.
+- **Klucz do starego API:** klucz ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl) wygląda tak: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Stare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API.
 
 Integracja rozpoznaje rodzaj danych dostępu i wysyła je wyłącznie do odpowiedniego API. Aby zastąpić stary klucz tokenem, wybierz **Konfiguruj** przy danej linii i wklej token. Ustawienia linii i przystanków zostaną zachowane. Nie trzeba dodawać integracji ponownie — kreator nie pozwoli drugi raz dodać tej samej linii dla tego samego słupka przystankowego.
 

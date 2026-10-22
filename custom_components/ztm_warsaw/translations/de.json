@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Öffentlicher Nahverkehr Warschau",
-        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
           "api_key": "API-Schlüssel oder Token"
         }
@@ -84,7 +84,7 @@
     "step": {
       "init": {
         "title": "Öffentlicher Nahverkehr Warschau",
-        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
           "api_key": "API-Schlüssel oder Token"
         }
@@ -142,7 +142,7 @@
         "step": {
           "token": {
             "title": "Alten Schlüssel durch ein Token ersetzen",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
               "api_key": "Token",
               "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
@@ -150,11 +150,18 @@
           },
           "init": {
             "title": "Alter API-Schlüssel",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
               "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
               "reuse": "Das Token einer anderen Linie verwenden"
+            }
+          },
+          "reuse": {
+            "title": "Das Token einer anderen Linie verwenden",
+            "description": "Es sind mehrere Token im Einsatz. Wähle das, das die Linie {line} verwenden soll: Jedes wird mit seinen letzten vier Zeichen und den Linien angezeigt, die es nutzen.",
+            "data": {
+              "token": "Token"
             }
           }
         },
@@ -182,7 +189,7 @@
         "step": {
           "token": {
             "title": "Alten Schlüssel durch ein Token ersetzen",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
               "api_key": "Token",
               "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
@@ -190,11 +197,18 @@
           },
           "init": {
             "title": "Alter API-Schlüssel",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API funktioniert weiterhin. Die Stadt hat jedoch noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
               "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
               "reuse": "Das Token einer anderen Linie verwenden"
+            }
+          },
+          "reuse": {
+            "title": "Das Token einer anderen Linie verwenden",
+            "description": "Es sind mehrere Token im Einsatz. Wähle das, das die Linie {line} verwenden soll: Jedes wird mit seinen letzten vier Zeichen und den Linien angezeigt, die es nutzen.",
+            "data": {
+              "token": "Token"
             }
           }
         },

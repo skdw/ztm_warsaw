@@ -112,7 +112,7 @@ I dati provengono dagli orari pubblicati. L’integrazione presenta questi limit
 L’integrazione supporta le credenziali di entrambe le API della città di Varsavia:
 
 - **Token per la nuova API (consigliato):** su [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), inserisci un nome utente, accetta le condizioni e scarica il tuo token. È una lunga stringa di caratteri composta da tre parti separate da punti.
-- **Chiave per la vecchia API:** una chiave di [api.um.warszawa.pl](https://api.um.warszawa.pl) ha il formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La vecchia API funziona ancora, ma la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API.
+- **Chiave per la vecchia API:** una chiave di [api.um.warszawa.pl](https://api.um.warszawa.pl) ha il formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La vecchia API a volte non risponde, e la città non ha annunciato quando verrà disattivata. Consigliamo di passare alla nuova API.
 
 L’integrazione riconosce il tipo di credenziale e la invia soltanto all’API corrispondente. Per sostituire una vecchia chiave con un token, scegli **Configura** per la linea e incolla il token. Le impostazioni della linea e delle fermate verranno mantenute. Non serve aggiungere di nuovo l’integrazione: la procedura rifiuta configurazioni duplicate della stessa linea nello stesso punto di fermata.
 

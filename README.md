@@ -112,7 +112,7 @@ The data come from published timetables. The integration has these limitations:
 The integration supports credentials for both City of Warsaw APIs:
 
 - **Token for the new API (recommended):** at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), enter a nickname, accept the terms and download your token. It is a long string with three parts separated by dots.
-- **Key for the old API:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) has the format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. The old API still works, but the City has not announced when it will be retired. We recommend switching to the new API.
+- **Key for the old API:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) has the format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. The old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API.
 
 The integration recognises the credential type and sends it only to the matching API. To replace an old key with a token, choose **Configure** for the line and paste the token. Your line and stop settings will be preserved. You do not need to add the integration again: setup will reject a duplicate configuration for the same line and stop point.
 
