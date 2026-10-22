@@ -537,3 +537,21 @@ async def test_e2e_16_a_pending_retry_is_not_doubled_and_an_unload_cancels_it(en
     assert coord._retry_unsub is pending, "the wait already under way is kept, not replaced"
     await env.hass.config_entries.async_unload(entry.entry_id)
     assert coord._retry_unsub is None, "unloading cancels the wait"
+
+
+async def test_e2e_16_a_long_outage_is_said_once_and_asked_less_and_less_often(env, caplog):
+    """The City's old host can be down for hours: the log says so once, and the retries do not stay at five minutes."""
+    caplog.set_level(logging.DEBUG)
+    await env.add_entry()
+    env.city.always(None, Reset())
+    env.city.reset_counts()
+    caplog.clear()
+    await env.advance(seconds=3600 * 3)
+    loud = [r for r in caplog.records if r.levelno >= logging.WARNING and r.name.startswith("custom_components.ztm_warsaw")]
+    assert 0 < len(loud) <= 8, f"said at the start of the outage, not at every try: {[r.getMessage()[:60] for r in loud]}"
+    asked = env.city.count("timetable")
+    assert 0 < asked <= 24, f"{asked} requests in three hours (two per try); five-minute retries without a back-off would be about 72"
+    env.city.heal()
+    caplog.clear()
+    await env.advance(seconds=3700)
+    assert any("answers again" in r.getMessage() for r in caplog.records)

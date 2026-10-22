@@ -65,6 +65,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Errors look like errors**: a rejected key or an unreadable answer shows as `unavailable`, not as a misleading "No service".
 - **Slow start-up**: if the City does not answer when Home Assistant starts, the integration tries again instead of waiting an hour.
 - **A quick second try after a hiccup**: if the City cannot be reached for a moment (right after Home Assistant starts, say), your sensors keep their timetable and ask again after five minutes instead of waiting an hour.
+- **A quiet log during an outage**: when the City cannot be reached for hours, the log says so once instead of every hour, and the integration asks less and less often until the City answers again.
 - **Lighter on the City**: the stop list is downloaded once for all your sensors, not once each.
 - **No duplicate entries**: you can no longer add the same stop, pole and line twice.
 - **Under the hood**: no reload when you rename an entry, keys are never logged or sent through redirects, and the integration loads on Home Assistant 2026.10.

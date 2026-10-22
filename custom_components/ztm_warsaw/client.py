@@ -305,6 +305,8 @@ class ZTMStopClient:
             "line": line,
         }
         self._stop_name: dict[str, Any] | None = None
+        self._outage_said = False  # a failed request is in the log: the next ones are not, until the City answers again
+        self._no_response_said = False  # the same for "no response" of the timetable
 
     async def _call(self, kind: str) -> Any:
         """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
@@ -378,12 +380,17 @@ class ZTMStopClient:
                 reason = f"network error ({type(err).__name__})"
             else:
                 if result is not _RETRY:
+                    if result is not None and self._outage_said:
+                        _LOGGER.info("The City of Warsaw answers again")
+                        self._outage_said = False
                     return result
             if reason is not None:
+                loud = logging.DEBUG if self._outage_said else None  # an outage is said once, then it is only for debugging
                 if attempt >= self._max_retries:
-                    _LOGGER.error("Request to %s failed: %s", url, reason)
+                    _LOGGER.log(loud or logging.ERROR, "Request to %s failed: %s", url, reason)
+                    self._outage_said = True
                     return None
-                _LOGGER.warning("Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
+                _LOGGER.log(loud or logging.WARNING, "Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
             attempt += 1
             await asyncio.sleep(self._retry_backoff * attempt)
 
@@ -487,11 +494,14 @@ class ZTMStopClient:
                 await self.get_stop_name()
             json_response = await self._call("timetable")
             if json_response is None:
-                _LOGGER.warning(
+                _LOGGER.log(
+                    logging.DEBUG if self._no_response_said else logging.WARNING,
                     "Timetable fetch failed (no response) for %s",
                     _ctxp(self._params),
                 )
+                self._no_response_said = True
                 return None
+            self._no_response_said = False
             result = _checked_result(json_response)
             service_date = service_date_at(dt_util.utcnow())
 
