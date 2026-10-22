@@ -59,7 +59,8 @@
         "title": "Which line?",
         "description": "The lines that stop at {stop} today.",
         "data": {
-          "line": "Line"
+          "line": "Line",
+          "show_vehicles": "Show the vehicles of this line on the map"
         }
       },
       "reauth_menu": {

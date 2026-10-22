@@ -59,7 +59,8 @@
         "title": "Która linia?",
         "description": "Linie, które dziś zatrzymują się na {stop}.",
         "data": {
-          "line": "Linia"
+          "line": "Linia",
+          "show_vehicles": "Pokaż pojazdy tej linii na mapie"
         }
       },
       "reauth_menu": {
