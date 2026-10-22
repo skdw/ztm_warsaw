@@ -59,26 +59,20 @@
 
 </details>
 
-La integración muestra **salidas programadas** a partir de los datos abiertos de la ciudad de Varsovia. Cada sensor muestra las salidas de una línea en un punto de parada concreto. Puedes añadirlas a tu panel de Home Assistant o usarlas en automatizaciones, por ejemplo para recordar cuándo salir de casa antes de que pase el autobús.
+Muestra **cuándo sale el próximo autobús, tranvía o tren de tu parada**: un sensor para una línea en un punto de parada, para tu panel y para automatizaciones como «avísame cuándo salir». Usa los datos abiertos de la ciudad de Varsovia y no necesita hardware adicional.
 
-Los datos proceden de los horarios publicados. La integración tiene las siguientes limitaciones:
-
-- no muestra retrasos ni incidencias: la API proporciona salidas programadas, actualizadas una vez al día. El vehículo de la próxima salida puede mostrarse en el mapa como una entidad opcional (requiere un token, véase la wiki);
-- solo ofrece horarios para el día de servicio actual: la API pública no proporciona otras fechas;
-- no planifica rutas ni transbordos: para ello, utiliza [wtp.waw.pl](https://wtp.waw.pl).
+Muestra salidas **programadas**: sin retrasos ni avisos de incidencias, solo el día de servicio actual y sin planificación de viajes (para eso está [wtp.waw.pl](https://wtp.waw.pl)). El vehículo de la próxima salida puede mostrarse en el mapa (opcional, requiere un token).
 
 ---
 
 ## 🔧 Funciones
 
-- ✅ Autobuses, tranvías, metro y trenes SKM, incluidas las líneas nocturnas, de acceso a cementerios, exprés y locales.
-- ✅ Compatibilidad con varias líneas y paradas.
-- ✅ La hora de la próxima salida como estado del sensor, disponible en paneles y automatizaciones. Las tres salidas siguientes se guardan en los atributos (`Next 1`–`Next 3`).
-- ✅ El mensaje «No service» cuando ya no quedan salidas y el estado `unavailable` cuando no se puede obtener un horario válido (véase [Solución de problemas](#-solución-de-problemas)).
-- ✅ Configuración en la interfaz de Home Assistant en ocho idiomas: inglés, polaco, ucraniano, ruso, alemán, español, francés e italiano. Las seis nuevas versiones se han traducido automáticamente; puedes proponer correcciones mediante pull requests.
-- ✅ Atributos con el nombre y las coordenadas de la parada, el sentido de circulación, un enlace al horario y notas. Las coordenadas permiten mostrar la parada en un mapa.
-- ✅ Cambio de clave API o token mediante **Configurar**, también al pasar a la nueva API de la ciudad.
-- ✅ Una entidad de **calendario** independiente para cada sensor, desactivada por defecto. Al activarla en los ajustes de la entidad, cada salida del día de servicio aparece como un evento de un minuto. El disparador de calendario permite iniciar una automatización, por ejemplo ocho minutos antes de la salida, sin crear plantillas.
+- ✅ Autobuses, tranvías, metro y cercanías (SKM), incluidas las líneas nocturnas, exprés y locales.
+- ✅ La próxima salida es el estado del sensor; las tres siguientes, y la primera y la última salida del día, son atributos.
+- ✅ Un sensor de *Estado* explica con palabras sencillas qué ocurre («Ya salió la última salida del día»).
+- ✅ Configuración buscando el nombre de la parada y eligiendo después el punto de parada y la línea: sin buscar números.
+- ✅ Varias líneas y paradas, un tiempo de paseo opcional, un calendario opcional y una marca opcional del vehículo en el mapa.
+- ✅ Ocho idiomas: inglés, polaco, ucraniano, ruso, alemán, español, francés e italiano. Los seis más recientes están traducidos automáticamente; las correcciones son bienvenidas como pull request.
 
 ---
 
@@ -109,12 +103,9 @@ Los datos proceden de los horarios publicados. La integración tiene las siguien
 
 ## 🧭 Cómo conseguir una clave o un token
 
-La integración admite las credenciales de ambas API de la ciudad de Varsovia:
+Consigue un token gratuito en [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): escribe un apodo, acepta las condiciones y descárgalo. Es un texto largo en tres partes separadas por puntos.
 
-- **Token para la nueva API (recomendado):** en [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), introduce un seudónimo, acepta las condiciones y descarga tu token. Es una cadena larga de caracteres dividida en tres partes separadas por puntos.
-- **Clave para la API antigua:** una clave de [api.um.warszawa.pl](https://api.um.warszawa.pl) tiene el formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API.
-
-La integración reconoce el tipo de credencial y la envía únicamente a la API correspondiente. Para sustituir una clave antigua por un token, selecciona **Configurar** en la línea y pega el token. Se conservarán los ajustes de la línea y de las paradas. No hace falta volver a añadir la integración: el asistente rechaza configuraciones duplicadas de la misma línea y punto de parada.
+Una clave antigua de la API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) sigue funcionando, pero ese servidor deja de responder a ratos, la ciudad no ha dado fecha de cierre y el vehículo en el mapa necesita un token. Para cambiar, abre el aviso en **Reparaciones** o elige **Configurar** en la línea y pega el token. Tus ajustes se conservan.
 
 ---
 
@@ -139,33 +130,28 @@ La integración reconoce el tipo de credencial y la envía únicamente a la API 
 
 1. Ve a **Configuración → Dispositivos y servicios**.
 2. Pulsa **+ Añadir integración** y busca **Transporte público de Varsovia**.
-3. Rellena:
-   - **clave API o token** (véase arriba),
-   - **ID de la parada** y **número del punto de parada** (por ejemplo 7009 y 01),
-   - **número de línea** (por ejemplo 151).
+3. Pega tu token y escribe parte del nombre de la parada (por ejemplo, `Marcelin`) o su ID.
+4. Elige el punto de parada (su número está en el cartel de la parada, uno por sentido) y la línea. Solo aparecen las líneas que paran allí hoy.
 
-El ID de la entidad incluye el número de línea, el ID de la parada y el número del punto de parada; por ejemplo, `sensor.line_151_from_7009_01`. Para cambiar la clave API o el token, abre **Configuración → Dispositivos y servicios → Transporte público de Varsovia** y selecciona **Configurar** en la línea. Se conservarán los ajustes de la línea y de las paradas. Si aún se utiliza una clave antigua, aparecerá un aviso en **Reparaciones** con instrucciones para cambiar a un token. Puedes ignorarlo.
-
-El **ID de la parada** es común a todos los puntos de parada que pertenecen a la misma parada. El **número del punto de parada** identifica el lugar concreto donde se sube al vehículo, normalmente para un sentido de circulación. Suele tener dos dígitos, como 01 o 02, y figura en la señal de la parada. En polaco, este punto numerado se denomina *słupek*.
+El sensor se llama algo como `sensor.line_151_from_7009_01`. Otra parada de la línea se añade con **Añadir parada**. Si ya conoces los números, marca **Conozco los números** en la primera pantalla. El tiempo de paseo, el calendario, la marca del vehículo y cómo quitar una línea están en la [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Solución de problemas
 
-- **El sensor tiene el estado `unknown` y sus atributos muestran «No service».** La línea no circula hoy o ya han pasado todas las salidas. Es el comportamiento previsto. Consulta el horario en [wtp.waw.pl](https://wtp.waw.pl) o llama al 19115.
-- **El sensor tiene el estado `unavailable` (no disponible).** La API no ha devuelto un horario válido. Puede deberse a una clave rechazada, datos incorrectos de la parada, del punto de parada o de la línea, o un formato de respuesta no compatible. Si la primera descarga falla por un motivo distinto del rechazo de la clave, Home Assistant reintenta la configuración automáticamente. Las claves rechazadas se gestionan como se explica a continuación. Encontrarás los detalles del error en el registro de Home Assistant; las claves y los tokens no se guardan en él. El sensor vuelve a estar disponible al recibir datos válidos. Si el problema continúa, revisa las credenciales y los datos de la parada y de la línea.
-- **Home Assistant pide una nueva clave.** Esto ocurre cuando la API antigua rechaza la clave tres veces seguidas. También cuentan los reintentos durante la configuración; un error de red o del servidor interrumpe la secuencia. Introduce una nueva clave API o un token en el formulario. Se conservarán los ajustes y se aceptará una clave válida aunque la línea no circule ese día. El sensor seguirá sin estar disponible hasta que actualices las credenciales. La nueva API no permite distinguir un token rechazado de una interrupción del servicio. Si ya se ha descargado un horario, el sensor lo utiliza hasta que termina el día de servicio y después deja de estar disponible. No aparecerá automáticamente ningún formulario para cambiar las credenciales. Si has revocado el token, introduce uno nuevo mediante **Configurar** en la línea.
-- **Informar de un problema.** Abre la configuración de la línea, selecciona *Descargar diagnósticos* y adjunta el archivo al informe de error. Contiene información sobre la configuración y el horario. La clave API o el token se sustituye por `**REDACTED**`.
-- **Siguen apareciendo salidas durante una interrupción de la API.** Tras una descarga correcta, un tiempo de espera agotado, un error de red o un error del servidor (HTTP 5xx) no hace que el sensor deje de estar disponible de inmediato. La integración utiliza el horario guardado hasta el final del día de servicio y reintenta la descarga cada hora. Las salidas programadas no cambian a lo largo del día. El sensor de diagnóstico **Last update**, desactivado por defecto, muestra la última descarga correcta. Puedes activarlo en los ajustes de la entidad.
-- **Durante la configuración no se encuentra la línea.** La API solo incluye las líneas que circulan ese día. Por ejemplo, no se puede añadir un domingo una línea que solo funciona en días laborables. Vuelve a intentarlo un día en el que tenga salidas programadas.
-- **Una línea aparece en wtp.waw.pl, pero no en la integración.** El planificador de rutas utiliza más datos que la API pública. La integración solo puede mostrar los datos que proporciona la API.
-- **Horarios de las líneas nocturnas** (`N01`, `N44`, etc.). El día de servicio puede continuar después de medianoche: `24:50` significa las 00:50 del día siguiente y `26:20`, las 02:20. La integración convierte estas horas correctamente. Una salida registrada como `26:15` corresponde a las 02:15 del día siguiente; a las 02:00 se mostrará como una salida dentro de 15 minutos.
+- **El sensor está en `unknown` y muestra «No service».** La línea no circula hoy o ya salió su última salida. Es lo esperado. Qué caso es lo dice el sensor de *Estado*; el horario está en [wtp.waw.pl](https://wtp.waw.pl), o llama al 19115.
+- **El sensor está en `unavailable`.** La ciudad no devolvió un horario válido: un token rechazado, o una parada, un punto de parada o una línea que no conoce. El motivo está en el registro de Home Assistant (las claves y los tokens nunca se registran).
+- **Errores de red, y usas una clave antigua.** El servidor antiguo de la ciudad deja de responder a ratos. Los sensores conservan el horario que tienen y vuelven a preguntar más tarde; pasar a un token lo soluciona.
+- **Home Assistant pide una clave nueva.** La ciudad rechazó la clave tres veces seguidas. Introduce una clave o un token nuevo en el formulario; tus ajustes se conservan.
+- **Informar de un problema.** Elige *Descargar diagnósticos* en la entrada y adjunta el archivo a tu issue. La clave o el token aparece como `**REDACTED**`.
+
+Hay más respuestas en la [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
 ---
 
 ## 📚 Documentación
 
-El [manual de usuario de la wiki](https://github.com/solarssk/ztm_warsaw/wiki) explica la instalación, la configuración, los horarios, el día de servicio y la solución de problemas. Está disponible en inglés y sus archivos fuente se encuentran en [`docs/wiki/`](docs/wiki).
+La [wiki](https://github.com/solarssk/ztm_warsaw/wiki) es el manual de usuario: [Configuración](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (tiempo de paseo, quitar una línea), [Conceptos](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (el día de servicio, qué muestra cada entidad), [Ejemplos](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (tarjetas y automatizaciones para copiar) y [Solución de problemas](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). Está en inglés; el código fuente está en [`docs/wiki/`](docs/wiki).
 
 ---
 

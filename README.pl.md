@@ -59,26 +59,20 @@
 
 </details>
 
-Integracja wyświetla **planowane odjazdy** warszawskiej komunikacji miejskiej na podstawie otwartych danych m.st. Warszawy. Każdy sensor pokazuje odjazdy jednej linii z wybranego słupka przystankowego. Możesz umieścić je na pulpicie Home Assistanta lub wykorzystać w automatyzacjach, np. do przypomnienia o wyjściu z domu przed odjazdem autobusu.
+Pokazuje, **kiedy odjedzie najbliższy autobus, tramwaj lub pociąg z Twojego przystanku**: jeden sensor dla linii na słupku, do pulpitu i do automatyzacji, na przykład „powiedz mi, kiedy wyjść”. Korzysta z otwartych danych m.st. Warszawy i nie wymaga żadnego dodatkowego sprzętu.
 
-Dane pochodzą z rozkładu jazdy. Integracja ma następujące ograniczenia:
-
-- nie pokazuje opóźnień ani utrudnień — korzysta z planowanych odjazdów, aktualizowanych w API raz na dobę. Pojazd najbliższego odjazdu można pokazać na mapie jako opcjonalną encję (wymaga tokenu, szczegóły w wiki);
-- udostępnia rozkład tylko na bieżącą dobę — publiczne API nie zwraca rozkładów na inne dni;
-- nie planuje tras ani przesiadek — do tego służy [wtp.waw.pl](https://wtp.waw.pl).
+Pokazuje **planowane** odjazdy: bez opóźnień i utrudnień, tylko bieżącą dobę rozkładową i bez planowania podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Pojazd najbliższego odjazdu można pokazać na mapie (opcjonalnie, wymaga tokenu).
 
 ---
 
 ## 🔧 Funkcje
 
-- ✅ Obsługa autobusów, tramwajów, metra i SKM, w tym linii nocnych, cmentarnych, ekspresowych i lokalnych.
-- ✅ Możliwość dodania wielu linii i przystanków.
-- ✅ Godzina najbliższego odjazdu jako stan sensora, dostępna na pulpicie i w automatyzacjach. Trzy kolejne odjazdy są zapisane w atrybutach (`Next 1`–`Next 3`).
-- ✅ Informacja „No service”, gdy nie ma już odjazdów, oraz stan `unavailable`, gdy nie można uzyskać poprawnego rozkładu (zob. [Rozwiązywanie problemów](#-rozwiązywanie-problemów)).
-- ✅ Konfiguracja w interfejsie Home Assistanta w ośmiu językach: angielskim, polskim, ukraińskim, rosyjskim, niemieckim, hiszpańskim, francuskim i włoskim. Sześć nowych wersji językowych przygotowano maszynowo; propozycje poprawek można zgłaszać w pull requestach.
-- ✅ Nazwa i współrzędne przystanku, kierunek jazdy, link do rozkładu oraz uwagi w atrybutach sensora. Współrzędne pozwalają wyświetlić przystanek na mapie.
-- ✅ Możliwość zmiany klucza API lub tokenu za pomocą przycisku **Konfiguruj**, również przy przejściu na nowe API miasta.
-- ✅ Osobna encja **kalendarza** dla każdego sensora, domyślnie wyłączona. Po włączeniu jej w ustawieniach encji zobaczysz odjazdy z danej doby jako jednominutowe wydarzenia. Wyzwalacz kalendarza pozwala uruchomić automatyzację np. osiem minut przed odjazdem, bez tworzenia szablonów.
+- ✅ Autobusy, tramwaje, metro i SKM, także linie nocne, ekspresowe i lokalne.
+- ✅ Stanem sensora jest najbliższy odjazd; trzy kolejne oraz pierwszy i ostatni odjazd doby są w atrybutach.
+- ✅ Sensor *Status* mówi zwykłymi słowami, co się dzieje („Ostatni odjazd dzisiaj już był”).
+- ✅ Konfiguracja przez wyszukanie przystanku po nazwie, potem wybór słupka i linii: nie trzeba szukać żadnych numerów.
+- ✅ Wiele linii i przystanków, opcjonalny czas dojścia, opcjonalny kalendarz i opcjonalna pinezka pojazdu na mapie.
+- ✅ Osiem języków: angielski, polski, ukraiński, rosyjski, niemiecki, hiszpański, francuski i włoski. Sześć nowszych przetłumaczono maszynowo; poprawki mile widziane jako pull requesty.
 
 ---
 
@@ -109,12 +103,9 @@ Dane pochodzą z rozkładu jazdy. Integracja ma następujące ograniczenia:
 
 ## 🧭 Klucz i token
 
-Integracja obsługuje dane dostępu do obu API m.st. Warszawy:
+Bezpłatny token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): wpisz dowolny pseudonim, zaakceptuj regulamin i pobierz token. To długi tekst z trzech części oddzielonych kropkami.
 
-- **Token do nowego API (zalecany):** na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) podaj pseudonim, zaakceptuj regulamin i pobierz swój token. To długi ciąg znaków z trzech części oddzielonych kropkami.
-- **Klucz do starego API:** klucz ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl) wygląda tak: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Stare API nadal działa, ale miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API.
-
-Integracja rozpoznaje rodzaj danych dostępu i wysyła je wyłącznie do odpowiedniego API. Aby zastąpić stary klucz tokenem, wybierz **Konfiguruj** przy danej linii i wklej token. Ustawienia linii i przystanków zostaną zachowane. Nie trzeba dodawać integracji ponownie — kreator nie pozwoli drugi raz dodać tej samej linii dla tego samego słupka przystankowego.
+Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl)) nadal działa, ale ten serwer bywa nieczynny, miasto nie podało terminu jego wyłączenia, a pojazd na mapie wymaga tokenu. Aby przejść na token, otwórz powiadomienie w **Problemach** albo wybierz **Konfiguruj** przy linii i wklej token. Twoje ustawienia zostaną zachowane.
 
 ---
 
@@ -137,35 +128,30 @@ Integracja rozpoznaje rodzaj danych dostępu i wysyła je wyłącznie do odpowie
 
 ## 🔌 Konfiguracja
 
-1. Otwórz **Ustawienia → Urządzenia oraz usługi**.
+1. Przejdź do **Ustawienia → Urządzenia oraz usługi**.
 2. Kliknij **+ Dodaj integrację** i wyszukaj **Warszawski Transport Publiczny**.
-3. Wypełnij pola:
-   - **klucz API lub token** (zob. [Klucz i token](#-klucz-i-token)),
-   - **ID przystanku** i **numer słupka** (np. 7009 i 01),
-   - **numer linii** (np. 151).
+3. Wklej token i wpisz fragment nazwy przystanku (na przykład `Marcelin`) albo jego ID.
+4. Wybierz słupek (numer jest na tabliczce przystanku, każdy kierunek ma swój) i linię. Na liście są tylko linie, które dziś tam zatrzymują się.
 
-Identyfikator encji zawiera numer linii, ID przystanku i numer słupka, np. `sensor.line_151_from_7009_01`. Klucz API lub token możesz zmienić w **Ustawienia → Urządzenia oraz usługi → Warszawski Transport Publiczny**, wybierając **Konfiguruj** przy danej linii. Zmiana nie wpływa na ustawienia linii ani przystanków. Jeśli konfiguracja nadal korzysta ze starego klucza, w sekcji **Problemy** pojawi się powiadomienie z instrukcją przejścia na token. Możesz je zignorować.
-
-**ID przystanku** (numer zespołu przystankowego) jest wspólne dla wszystkich słupków należących do tego przystanku. **Numer słupka** wskazuje konkretne miejsce odjazdu, zwykle dla jednego kierunku. Ma zazwyczaj dwie cyfry, np. 01 lub 02, i znajduje się na tabliczce przystankowej.
+Sensor ma nazwę w rodzaju `sensor.line_151_from_7009_01`. Kolejny przystanek tej linii dodasz przez **Dodaj przystanek**. Jeśli znasz numery, zaznacz **Znam numery** na pierwszym ekranie. Czas dojścia, kalendarz, pinezkę pojazdu i usuwanie linii opisuje [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Rozwiązywanie problemów
 
-- **Sensor ma stan `unknown`, a w atrybutach widnieje „No service”.** Linia nie kursuje w danym dniu lub wszystkie odjazdy już się odbyły. Jest to prawidłowe działanie. Rozkład możesz sprawdzić na [wtp.waw.pl](https://wtp.waw.pl) lub pod numerem 19115.
-- **Sensor ma stan `unavailable` (niedostępny).** API nie zwróciło poprawnego rozkładu. Przyczyną może być odrzucony klucz, nieprawidłowy numer przystanku, słupka lub linii albo nieobsługiwany format odpowiedzi. Jeśli nie powiedzie się pierwsze pobranie danych z przyczyny innej niż odrzucenie klucza, Home Assistant automatycznie ponowi konfigurację. Sposób obsługi odrzuconego klucza opisano poniżej. Szczegóły błędu znajdziesz w dzienniku Home Assistanta; klucze i tokeny nie są w nim zapisywane. Sensor odzyska dostępność po otrzymaniu poprawnych danych. Jeśli problem się utrzymuje, sprawdź dane dostępu, przystanek, słupek i linię.
-- **Home Assistant prosi o nowy klucz.** Dzieje się tak, gdy stare API odrzuci klucz trzy razy z rzędu. Uwzględniane są również próby podczas konfiguracji; błąd sieci lub serwera przerywa tę serię. Podaj nowy klucz API lub token w wyświetlonym formularzu. Ustawienia linii i przystanków zostaną zachowane, a poprawny klucz zostanie zaakceptowany również wtedy, gdy linia nie kursuje w danym dniu. Do czasu zmiany danych dostępu sensor pozostaje niedostępny. W nowym API nie można odróżnić odrzuconego tokenu od awarii usługi. Jeśli rozkład został wcześniej pobrany, sensor korzysta z niego do końca doby, a potem staje się niedostępny. Formularz zmiany danych dostępu nie pojawi się automatycznie. Jeśli token został unieważniony, podaj nowy za pomocą przycisku **Konfiguruj** przy danej linii.
-- **Zgłaszanie problemu.** Otwórz konfigurację danej linii, wybierz *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Plik zawiera informacje o konfiguracji i rozkładzie. Klucz API lub token jest w nim zastąpiony tekstem `**REDACTED**`.
-- **Sensor nadal pokazuje odjazdy mimo awarii API.** Po udanym pobraniu rozkładu przekroczenie czasu oczekiwania, błąd sieci lub błąd serwera (HTTP 5xx) nie powoduje od razu utraty dostępności sensora. Integracja korzysta z zapisanego rozkładu do końca doby i ponawia pobieranie co godzinę. Rozkład zawiera planowane odjazdy, które nie zmieniają się w ciągu dnia. Czas ostatniego udanego pobrania wskazuje sensor diagnostyczny **Last update**, który można włączyć w ustawieniach encji.
-- **Podczas konfiguracji pojawia się komunikat o braku linii.** API udostępnia tylko linie kursujące w danym dniu. Jeśli linia kursuje wyłącznie w dni robocze, nie dodasz jej w niedzielę. Spróbuj ponownie w dniu, w którym ma zaplanowane odjazdy.
-- **Linia jest dostępna na wtp.waw.pl, ale nie w integracji.** Planer podróży korzysta z szerszego zestawu danych niż publiczne API. Integracja może wyświetlić tylko dane udostępnione przez API.
-- **Godziny odjazdów linii nocnych** (`N01`, `N44` itd.). W rozkładzie doba może trwać dłużej niż do północy: zapis `24:50` oznacza 00:50 następnego dnia, a `26:20` — 02:20. Integracja prawidłowo przelicza te godziny. Na przykład odjazd zapisany w API jako `26:15` oznacza 02:15 następnego dnia; o 02:00 zostanie wyświetlony jako odjazd za 15 minut.
+- **Sensor ma stan `unknown` i pokazuje „No service”.** Linia dziś nie kursuje albo jej ostatni odjazd już był. To normalne. Który to przypadek, mówi sensor *Status*; rozkład jest na [wtp.waw.pl](https://wtp.waw.pl), można też zadzwonić pod 19115.
+- **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu: odrzucony token albo przystanek, słupek lub linia, których nie zna. Przyczyna jest w logu Home Assistanta (klucze i tokeny nigdy tam nie trafiają).
+- **Błędy sieci, a masz stary klucz.** Stary serwer miasta bywa nieczynny. Sensory zachowują rozkład, który mają, i pytają ponownie później; przejście na token rozwiązuje problem.
+- **Home Assistant prosi o nowy klucz.** Miasto trzy razy z rzędu odrzuciło klucz. Wpisz nowy klucz lub token w formularzu; ustawienia zostaną zachowane.
+- **Zgłaszanie problemu.** Wybierz przy wpisie *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Klucz lub token jest w nim zastąpiony napisem `**REDACTED**`.
+
+Więcej odpowiedzi jest w [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
 ---
 
 ## 📚 Dokumentacja
 
-[Podręcznik w wiki](https://github.com/solarssk/ztm_warsaw/wiki) zawiera instrukcje instalacji i konfiguracji, wyjaśnienie sposobu obsługi rozkładów i doby rozkładowej oraz pomoc w rozwiązywaniu problemów. Dokumentacja jest dostępna po angielsku, a jej pliki źródłowe znajdują się w katalogu [`docs/wiki/`](docs/wiki).
+[Wiki](https://github.com/solarssk/ztm_warsaw/wiki) to instrukcja obsługi: [Konfiguracja](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (czas dojścia, usuwanie linii), [Pojęcia](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (doba rozkładowa, co pokazuje każda encja), [Przykłady](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (karty i automatyzacje do skopiowania) i [Rozwiązywanie problemów](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). Jest po angielsku; źródło leży w [`docs/wiki/`](docs/wiki).
 
 ---
 
