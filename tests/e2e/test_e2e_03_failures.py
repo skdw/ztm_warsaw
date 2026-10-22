@@ -19,6 +19,7 @@ from custom_components.ztm_warsaw.client import ZTMStopClient
 
 from .fake_city import (
     DEFAULT_KEY,
+    DEFAULT_TOKEN,
     BadKey,
     EmptyList,
     Hang,
@@ -581,3 +582,18 @@ async def test_e2e_16_an_old_api_that_does_not_answer_is_said_once_for_all_the_s
     assert len(loud) == 1, [r.getMessage()[:80] for r in loud]
     assert "old API" in loud[0].getMessage()
     assert "token" in loud[0].getMessage()
+
+
+async def test_e2e_16_the_end_of_an_outage_of_the_old_api_and_of_a_token_is_said_once(env, caplog):
+    """The old API's outage is said once for all the stops, so is its end; a token's end is said by its stop."""
+    caplog.set_level(logging.INFO)
+    await env.add_entry()  # an old key
+    await env.add_entry(line="525")  # a second line with an old key: the end is still said once
+    await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
+    env.city.always(None, Reset())
+    await env.advance(seconds=3600 * 2)
+    caplog.clear()
+    env.city.heal()
+    await env.advance(seconds=3700)
+    ends = [r.getMessage() for r in caplog.records if "answers again" in r.getMessage()]
+    assert sorted(ends) == ["The City of Warsaw answers again", "The City of Warsaw's old API answers again"]

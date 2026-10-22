@@ -105,7 +105,7 @@ Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. 
 
 Ein kostenloses Token bekommst du unter [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): Gib einen beliebigen Spitznamen ein, akzeptiere die Bedingungen und lade das Token herunter. Ein Token ist ein langer Text aus drei Teilen, die durch Punkte getrennt sind.
 
-Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.warszawa.pl](https://api.um.warszawa.pl)) funktioniert noch, aber der Server dahinter antwortet manchmal nicht mehr. Die Stadt hat außerdem kein Abschaltdatum genannt, und das Fahrzeug auf der Karte funktioniert nur mit einem Token. Um zu einem Token zu wechseln, öffne den Hinweis unter **Reparaturen** oder wähle bei der Linie **Konfigurieren** und füge das Token ein. Die Einstellungen der Linie bleiben erhalten.
+Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.warszawa.pl](https://api.um.warszawa.pl)) funktioniert nicht mehr. Der Server dahinter antwortet seit dem 21. Oktober 2026 nicht mehr, und die Integration fragt ihn nicht mehr an. Eine Linie mit altem Schlüssel bekommt deshalb keinen neuen Fahrplan, bis du den Schlüssel durch ein Token ersetzt: Öffne den Hinweis unter **Reparaturen** oder wähle bei der Linie **Konfigurieren** und füge das Token ein. Die Einstellungen der Linie bleiben erhalten.
 
 ---
 
@@ -141,7 +141,7 @@ Die Integration benennt den Sensor zum Beispiel `sensor.line_151_from_7009_01`. 
 
 - **Der Sensor hat den Zustand `unknown` und das Attribut „No service“.** Die Linie fährt heute nicht, oder ihre letzte Abfahrt ist vorbei. Das ist kein Fehler. Welcher der beiden Fälle vorliegt, sagt der *Status*-Sensor. Den Fahrplan findest du auf [wtp.waw.pl](https://wtp.waw.pl) oder unter der Nummer 19115.
 - **Der Sensor hat den Zustand `unavailable`.** Die Stadt hat keinen gültigen Fahrplan geliefert, weil sie das Token abgelehnt hat oder die Haltestelle, die Halteposition oder die Linie nicht kennt. Den Grund findest du im Protokoll von Home Assistant. Schlüssel und Token tauchen dort nie auf.
-- **Im Protokoll stehen Netzwerkfehler, und du nutzt einen alten Schlüssel.** Der alte Server der Stadt antwortet manchmal nicht. Die Sensoren behalten dann den letzten Fahrplan und fragen später erneut nach. Mit einem Token verschwindet das Problem.
+- **Deine Linie meldet, dass die alte API nicht mehr funktioniert.** Die alte API der Stadt antwortet seit dem 21. Oktober 2026 nicht mehr, und die Integration fragt sie nicht mehr an. Die Linie behält ihren Fahrplan bis zum Ende des Betriebstags. Ersetze den alten Schlüssel durch ein Token, wie oben beschrieben.
 - **Home Assistant verlangt einen neuen Schlüssel.** Die Stadt hat den Schlüssel dreimal hintereinander abgelehnt. Gib im Formular einen neuen Schlüssel oder ein Token ein. Die Einstellungen bleiben erhalten.
 - **Du möchtest ein Problem melden.** Wähle beim Eintrag *Diagnosedaten herunterladen* und hänge die Datei an dein Issue an. Schlüssel und Token sind darin durch `**REDACTED**` ersetzt.
 

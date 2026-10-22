@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Transports publics de Varsovie",
-        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
           "api_key": "Clé API ou jeton"
         }
@@ -69,7 +69,8 @@
       "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom.",
       "no_lines": "Aucune ligne ne s’arrête à ce poteau aujourd’hui. Choisissez-en un autre.",
       "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
-      "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même."
+      "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même.",
+      "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance est autorisée.",
@@ -84,7 +85,7 @@
     "step": {
       "init": {
         "title": "Transports publics de Varsovie",
-        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
+        "description": "**Cette configuration utilise l’ancienne API de la ville de Varsovie ({current}).**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nPour passer à la nouvelle API :\n\n1. Obtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Collez-le dans le champ ci-dessous.\n\nLes réglages de la ligne et des arrêts seront conservés.",
         "data": {
           "api_key": "Clé API ou jeton"
         }
@@ -126,7 +127,8 @@
           "no_service_today": "Ne circule pas aujourd’hui",
           "city_updating": "Mise à jour des horaires en cours (vers 02:10–03:05)",
           "waiting": "En attente de l’horaire",
-          "city_error": "Impossible d’obtenir l’horaire"
+          "city_error": "Impossible d’obtenir l’horaire",
+          "old_api": "L’ancienne API ne fonctionne plus : remplacez la clé par un jeton"
         }
       }
     },
@@ -147,7 +149,7 @@
         "step": {
           "token": {
             "title": "Remplacer l’ancienne clé par un jeton",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
               "api_key": "Jeton",
               "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -155,7 +157,7 @@
           },
           "init": {
             "title": "Ancienne clé API",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
               "ignore": "Garder l’ancienne clé et ignorer cet avis",
@@ -179,7 +181,8 @@
           "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
           "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
           "unknown": "Une erreur inconnue s’est produite.",
-          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
+          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
+          "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé."
         },
         "abort": {
           "unknown": "La configuration associée à cet avis a été supprimée ou ne peut pas être modifiée.",
@@ -194,7 +197,7 @@
         "step": {
           "token": {
             "title": "Remplacer l’ancienne clé par un jeton",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nCollez ci-dessous un jeton provenant de [dane.um.warszawa.pl/pl/key-api]({portal}). Il remplacera l’ancienne clé. Les réglages des arrêts seront conservés.",
             "data": {
               "api_key": "Jeton",
               "all_lines": "L’utiliser pour chaque ligne qui a encore une ancienne clé"
@@ -202,7 +205,7 @@
           },
           "init": {
             "title": "Ancienne clé API",
-            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
+            "description": "**La ligne {line} utilise une clé de l’ancienne API de la ville de Varsovie.**\n\nL’ancienne API de la ville ne répond plus, donc cette ligne ne reçoit plus d’horaires tant que vous n’avez pas remplacé la clé par un jeton. Nous recommandons de passer à la nouvelle API, qui nécessite un jeton.\n\nObtenez un jeton sur [dane.um.warszawa.pl/pl/key-api]({portal}), puis choisissez « Coller un jeton » pour remplacer l’ancienne clé. Les réglages des arrêts seront conservés. Vous pouvez aussi continuer à utiliser l’ancienne clé et ignorer cet avis.",
             "menu_options": {
               "token": "Coller un jeton",
               "ignore": "Garder l’ancienne clé et ignorer cet avis",
@@ -226,7 +229,8 @@
           "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
           "no_valid_times": "L’API n’a renvoyé aucune heure de départ valide.",
           "unknown": "Une erreur inconnue s’est produite.",
-          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard."
+          "invalid_token_or_unavailable": "L’API de la ville de Varsovie n’a pas accepté le jeton, ou elle est indisponible pour le moment. Vérifiez le jeton et réessayez plus tard.",
+          "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé."
         },
         "abort": {
           "unknown": "La configuration associée à cet avis a été supprimée ou ne peut pas être modifiée.",
@@ -295,7 +299,8 @@
         "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom.",
         "no_lines": "Aucune ligne ne s’arrête à ce poteau aujourd’hui. Choisissez-en un autre.",
         "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
-        "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même."
+        "cannot_load_lines": "Les lignes de ce poteau n’ont pas pu être chargées. Réessayez, ou revenez et saisissez les numéros vous-même.",
+        "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé."
       },
       "abort": {
         "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",

@@ -51,6 +51,7 @@ from .const import (
     KEY_PORTAL_URL,
     MAX_WALKING_TIME,
     NEXT_DEPARTURES,
+    legacy_api_retired,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -154,6 +155,8 @@ async def validate_input(hass: HomeAssistant, api_key: str, stop_id: str | int, 
     """
     if key_kind(api_key) is None:
         raise ValueError("invalid_api_key")
+    if key_kind(api_key) == "legacy" and legacy_api_retired():
+        raise ValueError("old_api_retired")  # the City's old API is gone: only a token can be used
     client = ZTMStopClient(
         async_get_clientsession(hass), api_key, str(stop_id), stop_nr, line, user_agent=await user_agent(hass)
     )
@@ -265,6 +268,8 @@ class ZtmWarsawConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ig
         self._key, self._query = user_input[CONF_API_KEY].strip(), user_input[CONF_STOP].strip()
         if key_kind(self._key) is None:
             return self._user_form({"base": "invalid_api_key"})
+        if key_kind(self._key) == "legacy" and legacy_api_retired():
+            return self._user_form({"base": "old_api_retired"})
         if user_input.get(CONF_MANUAL):
             return await self.async_step_manual()
         readable, poles = await search_poles(self.hass, self._key, self._query)

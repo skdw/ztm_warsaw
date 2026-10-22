@@ -23,7 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, REPOSITORY_URL
+from .const import DOMAIN, REPOSITORY_URL, legacy_api_retired
 from .models import ZTMDepartureData, ZTMDepartureDataReading, service_date_at
 
 _LOGGER = logging.getLogger(__name__)
@@ -115,6 +115,8 @@ class StopCatalogue:
     async def _load(self, client: "ZTMStopClient") -> tuple[bool | None, dict[str, dict[str, dict[str, Any]]] | None]:
         """``(readable, index)``: the index of the catalogue for the host of this client's key, downloaded when it is not kept
         (or is older than ``ttl``). ``readable`` is None when a failure is still fresh (not asked), False when the answer could not be read."""
+        if client.retired:
+            return None, None  # nothing to ask: the old API is gone
         key = client.uses_token
         async with self._locks.setdefault(key, asyncio.Lock()):
             cached = self._index.get(key)
@@ -333,6 +335,8 @@ class ZTMStopClient:
         """
         params = self._params
         limit = _MAX_CATALOGUE_BYTES if kind == "stops" else _MAX_BYTES
+        if self.retired:
+            return None  # the City's old API is gone: no request, the caller treats it as no answer
         if self._legacy:
             if kind == "stops":
                 params = {"id": self._stop_info_data_id, "apikey": params["apikey"]}
@@ -358,6 +362,11 @@ class ZTMStopClient:
         )
         result = answer.get("result") if isinstance(answer, dict) else None
         return result if isinstance(result, list) else None
+
+    @property
+    def retired(self) -> bool:
+        """Whether this client's key is one of the City's old API, which is treated as gone (see ``legacy_api_retired``): nothing is asked of it."""
+        return self._legacy and legacy_api_retired()
 
     @property
     def uses_token(self) -> bool:
@@ -448,10 +457,11 @@ class ZTMStopClient:
         """An answer after an outage that was said: say that the City is back (once)."""
         if result is not None and self._outage_said:
             self._outage_said = False
-            if not self._legacy or self._catalogue.old_api_said:
+            if not self._legacy:
                 _LOGGER.info("The City of Warsaw answers again")
-            if self._legacy:
+            elif self._catalogue.old_api_said:  # the old API's outage was said once for all the stops: so is its end
                 self._catalogue.old_api_said = False
+                _LOGGER.info("The City of Warsaw's old API answers again")
 
     async def _attempt(self, url: str, params: dict[str, Any] | None, expect_json: bool, method: str, json_body: dict[str, Any] | None,
                        headers: dict[str, str] | None, wrap: bool, attempt: int, limit: int) -> Any:

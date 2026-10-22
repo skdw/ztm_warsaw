@@ -22,7 +22,8 @@
           "no_service_today": "mdi:calendar-remove",
           "city_updating": "mdi:update",
           "waiting": "mdi:timer-sand",
-          "city_error": "mdi:alert-circle-outline"
+          "city_error": "mdi:alert-circle-outline",
+          "old_api": "mdi:key-alert-outline"
         }
       }
     },

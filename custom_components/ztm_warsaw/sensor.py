@@ -452,6 +452,7 @@ class ZTMNextDepartureSensor(ZtmStopEntity, SensorEntity):
 
 
 STATUSES = [
+    "old_api",  # the key is one of the City's old API, which is gone: it has to be replaced with a token
     "running",  # there is a departure to catch
     "cannot_catch",  # departures are left, but all are sooner than the walking time
     "after_last_departure",  # the last departure of the day has gone
@@ -497,6 +498,8 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
     def _compute(self, now: datetime) -> str:
         """The status at ``now`` from what the coordinator holds."""
         coordinator = self.coordinator
+        if coordinator.client.retired:
+            return "old_api"
         if coordinator.api_error:
             return "city_error"
         walk = timedelta(minutes=coordinator.walking_minutes)

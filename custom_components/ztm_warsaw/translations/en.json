@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Warsaw Public Transport",
-        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
+        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "API key or token"
         }
@@ -69,7 +69,8 @@
       "too_many_matches": "Too many stops match that. Type a bit more of the name.",
       "no_lines": "No line stops at that pole today. Pick another pole.",
       "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
-      "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself."
+      "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself.",
+      "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
     },
     "abort": {
       "single_instance_allowed": "Only one instance is allowed.",
@@ -84,7 +85,7 @@
     "step": {
       "init": {
         "title": "Warsaw Public Transport",
-        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
+        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "API key or token"
         }
@@ -126,7 +127,8 @@
           "no_service_today": "Does not run today",
           "city_updating": "Timetables are being updated (about 02:10–03:05)",
           "waiting": "Waiting for the timetable",
-          "city_error": "Could not get the timetable"
+          "city_error": "Could not get the timetable",
+          "old_api": "The old API no longer works: replace the key with a token"
         }
       }
     },
@@ -147,7 +149,7 @@
         "step": {
           "token": {
             "title": "Replace the old key with a token",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
               "api_key": "Token",
               "all_lines": "Use it for every line that still has an old key"
@@ -155,7 +157,7 @@
           },
           "init": {
             "title": "Old API key",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
               "ignore": "Keep the old key and ignore this notice",
@@ -179,7 +181,8 @@
           "no_departures": "There are no departures scheduled for this line at the selected stop today.",
           "no_valid_times": "No valid departure times returned by the API.",
           "unknown": "An unknown error occurred.",
-          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
+          "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
         },
         "abort": {
           "unknown": "The configuration associated with this notice has been removed or cannot be changed.",
@@ -194,7 +197,7 @@
         "step": {
           "token": {
             "title": "Replace the old key with a token",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
               "api_key": "Token",
               "all_lines": "Use it for every line that still has an old key"
@@ -202,7 +205,7 @@
           },
           "init": {
             "title": "Old API key",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
               "ignore": "Keep the old key and ignore this notice",
@@ -226,7 +229,8 @@
           "no_departures": "There are no departures scheduled for this line at the selected stop today.",
           "no_valid_times": "No valid departure times returned by the API.",
           "unknown": "An unknown error occurred.",
-          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later."
+          "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
+          "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
         },
         "abort": {
           "unknown": "The configuration associated with this notice has been removed or cannot be changed.",
@@ -295,7 +299,8 @@
         "too_many_matches": "Too many stops match that. Type a bit more of the name.",
         "no_lines": "No line stops at that pole today. Pick another pole.",
         "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
-        "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself."
+        "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself.",
+        "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
       },
       "abort": {
         "already_configured": "The selected line is already configured for this stop point.",

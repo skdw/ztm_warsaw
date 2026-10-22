@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Öffentlicher Nahverkehr Warschau",
-        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
           "api_key": "API-Schlüssel oder Token"
         }
@@ -69,7 +69,8 @@
       "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
       "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
       "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
-      "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein."
+      "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein.",
+      "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
     },
     "abort": {
       "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
@@ -84,7 +85,7 @@
     "step": {
       "init": {
         "title": "Öffentlicher Nahverkehr Warschau",
-        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
+        "description": "**Diese Konfiguration verwendet die alte API der Stadt Warschau ({current}).**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nSo wechselst du zur neuen API:\n\n1. Lade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter.\n2. Füge es in das Feld unten ein.\n\nDie Einstellungen für Linie und Haltestellen bleiben erhalten.",
         "data": {
           "api_key": "API-Schlüssel oder Token"
         }
@@ -126,7 +127,8 @@
           "no_service_today": "Fährt heute nicht",
           "city_updating": "Die Fahrpläne werden aktualisiert (etwa 02:10–03:05)",
           "waiting": "Warte auf den Fahrplan",
-          "city_error": "Fahrplan konnte nicht abgerufen werden"
+          "city_error": "Fahrplan konnte nicht abgerufen werden",
+          "old_api": "Die alte API funktioniert nicht mehr: Ersetze den Schlüssel durch ein Token"
         }
       }
     },
@@ -147,7 +149,7 @@
         "step": {
           "token": {
             "title": "Alten Schlüssel durch ein Token ersetzen",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
               "api_key": "Token",
               "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
@@ -155,7 +157,7 @@
           },
           "init": {
             "title": "Alter API-Schlüssel",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
               "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
@@ -179,7 +181,8 @@
           "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
           "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
           "unknown": "Ein unbekannter Fehler ist aufgetreten.",
-          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
+          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
+          "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
         },
         "abort": {
           "unknown": "Die zu diesem Hinweis gehörende Konfiguration wurde entfernt oder kann nicht geändert werden.",
@@ -194,7 +197,7 @@
         "step": {
           "token": {
             "title": "Alten Schlüssel durch ein Token ersetzen",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nFüge unten ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) ein. Es ersetzt den alten Schlüssel. Die Einstellungen der Haltestellen bleiben erhalten.",
             "data": {
               "api_key": "Token",
               "all_lines": "Für jede Linie verwenden, die noch einen alten Schlüssel hat"
@@ -202,7 +205,7 @@
           },
           "init": {
             "title": "Alter API-Schlüssel",
-            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Termin für ihre Abschaltung bekannt gegeben. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
+            "description": "**Die Linie {line} verwendet einen Schlüssel für die alte API der Stadt Warschau.**\n\nDie alte API der Stadt antwortet nicht mehr, deshalb bekommt diese Linie keine Fahrpläne, bis du den Schlüssel durch ein Token ersetzt. Wir empfehlen den Wechsel zur neuen API, für die du ein Token benötigst.\n\nLade ein Token von [dane.um.warszawa.pl/pl/key-api]({portal}) herunter und wähle „Token einfügen“, um den alten Schlüssel zu ersetzen. Die Einstellungen der Haltestellen bleiben erhalten. Du kannst auch den alten Schlüssel weiterverwenden und diesen Hinweis ignorieren.",
             "menu_options": {
               "token": "Token einfügen",
               "ignore": "Alten Schlüssel behalten und Hinweis ignorieren",
@@ -226,7 +229,8 @@
           "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
           "no_valid_times": "Die API hat keine gültigen Abfahrtszeiten geliefert.",
           "unknown": "Ein unbekannter Fehler ist aufgetreten.",
-          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut."
+          "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
+          "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
         },
         "abort": {
           "unknown": "Die zu diesem Hinweis gehörende Konfiguration wurde entfernt oder kann nicht geändert werden.",
@@ -295,7 +299,8 @@
         "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
         "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
         "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
-        "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein."
+        "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein.",
+        "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
       },
       "abort": {
         "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",

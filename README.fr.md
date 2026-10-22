@@ -105,7 +105,7 @@ L’intégration lit les horaires, elle affiche donc des départs **prévus**. E
 
 Vous obtenez un jeton gratuit sur [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) : saisissez un pseudo quelconque, acceptez les conditions et téléchargez le jeton. Un jeton est un long texte composé de trois parties séparées par des points.
 
-Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) fonctionne encore, mais le serveur qui la gère ne répond parfois plus. La ville n’a pas non plus annoncé de date d’arrêt, et le véhicule sur la carte ne fonctionne qu’avec un jeton. Pour passer à un jeton, ouvrez l’avis dans **Corrections** ou choisissez **Configurer** sur la ligne, puis collez le jeton. Les réglages de la ligne sont conservés.
+Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) ne fonctionne plus. Le serveur qui la gérait a cessé de répondre le 21 octobre 2026, et l’intégration ne l’interroge plus. Une ligne avec une ancienne clé ne reçoit donc plus de nouvel horaire tant que vous n’avez pas remplacé la clé par un jeton : ouvrez l’avis dans **Corrections** ou choisissez **Configurer** sur la ligne, puis collez le jeton. Les réglages de la ligne sont conservés.
 
 ---
 
@@ -141,7 +141,7 @@ L’intégration nomme le capteur par exemple `sensor.line_151_from_7009_01`. Vo
 
 - **Le capteur est à `unknown` et porte l’attribut « No service ».** La ligne ne circule pas aujourd’hui, ou son dernier départ est passé. Ce n’est pas une erreur. Le capteur *État* indique de quel cas il s’agit. Vous pouvez vérifier l’horaire sur [wtp.waw.pl](https://wtp.waw.pl) ou en appelant le 19115.
 - **Le capteur est à `unavailable`.** La ville n’a pas renvoyé d’horaire valide, parce qu’elle a refusé le jeton ou qu’elle ne connaît pas l’arrêt, le point d’arrêt ou la ligne. La raison figure dans le journal de Home Assistant. Les clés et les jetons n’y apparaissent jamais.
-- **Le journal contient des erreurs réseau et vous utilisez une ancienne clé.** L’ancien serveur de la ville ne répond parfois plus. Les capteurs gardent alors le dernier horaire et redemandent plus tard. Le problème disparaît avec un jeton.
+- **Votre ligne indique que l’ancienne API ne fonctionne plus.** L’ancienne API de la ville a cessé de répondre le 21 octobre 2026, et l’intégration ne l’interroge plus. La ligne garde l’horaire qu’elle avait jusqu’à la fin de la journée de service. Remplacez l’ancienne clé par un jeton, comme décrit plus haut.
 - **Home Assistant demande une nouvelle clé.** La ville a refusé la clé trois fois de suite. Saisissez une nouvelle clé ou un nouveau jeton dans le formulaire. Les réglages sont conservés.
 - **Vous voulez signaler un problème.** Choisissez *Télécharger les diagnostics* sur l’entrée et joignez le fichier à votre ticket. La clé et le jeton y sont remplacés par `**REDACTED**`.
 

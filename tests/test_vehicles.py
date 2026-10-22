@@ -72,3 +72,17 @@ async def test_an_old_key_is_not_asked_for_positions_and_an_answer_that_is_not_a
         assert await token.get_vehicles(1) is None
     with patch.object(ZTMStopClient, "_get_with_retry", AsyncMock(return_value={"result": [{"Lines": "1"}]})):
         assert await token.get_vehicles(1) == [{"Lines": "1"}]
+
+
+async def test_a_client_of_the_retired_old_api_asks_nothing(monkeypatch):
+    """With the old API gone every question gets no answer, and no request is made (there is no session to make one)."""
+    from custom_components.ztm_warsaw.client import ZTMStopClient
+
+    monkeypatch.setattr("custom_components.ztm_warsaw.const.LEGACY_API_RETIRED", True)
+    client = ZTMStopClient(None, "11111111-2222-3333-4444-555555555555", "7009", "01", "151")  # type: ignore[arg-type]
+    assert client.retired is True
+    assert await client.get() is None
+    assert await client.get_lines() is None
+    assert await client.stop_in_catalogue() is None
+    token = ZTMStopClient(None, "aaa.bbb.ccc", "7009", "01", "151")  # type: ignore[arg-type]
+    assert token.retired is False

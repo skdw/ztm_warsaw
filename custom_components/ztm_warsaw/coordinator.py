@@ -81,13 +81,16 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
         self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry_id))
 
-        # Hourly timetable refresh handled by DataUpdateCoordinator
-        self.update_interval = timedelta(hours=1)
+        # Hourly timetable refresh handled by DataUpdateCoordinator; none for a key of the City's old API, which is gone
+        self.update_interval = None if client.retired else timedelta(hours=1)
 
     async def async_config_entry_first_refresh(self) -> None:
         """First refresh of the entry: a failure or a missing answer within the deadline makes Home Assistant retry the
         setup (ConfigEntryNotReady) instead of leaving an entity that waits for the next hourly refresh."""
         await self._restore()
+        if self.client.retired:  # nothing to fetch from the City's old API: hold what was saved, entities say why there is no timetable
+            self.start_without_timetable()
+            return
         try:
             async with asyncio.timeout(SETUP_DEADLINE):
                 await super().async_config_entry_first_refresh()
@@ -193,7 +196,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._store.async_delay_save(lambda: payload, 30)
 
     def _schedule_flip_refresh(self) -> None:
-        """Ask again at 03:06 Warsaw time, when the update of the API is over."""
+        """Ask again at 03:06 Warsaw time, when the update of the API is over (never for the City's old API, which is gone)."""
+        if self.client.retired:
+            return
         self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
 
     @callback
@@ -207,6 +212,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
     def api_error(self) -> bool:
         """Whether the City's last answer was not a timetable (a rejected key, an unknown stop or line, an unknown format)."""
         return self._api_error
+
+    def _say_kept(self) -> None:
+        """Log that a failed refresh was covered by the cached timetable: said once when an outage starts, not again at every try
+        (and not at all here for the City's old API, whose outage the client says once for every stop)."""
+        warn = self._failures == 0 and self.client.uses_token
+        _LOGGER.log(logging.WARNING if warn else logging.DEBUG, "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data", self.name)
 
     def _retry_soon(self) -> None:
         """A refresh failed and the cached timetable was served instead: ask again in a few minutes, not only at the hourly tick
@@ -338,11 +349,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
             if new_data is None:
                 self._outage()
                 if self.data is not None and not self._api_error:
-                    _LOGGER.log(  # said once when it starts, not again at every try of a long outage
-                        logging.WARNING if self._failures == 0 and self.client.uses_token else logging.DEBUG,  # the old API's outage is said once by the client
-                        "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
-                        self.name,
-                    )
+                    self._say_kept()
                     self._retry_soon()
                     return self.data
                 raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_cached_timetable")

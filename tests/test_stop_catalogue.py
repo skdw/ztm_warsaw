@@ -25,6 +25,7 @@ class Stub:
     """Stands in for a client: counts the downloads and answers with ``rows``."""
 
     uses_token = False
+    retired = False
 
     def __init__(self, rows):
         """Keep the rows to answer with and start the download count at zero."""
