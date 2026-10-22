@@ -208,6 +208,12 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         """Whether the City's last answer was not a timetable (a rejected key, an unknown stop or line, an unknown format)."""
         return self._api_error
 
+    def _say_kept(self) -> None:
+        """Log that a failed refresh was covered by the cached timetable: said once when an outage starts, not again at every try
+        (and not at all here for the City's old API, whose outage the client says once for every stop)."""
+        warn = self._failures == 0 and self.client.uses_token
+        _LOGGER.log(logging.WARNING if warn else logging.DEBUG, "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data", self.name)
+
     def _retry_soon(self) -> None:
         """A refresh failed and the cached timetable was served instead: ask again in a few minutes, not only at the hourly tick
         (a City that was unreachable for a moment, for example right after Home Assistant started, would otherwise be left alone for an hour)."""
@@ -338,11 +344,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
             if new_data is None:
                 self._outage()
                 if self.data is not None and not self._api_error:
-                    _LOGGER.log(  # said once when it starts, not again at every try of a long outage
-                        logging.WARNING if self._failures == 0 and self.client.uses_token else logging.DEBUG,  # the old API's outage is said once by the client
-                        "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
-                        self.name,
-                    )
+                    self._say_kept()
                     self._retry_soon()
                     return self.data
                 raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_cached_timetable")
