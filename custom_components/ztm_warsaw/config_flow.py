@@ -39,7 +39,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .client import StopCatalogue, ZTMApiError, ZTMAuthError, ZTMStopClient, fold, key_kind, user_agent
+from .client import StopCatalogue, ZTMApiError, ZTMAuthError, ZTMStopClient, fold, key_kind, spelled_out, user_agent
 from .entries import SUBENTRY_STOP, walking_minutes_of, entry_api_key, is_line_entry, line_of, stop_keys, stop_units
 from .const import (
     CONF_API_KEY,
@@ -101,6 +101,13 @@ def line_order(line: str) -> tuple[int, int, str]:
     return (0, int(line), line) if line.isdigit() else (1, 0, line)
 
 
+def _stop_label(name: str, stop_id: str) -> str:
+    """"Marcelin (7009)"; a name the City abbreviates also says it in full, so that it can be found by typing it so:
+    "Dw. Centralny (Dworzec Centralny) (5003)"."""
+    full = spelled_out(name)
+    return f"{name} ({full}) ({stop_id})" if full != name else f"{name} ({stop_id})"
+
+
 async def stop_choices(hass: HomeAssistant, key: str) -> tuple[bool, list[SelectOptionDict]]:
     """``(readable, choices)``: every stop of the City's catalogue as "Marcelin (7009)", sorted by name (the list can be typed into to
     narrow it). ``readable`` is False when the catalogue cannot be read."""
@@ -109,7 +116,7 @@ async def stop_choices(hass: HomeAssistant, key: str) -> tuple[bool, list[Select
     if readable is not True or not names:
         return False, []
     return True, [
-        SelectOptionDict(value=stop_id, label=f"{names[stop_id]} ({stop_id})")
+        SelectOptionDict(value=stop_id, label=_stop_label(names[stop_id], stop_id))
         for stop_id in sorted(names, key=lambda i: (fold(names[i]), int(i) if i.isdigit() else 0))
     ]
 

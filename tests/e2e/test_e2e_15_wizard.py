@@ -358,3 +358,13 @@ async def test_e2e_43_a_direction_the_timetable_cannot_give_falls_back_to_the_ca
         assert await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE) == "Catalogue direction"
     with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMAuthError("rejected"))), pytest.raises(ZTMAuthError):
         await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE)
+
+
+async def test_e2e_43_a_name_the_city_abbreviates_can_be_found_by_typing_it_in_full(env):
+    from custom_components.ztm_warsaw.client import spelled_out
+
+    assert spelled_out("Dw. Centralny") == "Dworzec Centralny"
+    assert spelled_out("os. Gorczewska") == "Osiedle Gorczewska"
+    assert spelled_out("Marcelin") == "Marcelin"
+    assert config_flow._stop_label("Dw. Centralny", "5003") == "Dw. Centralny (Dworzec Centralny) (5003)"
+    assert config_flow._stop_label("Marcelin", "7009") == "Marcelin (7009)"

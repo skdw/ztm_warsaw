@@ -72,6 +72,19 @@ _MAX_CATALOGUE_BYTES = 8_000_000  # the stops catalogue is bigger (1.6 MB of 2 M
 
 
 
+# How the City abbreviates the words of stop names ("Dw. Centralny"); the setup adds the full words to a stop's label, so that typing
+# "Dworzec Centralny" narrows the list to it.
+_ABBREVIATIONS = {
+    "os.": "Osiedle", "pl.": "Plac", "al.": "Aleje", "cm.": "Cmentarz", "dw.": "Dworzec", "ks.": "Ksiądz", "płn.": "Północny",
+    "płd.": "Południowy", "gen.": "Generała", "św.": "Świętego", "zach.": "Zachodni", "wsch.": "Wschodni", "gł.": "Główny",
+}  # fmt: skip
+
+
+def spelled_out(name: str) -> str:
+    """The name with the City's abbreviations written out ("Dw. Centralny" is "Dworzec Centralny"); the name itself when it has none."""
+    return " ".join(_ABBREVIATIONS.get(word.lower(), word) for word in name.split())
+
+
 def fold(text: str) -> str:
     """Text for comparing names: lower case, without diacritics (the Polish "ł" has none to remove, so it is turned into "l")."""
     decomposed = unicodedata.normalize("NFKD", text.replace("ł", "l").replace("Ł", "L"))
