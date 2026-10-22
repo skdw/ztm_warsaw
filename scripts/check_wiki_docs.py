@@ -25,9 +25,10 @@ EXPECTED = (
     "0.-Installation",
     "1.-Configuration",
     "2.-Concepts",
-    "3.-Troubleshooting",
-    "4.-Roadmap",
-    "5.-Contributing",
+    "3.-Examples",
+    "4.-Troubleshooting",
+    "5.-Roadmap",
+    "6.-Contributing",
 )
 
 # Reference-style links: the target is on a definition line, "[name]: target" (also "[name]: <target> "title"").
