@@ -10,11 +10,17 @@
         }
       },
       "user_existing": {
-        "description": "A line is already set up with a token. Pick that token, or paste another below. Next you pick the stop, the direction you travel in, and the line.",
+        "description": "A line is already set up with a token ({tokens}). Use it, or paste another one. Next you pick the stop, the direction you travel in, and the line.",
+        "menu_options": {
+          "use_token": "Use the token already in use",
+          "paste_token": "Paste another token"
+        }
+      },
+      "use_token": {
+        "title": "Which token?",
+        "description": "More than one token is in use. Pick one: each is shown by its last four characters and the lines that use it.",
         "data": {
-          "token": "Token already in use",
-          "api_key": "Or paste another API key or token (it is used instead of the one above)",
-          "manual": "I know the numbers: let me enter them myself"
+          "token": "Token"
         }
       },
       "stop": {
@@ -55,7 +61,7 @@
       },
       "reconfigure": {
         "title": "Warsaw Public Transport",
-        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
+        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "API key or token",
           "all_lines": "Use it for every line that still has an old key"
@@ -63,7 +69,7 @@
       },
       "reconfigure_token": {
         "title": "Warsaw Public Transport",
-        "description": "**Change your API access token.**\n\nIf your current token has expired or you want to replace it, paste a new token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n\nYour line and stop settings will be preserved.",
+        "description": "**Change your API access token.**\n\nIf your current token has expired or you want to replace it, paste a new token from [dane.um.warszawa.pl/pl/key‑api]({portal}).\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "Token"
         }
@@ -79,7 +85,7 @@
       },
       "reauth_menu": {
         "title": "Old API key",
-        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reauth_confirm": "Paste a token",
           "reauth_reuse": "Use the token already entered for another line"
@@ -87,7 +93,7 @@
       },
       "reconfigure_menu": {
         "title": "Old API key",
-        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "reconfigure_form": "Paste a token",
           "reconfigure_reuse": "Use the token already entered for another line"
@@ -140,7 +146,7 @@
     "step": {
       "init": {
         "title": "Warsaw Public Transport",
-        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
+        "description": "**This configuration uses the City of Warsaw’s old API ({current}).**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nTo switch to the new API:\n\n1. Get a token from [dane.um.warszawa.pl/pl/key‑api]({portal}).\n2. Paste it into the field below.\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "API key or token",
           "all_lines": "Use it for every line that still has an old key"
@@ -148,7 +154,7 @@
       },
       "token": {
         "title": "Warsaw Public Transport",
-        "description": "**Change your API access token, or choose what the line shows on the map.**\n\nTo replace the token, paste a new one from [dane.um.warszawa.pl/pl/key-api]({portal}). Leave the field empty to keep the current token.\n\nYour line and stop settings will be preserved.",
+        "description": "**Change your API access token, or choose what the line shows on the map.**\n\nTo replace the token, paste a new one from [dane.um.warszawa.pl/pl/key‑api]({portal}). Leave the field empty to keep the current token.\n\nYour line and stop settings will be preserved.",
         "data": {
           "api_key": "Token (leave empty to keep the current one)",
           "show_vehicles": "Show the vehicles of this line on the map"
@@ -156,7 +162,7 @@
       },
       "menu": {
         "title": "Old API key",
-        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key-api]({portal}).",
+        "description": "**Line {line} uses a key for the City of Warsaw’s old API, which no longer works.**\n\nChoose how to replace it with a token. You get one at [dane.um.warszawa.pl/pl/key‑api]({portal}).",
         "menu_options": {
           "paste": "Paste a token",
           "reuse": "Use the token already entered for another line"
@@ -220,7 +226,7 @@
         "step": {
           "token": {
             "title": "Replace the old key with a token",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key‑api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
               "api_key": "Token",
               "all_lines": "Use it for every line that still has an old key"
@@ -228,7 +234,7 @@
           },
           "init": {
             "title": "Old API key",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key‑api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
               "ignore": "Keep the old key and ignore this notice",
@@ -268,7 +274,7 @@
         "step": {
           "token": {
             "title": "Replace the old key with a token",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key-api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nPaste a token from [dane.um.warszawa.pl/pl/key‑api]({portal}) below. It will replace the old key. Your stop settings will be preserved.",
             "data": {
               "api_key": "Token",
               "all_lines": "Use it for every line that still has an old key"
@@ -276,7 +282,7 @@
           },
           "init": {
             "title": "Old API key",
-            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key-api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
+            "description": "**Line {line} uses a key for the City of Warsaw’s old API.**\n\nThe City's old API has stopped answering, so this line gets no timetables until you replace the key with a token. We recommend switching to the new API, which requires a token.\n\nGet a token from [dane.um.warszawa.pl/pl/key‑api]({portal}), then choose “Paste a token” to replace the old key. Your stop settings will be preserved. You can also keep using the old key and ignore this notice.",
             "menu_options": {
               "token": "Paste a token",
               "ignore": "Keep the old key and ignore this notice",
