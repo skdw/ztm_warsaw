@@ -39,7 +39,8 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .client import SEARCH_LIMIT, StopCatalogue, ZTMApiError, ZTMAuthError, ZTMStopClient, key_kind, user_agent
+from .client import StopCatalogue, ZTMApiError, ZTMAuthError, ZTMStopClient, fold, key_kind, user_agent
+from .line_index import async_line_stops, line_order
 from .entries import SUBENTRY_STOP, walking_minutes_of, entry_api_key, is_line_entry, line_of, stop_keys, stop_units
 from .const import (
     CONF_API_KEY,
@@ -81,12 +82,6 @@ async def _client_for_catalogue(
     return client, catalogue
 
 
-async def search_poles(hass: HomeAssistant, key: str, query: str) -> tuple[bool | None, list[dict[str, Any]]]:
-    """``(readable, poles)`` for what the user typed: see ``StopCatalogue.search``."""
-    client, catalogue = await _client_for_catalogue(hass, key)
-    return await catalogue.search(client, query)
-
-
 async def lines_at(hass: HomeAssistant, key: str, stop_id: str, stop_nr: str) -> list[str] | None:
     """The lines that stop at this pole today, in the order a person reads them (numbers first); None when the City did not say.
     A rejected key is raised as ``ZTMAuthError``."""
@@ -102,22 +97,27 @@ async def lines_at(hass: HomeAssistant, key: str, stop_id: str, stop_nr: str) ->
     return sorted(set(lines), key=line_order)
 
 
-def stops_of(poles: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    """The poles found, grouped by the stop they belong to (``{stop ID: its poles}``), in the order they were found."""
-    stops: dict[str, list[dict[str, Any]]] = {}
-    for pole in poles:
-        stops.setdefault(pole["stop_id"], []).append(pole)
-    return stops
+async def stop_choices(hass: HomeAssistant, key: str, line: str) -> tuple[bool, list[SelectOptionDict]]:
+    """``(readable, choices)``: the stops of the line from the shipped index, each with the name the City's catalogue gives it
+    ("Marcelin (7009)"), sorted by name. ``readable`` is False when the index or the catalogue cannot be read, or the line is not in it."""
+    index = await async_line_stops(hass)
+    if index is None or line not in index:
+        return False, []
+    client, catalogue = await _client_for_catalogue(hass, key)
+    readable, names = await catalogue.stop_names(client, index[line])
+    if readable is not True or not names:
+        return False, []
+    return True, [
+        SelectOptionDict(value=stop_id, label=f"{names[stop_id]} ({stop_id})")
+        for stop_id in sorted(names, key=lambda i: (fold(names[i]), int(i)))
+    ]
 
 
-def stop_options(stops: dict[str, list[dict[str, Any]]]) -> list[SelectOptionDict]:
-    """The choices of the stop step: "Marcelin (7009)"."""
-    return [SelectOptionDict(value=stop_id, label=f"{poles[0]['name']} ({stop_id})") for stop_id, poles in stops.items()]
-
-
-def line_order(line: str) -> tuple[int, int, str]:
-    """How a person reads a list of lines: the numbers first, then the letters (N31, S4)."""
-    return (0, int(line), line) if line.isdigit() else (1, 0, line)
+async def poles_of_stop(hass: HomeAssistant, key: str, stop_id: str) -> list[dict[str, Any]]:
+    """The poles of a stop from the City's catalogue (empty when it cannot be read or does not know the stop)."""
+    client, catalogue = await _client_for_catalogue(hass, key)
+    _, poles = await catalogue.poles_of(client, stop_id)
+    return poles
 
 
 async def lines_by_pole(hass: HomeAssistant, key: str, poles: list[dict[str, Any]]) -> dict[str, list[str] | None]:
@@ -412,113 +412,81 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         )
 
     def __init__(self) -> None:
-        """What the steps of the dialog hand on to each other: the key, what was searched for, the poles found and the one picked."""
+        """What the steps of the dialog hand on to each other: the key, the line, the stops of the line and the poles of the one picked."""
         self._key = ""
-        self._query = ""
-        self._poles: list[dict[str, Any]] = []  # everything the search found
-        self._stop_poles: list[dict[str, Any]] = []  # the poles of the stop that was picked
         self._line = ""
+        self._index: dict[str, list[str]] = {}
+        self._stops: list[SelectOptionDict] = []
         self._show_vehicles = False
-        self._lines: list[str] = []
-        self._line_poles: list[dict[str, Any]] = []  # the poles of that stop the picked line serves
+        self._line_poles: list[dict[str, Any]] = []  # the poles of the stop picked that the line serves
 
     def _user_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The first step: the key and part of the stop's name (or its ID), or "I know the numbers"."""
+        """The first step: the key and the line (a list to pick from, or a number typed), or "I know the numbers"."""
+        lines = sorted(self._index, key=line_order)
         schema = _form(
             {
                 vol.Required(CONF_API_KEY, default=self._key): str,
-                vol.Required(CONF_STOP, default=self._query): str,
+                vol.Required(CONF_LINE, default=self._line): SelectSelector(
+                    SelectSelectorConfig(options=[SelectOptionDict(value=line, label=line) for line in lines], mode=SelectSelectorMode.DROPDOWN, custom_value=True)
+                ),
                 vol.Optional(CONF_MANUAL, default=False): bool,
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The first screen: the key and part of the stop's name. The catalogue of stops is searched, and the poles found are
-        offered next; "I know the numbers" (or a catalogue that cannot be read) leads to the form of the numbers."""
+        """The first screen: the key and the line. The stops the line serves are offered next; "I know the numbers" (or a list of
+        lines that cannot be read) leads to the form of the numbers."""
+        index = await async_line_stops(self.hass)
+        if index is None:
+            return self._manual_form({"base": "cannot_load_stops"})
+        self._index = index
         if user_input is None:
             return self._user_form()
-        self._key, self._query = user_input[CONF_API_KEY].strip(), user_input[CONF_STOP].strip()
+        self._key, self._line = user_input[CONF_API_KEY].strip(), user_input[CONF_LINE].strip().upper()
         if key_kind(self._key) is None:
             return self._user_form({"base": "invalid_api_key"})
         if key_kind(self._key) == "legacy" and legacy_api_retired():
             return self._user_form({"base": "old_api_retired"})
         if user_input.get(CONF_MANUAL):
             return await self.async_step_manual()
-        readable, poles = await search_poles(self.hass, self._key, self._query)
-        if readable is not True:  # the list of stops could not be read: the numbers can still be typed
-            return self._manual_form({"base": "cannot_load_stops"})
-        if not poles:
-            return self._user_form({"base": "no_stop_found"})
-        if len(poles) > SEARCH_LIMIT:
-            return self._user_form({"base": "too_many_matches"})
-        self._poles = poles
-        stops = stops_of(poles)
-        if len(stops) == 1:  # one stop (or one pole typed as numbers): no need to ask which
-            self._stop_poles = poles
-            return await self.async_step_line()
+        if self._line not in index:
+            return self._user_form({"base": "unknown_line"})
         return await self.async_step_stop()
 
-    def _stop_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The second step, when the name fits more than one stop: which of them."""
-        return self.async_show_form(
-            step_id="stop",
-            data_schema=_form({vol.Required(CONF_STOP): _select(stop_options(stops_of(self._poles)))}),
-            errors=errors or {},
-            description_placeholders={"query": self._query},
-        )
-
-    async def async_step_stop(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
-        """Which stop of those the name fits; then the lines that stop there."""
-        if user_input is None:
-            return self._stop_form()
-        self._stop_poles = stops_of(self._poles)[user_input[CONF_STOP]]
-        return await self.async_step_line()
-
-    def _back(self, errors: dict[str, str]) -> ConfigFlowResult:
-        """Back to the step before the lines: the choice of the stop when there was one, else the first screen."""
-        return self._stop_form(errors) if len(stops_of(self._poles)) > 1 else self._user_form(errors)
-
     def _asks_for_vehicles(self) -> bool:
-        """Whether the line screen offers the map's vehicle pins: only with a token (the positions are its service)."""
+        """Whether the stop screen offers the map's vehicle pins: only with a token (the positions are its service)."""
         return key_kind(self._key) == "token"
 
-    def _line_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The third step: which of the lines that stop at the stop."""
+    def _stop_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
+        """The second step: which stop of the line, and (with a token) whether its vehicles are shown on the map."""
         return self.async_show_form(
-            step_id="line",
+            step_id="stop",
             data_schema=_form(
                 {
-                    vol.Required(CONF_LINE): _select([SelectOptionDict(value=line, label=line) for line in self._lines]),
+                    vol.Required(CONF_STOP): SelectSelector(SelectSelectorConfig(options=self._stops, mode=SelectSelectorMode.DROPDOWN)),
                     **({vol.Optional(CONF_SHOW_VEHICLES, default=False): bool} if self._asks_for_vehicles() else {}),
                 }
             ),
             errors=errors or {},
-            description_placeholders={"stop": f"{self._stop_poles[0]['name']} ({self._stop_poles[0]['stop_id']})"},
+            description_placeholders={"line": self._line},
         )
 
-    async def async_step_line(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
-        """Which line: those the City lists today at any pole of the stop. A line that serves one pole is finished with it; one
-        that serves more asks which pole (the direction is shown)."""
+    async def async_step_stop(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which stop of the line. Then the poles of it the line serves: one is added, several ask which way the passenger goes."""
         if user_input is None:
-            try:
-                by_pole = await lines_by_pole(self.hass, self._key, self._stop_poles)
-            except ZTMAuthError:
-                return self._user_form({"base": "invalid_api_key"})
-            if all(lines is None for lines in by_pole.values()):
-                return self._back({"base": "cannot_load_lines"})
-            self._lines = sorted({line for lines in by_pole.values() for line in lines or []}, key=line_order)
-            if not self._lines:
-                return self._back({"base": "no_lines"})
-            return self._line_form()
-        self._line = user_input[CONF_LINE]
+            readable, self._stops = await stop_choices(self.hass, self._key, self._line)
+            if not readable:
+                return self._manual_form({"base": "cannot_load_stops"})
+            return self._stop_form()
         self._show_vehicles = bool(user_input.get(CONF_SHOW_VEHICLES, False)) and self._asks_for_vehicles()
+        poles = await poles_of_stop(self.hass, self._key, user_input[CONF_STOP])
         try:
-            self._line_poles = await poles_for_line(self.hass, self._key, self._stop_poles, self._line)
+            self._line_poles = await poles_for_line(self.hass, self._key, poles, self._line)
         except ZTMAuthError:
             return self._user_form({"base": "invalid_api_key"})
         if not self._line_poles:
-            return self._line_form({"base": "cannot_load_lines"})
+            return self._stop_form({"base": "line_not_found"})
         if len(self._line_poles) == 1:
             return await self._add_pole(self._line_poles[0])
         return await self.async_step_pole()
@@ -547,7 +515,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         )
         if not isinstance(outcome, str):
             return outcome
-        return self._line_form({"base": outcome}) if len(self._line_poles) == 1 else self._pole_form({"base": outcome})
+        return self._stop_form({"base": outcome}) if len(self._line_poles) == 1 else self._pole_form({"base": outcome})
 
     async def _finish(self, user_input: dict[str, Any]) -> ConfigFlowResult | str:
         """Check the stop, pole and line with the City and make the entry (or add the stop to the line's entry): the result, or the
@@ -572,7 +540,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 vol.Required(CONF_API_KEY, default=self._key): str,
                 vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str),  # a text, so the form starts empty; stored as the number it is
                 vol.Required(CONF_BUSSTOP_NR): str,
-                vol.Required(CONF_LINE): str,
+                vol.Required(CONF_LINE, default=self._line): str,
             }
         )
         return self.async_show_form(step_id="manual", data_schema=schema, errors=errors or {})
@@ -893,10 +861,8 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         return self.async_show_form(step_id="reconfigure", data_schema=schema, description_placeholders={"stop": subentry.title})
 
     def __init__(self) -> None:
-        """What the steps hand on to each other: what was searched for and the poles found."""
-        self._query = ""
-        self._poles: list[dict[str, Any]] = []
-        self._stop_poles: list[dict[str, Any]] = []
+        """What the steps hand on to each other: the stops of the line and the poles of the one picked."""
+        self._stops: list[SelectOptionDict] = []
         self._line_poles: list[dict[str, Any]] = []
 
     def _line_and_key(self) -> tuple[str, str] | None:
@@ -906,70 +872,60 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
         return (line, api_key) if api_key is not None and line is not None else None
 
     def _user_form(self, line: str, errors: dict[str, str] | None = None) -> SubentryFlowResult:
-        """The first step: part of the stop's name (or its ID), or "I know the numbers"."""
-        schema = _form({vol.Required(CONF_STOP, default=self._query): str, vol.Optional(CONF_MANUAL, default=False): bool})
+        """The first step: which stop of the line (a list to pick from), or "I know the numbers"."""
+        schema = _form(
+            {
+                vol.Optional(CONF_STOP): SelectSelector(SelectSelectorConfig(options=self._stops, mode=SelectSelectorMode.DROPDOWN)),
+                vol.Optional(CONF_MANUAL, default=False): bool,
+            }
+        )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {}, description_placeholders={"line": line})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        """*Add stop*: part of the stop's name; the catalogue is searched and the poles found are offered next (a catalogue that
-        cannot be read, or "I know the numbers", leads to the form of the numbers)."""
+        """*Add stop*: the stops of the line to pick from, then the pole (one the line serves is added at once). A list of stops
+        that cannot be read, or "I know the numbers", leads to the form of the numbers."""
         known = self._line_and_key()
         if known is None:
             return self.async_abort(reason="unknown")
         line, api_key = known
         if user_input is None:
+            readable, self._stops = await stop_choices(self.hass, api_key, line)
+            if not readable:
+                return self._manual_form(line, {"base": "cannot_load_stops"})
             return self._user_form(line)
-        self._query = user_input[CONF_STOP].strip()
         if user_input.get(CONF_MANUAL):
             return await self.async_step_manual()
-        readable, poles = await search_poles(self.hass, api_key, self._query)
-        if readable is not True:
-            return self._manual_form(line, {"base": "cannot_load_stops"})
-        if not poles:
-            return self._user_form(line, {"base": "no_stop_found"})
-        if len(poles) > SEARCH_LIMIT:
-            return self._user_form(line, {"base": "too_many_matches"})
-        self._poles = poles
-        if len(stops_of(poles)) == 1:
-            self._stop_poles = poles
-            return await self.async_step_pole()
-        return await self.async_step_stop()
-
-    async def async_step_stop(self, user_input: dict[str, str] | None = None) -> SubentryFlowResult:
-        """Which stop of those the name fits (asked only when it fits more than one)."""
-        known = self._line_and_key()
-        if known is None:
-            return self.async_abort(reason="unknown")
-        if user_input is None:
-            return self.async_show_form(
-                step_id="stop",
-                data_schema=_form({vol.Required(CONF_STOP): _select(stop_options(stops_of(self._poles)))}),
-                description_placeholders={"line": known[0], "query": self._query},
-            )
-        self._stop_poles = stops_of(self._poles)[user_input[CONF_STOP]]
-        return await self.async_step_pole()
+        if not user_input.get(CONF_STOP):
+            return self._user_form(line, {"base": "choose_a_stop"})
+        poles = await poles_of_stop(self.hass, api_key, user_input[CONF_STOP])
+        try:
+            self._line_poles = await poles_for_line(self.hass, api_key, poles, line)
+        except ZTMAuthError:
+            return self._user_form(line, {"base": "invalid_api_key"})
+        if not self._line_poles:
+            return self._user_form(line, {"base": "line_not_found"})
+        if len(self._line_poles) > 1:
+            return self._pole_form(line)
+        return await self._add(line, api_key, self._line_poles[0])
 
     async def async_step_pole(self, user_input: dict[str, str] | None = None) -> SubentryFlowResult:
-        """Which pole of the stop: only those the line serves, each with the direction it goes from there. A line that serves one
-        pole is added with it."""
+        """Which pole of the stop (the line serves more than one): the stop is added with it."""
         known = self._line_and_key()
-        if known is None:
+        if known is None or user_input is None:
             return self.async_abort(reason="unknown")
         line, api_key = known
-        if user_input is None:
-            try:
-                self._line_poles = await poles_for_line(self.hass, api_key, self._stop_poles, line)
-            except ZTMAuthError:
-                return self._user_form(line, {"base": "invalid_api_key"})
-            if not self._line_poles:
-                return self._user_form(line, {"base": "line_not_found"})
-            if len(self._line_poles) > 1:
-                return self._pole_form(line)
-            stop_id, stop_nr = self._line_poles[0]["stop_id"], self._line_poles[0]["stop_nr"]
-        else:
-            stop_id, stop_nr = user_input[CONF_POLE].split("/")
-        outcome = await self._finish(line, api_key, int(stop_id), stop_nr)
-        return outcome if not isinstance(outcome, str) else self._user_form(line, {"base": outcome})
+        stop_nr = user_input[CONF_POLE].split("/")[1]
+        pole = next((p for p in self._line_poles if p["stop_nr"] == stop_nr), None)
+        if pole is None:
+            return self.async_abort(reason="unknown")
+        return await self._add(line, api_key, pole)
+
+    async def _add(self, line: str, api_key: str, pole: dict[str, Any]) -> SubentryFlowResult:
+        """Check the pole with the line's key and add it, or show what went wrong."""
+        outcome = await self._finish(line, api_key, int(pole["stop_id"]), pole["stop_nr"])
+        if not isinstance(outcome, str):
+            return outcome
+        return self._user_form(line, {"base": outcome}) if len(self._line_poles) == 1 else self._pole_form(line, {"base": outcome})
 
     def _pole_form(self, line: str, errors: dict[str, str] | None = None) -> SubentryFlowResult:
         """The last step: which of the poles the line serves."""

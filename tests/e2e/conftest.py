@@ -10,6 +10,9 @@ Layering (each fixture lists what it needs, so the order below is the setup orde
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import asyncio
 import os
 import time as time_module
@@ -269,7 +272,7 @@ class Env:
         if result["type"] != "form":
             raise HarnessError(f"the config flow did not open a form: {result}")
         result = await flow.async_configure(  # "I know the numbers": the form of the numbers, as the setup dialog of 1.1.x was
-            result["flow_id"], {"api_key": api_key, "stop": str(stop_id), "manual": True}
+            result["flow_id"], {"api_key": api_key, "line": line, "manual": True}
         )
         if result["type"] == "form" and result["step_id"] == "manual":
             result = await flow.async_configure(
@@ -288,28 +291,26 @@ class Env:
         """The form of the numbers of the setup dialog ("I know the numbers" ticked on the first screen)."""
         flow = self.hass.config_entries.flow
         result = await flow.async_init(DOMAIN, context={"source": "user"})
-        return await flow.async_configure(result["flow_id"], {"api_key": api_key, "stop": "7009", "manual": True})
+        return await flow.async_configure(result["flow_id"], {"api_key": api_key, "line": "151", "manual": True})
 
     async def add_stop_form(self, entry: ConfigEntry, *, manual: bool = True) -> dict:
         """The form of *Add stop* on a line (the form of the numbers when ``manual``, else the first screen)."""
         manager = self.hass.config_entries.subentries
         form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
         if manual and form["type"] == "form":
-            form = await manager.async_configure(form["flow_id"], {"stop": "7009", "manual": True})
+            form = await manager.async_configure(form["flow_id"], {"manual": True})
         return form
 
-    async def submit_wizard(self, *, query: str, line: str, stop: str | None = None, pole: str | None = None, api_key: str = DEFAULT_KEY) -> dict:
-        """Run the screens of the setup dialog (key and search, the stop when the name fits more than one, the line, the pole when the
-        line serves more than one) and return the raw result of the last one."""
+    async def submit_wizard(self, *, line: str, stop: str, pole: str | None = None, api_key: str = DEFAULT_KEY, **extra: Any) -> dict:
+        """Run the screens of the setup dialog (the key and the line, the stop, the pole when the line serves more than one at it) and
+        return the raw result of the last one; ``extra`` goes to the stop screen (the vehicles checkbox)."""
         flow = self.hass.config_entries.flow
         result = await flow.async_init(DOMAIN, context={"source": "user"})
-        result = await flow.async_configure(result["flow_id"], {"api_key": api_key, "stop": query})
-        answers = {"stop": {"stop": stop}, "line": {"line": line}, "pole": {"pole": pole}}
-        while result["type"] == "form" and result["step_id"] in answers:
-            answer = answers[result["step_id"]]
-            if None in answer.values():
-                return result
-            result = await flow.async_configure(result["flow_id"], answer)
+        result = await flow.async_configure(result["flow_id"], {"api_key": api_key, "line": line})
+        if result["type"] == "form" and result["step_id"] == "stop":
+            result = await flow.async_configure(result["flow_id"], {"stop": stop, **extra})
+        if result["type"] == "form" and result["step_id"] == "pole" and pole is not None:
+            result = await flow.async_configure(result["flow_id"], {"pole": pole})
         await self.settle()
         return result
 
@@ -389,16 +390,23 @@ class Env:
 
 
 @pytest.fixture
-async def env(clock, hass, enable_custom_integrations, fake_city, sleeps) -> AsyncIterator[Env]:
+async def env(clock, hass, enable_custom_integrations, fake_city, sleeps, tmp_path) -> AsyncIterator[Env]:
     """The one fixture e2e tests use. Order matters: clock first, then hass, then the fake city.
 
     Home Assistant's device tracker component (set up for the vehicle tracker) wakes every five seconds to look for stale
     devices; ``run_to`` steps from timer to timer, so that timer is switched off here: it has nothing to do with the integration."""
     await hass.config.async_set_time_zone("Europe/Warsaw")
+    index_file = tmp_path / "line_stops.json"  # the stops of each line, as far as the fake city's poles go
+    stops_of_line: dict[str, set[str]] = {}
+    for pole, info in json.loads((Path(__file__).parent / "fake_city" / "data" / "summary_friday.json").read_text()).items():
+        for line in info["lines"]:
+            stops_of_line.setdefault(line, set()).add(pole.split("/")[0])
+    index_file.write_text(json.dumps({"generated": "2026-10-22", "lines": {line: sorted(ids) for line, ids in stops_of_line.items()}}))
     # The City's old API is treated as gone in production (const.LEGACY_API_RETIRED); its code stays until 2.0, and these
     # tests keep it covered against the fake city. The tests of the retired mode switch it back on.
     with (
         patch("homeassistant.components.device_tracker.legacy.async_track_utc_time_change", return_value=lambda: None),
         patch("custom_components.ztm_warsaw.const.LEGACY_API_RETIRED", False),
+        patch("custom_components.ztm_warsaw.line_index.INDEX_FILE", index_file),
     ):
         yield Env(hass, clock, fake_city, sleeps)

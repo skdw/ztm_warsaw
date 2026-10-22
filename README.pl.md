@@ -70,7 +70,7 @@ Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. N
 - ✅ Integracja obsługuje autobusy, tramwaje, metro i SKM, także linie nocne, ekspresowe i lokalne.
 - ✅ Stanem sensora jest godzina najbliższego odjazdu. Trzy następne odjazdy oraz pierwszy i ostatni odjazd doby znajdziesz w atrybutach.
 - ✅ Osobny sensor *Status* wyjaśnia zwykłymi słowami, co się dzieje, na przykład „Ostatni odjazd dzisiaj już był”.
-- ✅ Przystanek dodajesz, wpisując fragment jego nazwy. Potem wybierasz linię i, jeśli linia obsługuje więcej niż jeden słupek, kierunek, w którym jedziesz, więc nie musisz szukać żadnych numerów.
+- ✅ Linię dodajesz, wybierając ją z listy, potem jeden z jej przystanków po nazwie i, jeśli linia obsługuje więcej niż jeden słupek, kierunek, w którym jedziesz, więc nie wpisujesz nazwy przystanku ani nie szukasz numerów.
 - ✅ Możesz dodać wiele linii i przystanków, ustawić czas dojścia na przystanek, włączyć kalendarz odjazdów i zobaczyć pojazd na mapie. Kalendarz i pojazd są domyślnie wyłączone.
 - ✅ Interfejs jest w ośmiu językach: angielskim, polskim, ukraińskim, rosyjskim, niemieckim, hiszpańskim, francuskim i włoskim. Sześć nowszych wersji przetłumaczył program, więc poprawki w postaci pull requestów są mile widziane.
 
@@ -130,8 +130,8 @@ Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warsz
 
 1. Przejdź do **Ustawienia → Urządzenia oraz usługi**.
 2. Kliknij **+ Dodaj integrację** i wyszukaj **Warszawski Transport Publiczny**.
-3. Wklej token i wpisz fragment nazwy przystanku (na przykład `Marcelin`) albo jego ID.
-4. Jeśli nazwa pasuje do kilku przystanków, wybierz przystanek. Potem wybierz linię: na liście są tylko linie, które dziś tam się zatrzymują. Jeśli linia obsługuje więcej niż jeden słupek, integracja wyświetla słupki razem z kierunkiem, w którym linia z każdego odjeżdża, a ty wybierasz swój (numer jest na tabliczce przystanku).
+3. Wklej token i wybierz linię z listy (albo wpisz jej numer, na przykład `151`).
+4. Wybierz jeden z przystanków linii: są wyświetlone z nazwami. Jeśli linia obsługuje więcej niż jeden słupek tego przystanku, integracja wyświetla słupki razem z kierunkiem, w którym linia z każdego odjeżdża, a ty wybierasz swój (numer jest na tabliczce przystanku).
 
 Integracja nazwie sensor na przykład `sensor.line_151_from_7009_01`. Kolejny przystanek tej linii dodasz przyciskiem **Dodaj przystanek**. Jeśli znasz numery, zaznacz na pierwszym ekranie **Znam numery: wpiszę je sam**. Czas dojścia, kalendarz, pojazd na mapie i usuwanie linii opisuje [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 

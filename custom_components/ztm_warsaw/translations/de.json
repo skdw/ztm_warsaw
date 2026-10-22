@@ -3,18 +3,19 @@
   "config": {
     "step": {
       "user": {
-        "description": "Gib deinen API-Schlüssel oder dein Token und einen Teil des Haltestellennamens (oder die ID) ein. Danach wählst du die Linie und die Richtung, in die du fährst.",
+        "description": "Gib deinen API-Schlüssel oder dein Token und die gewünschte Linie ein. Danach wählst du ihre Haltestelle und die Richtung, in die du fährst.",
         "data": {
           "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
-          "stop": "Haltestellenname oder ID (z. B. Marcelin oder 3044)",
+          "line": "Linie (z. B. 151 oder N31)",
           "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
       "stop": {
         "title": "Welche Haltestelle?",
-        "description": "Diese Haltestellen passen zu „{query}“.",
+        "description": "Die Haltestellen, die die Linie {line} bedient.",
         "data": {
-          "stop": "Haltestelle"
+          "stop": "Haltestelle",
+          "show_vehicles": "Fahrzeuge dieser Linie auf der Karte anzeigen"
         }
       },
       "reauth_confirm": {
@@ -53,14 +54,6 @@
         "description": "Die Linie {line} hält an der Haltestelle {stop} an mehr als einem Mast. Bei jedem Mast steht die Richtung, in die die Linie dort abfährt; die Nummer steht auch auf dem Schild.",
         "data": {
           "pole": "Mast"
-        }
-      },
-      "line": {
-        "title": "Welche Linie?",
-        "description": "Die Linien, die heute an {stop} halten.",
-        "data": {
-          "line": "Linie",
-          "show_vehicles": "Fahrzeuge dieser Linie auf der Karte anzeigen"
         }
       },
       "reauth_menu": {
@@ -105,12 +98,9 @@
       "unknown": "Ein unbekannter Fehler ist aufgetreten.",
       "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
       "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“).",
-      "no_stop_found": "Nichts gefunden. Versuche einen anderen Teil des Namens oder die Haltestellen-ID.",
-      "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
-      "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
       "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
-      "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein.",
-      "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
+      "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein.",
+      "unknown_line": "Diese Linie steht nicht in der Liste. Wähle eine Linie aus der Liste oder setze den Haken bei „Ich kenne die Nummern“, um sie selbst einzugeben."
     },
     "abort": {
       "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
@@ -312,9 +302,9 @@
       "step": {
         "user": {
           "title": "Haltestelle der Linie {line} hinzufügen",
-          "description": "Eine weitere Haltestelle der Linie {line}. Gib einen Teil des Namens oder die ID ein.",
+          "description": "Eine weitere Haltestelle der Linie {line}. Wähle sie aus der Liste oder setze den Haken bei „Ich kenne die Nummern“.",
           "data": {
-            "stop": "Haltestellenname oder ID (z. B. Marcelin oder 3044)",
+            "stop": "Haltestelle",
             "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
           }
         },
@@ -339,13 +329,6 @@
           "data": {
             "pole": "Mast"
           }
-        },
-        "stop": {
-          "title": "Welche Haltestelle?",
-          "description": "Diese Haltestellen passen zu „{query}“.",
-          "data": {
-            "stop": "Haltestelle"
-          }
         }
       },
       "error": {
@@ -359,12 +342,9 @@
         "unknown": "Ein unbekannter Fehler ist aufgetreten.",
         "invalid_token_or_unavailable": "Die API der Stadt Warschau hat das Token nicht akzeptiert oder ist gerade nicht erreichbar. Bitte prüfe das Token und versuche es später erneut.",
         "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“).",
-        "no_stop_found": "Nichts gefunden. Versuche einen anderen Teil des Namens oder die Haltestellen-ID.",
-        "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein.",
-        "no_lines": "Heute hält an diesem Mast keine Linie. Wähle einen anderen.",
         "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
-        "cannot_load_lines": "Die Linien an diesem Mast konnten nicht geladen werden. Versuche es erneut oder gehe zurück und gib die Nummern selbst ein.",
-        "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein."
+        "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein.",
+        "choose_a_stop": "Wähle eine Haltestelle oder setze den Haken bei „Ich kenne die Nummern“."
       },
       "abort": {
         "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",

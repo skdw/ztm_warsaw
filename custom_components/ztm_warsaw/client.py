@@ -9,6 +9,7 @@ Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; n
 """
 
 import asyncio
+from collections.abc import Iterable
 import time
 import logging
 from typing import Any, Optional
@@ -70,53 +71,12 @@ _MAX_BYTES = 2_000_000  # the largest timetable or list of lines accepted
 _MAX_CATALOGUE_BYTES = 8_000_000  # the stops catalogue is bigger (1.6 MB of 2 MB in 2026) and grows
 
 
-SEARCH_LIMIT = 30  # the poles a search lists at most; more asks the user to narrow it
 
 
-def _fold(text: str) -> str:
+def fold(text: str) -> str:
     """Text for comparing names: lower case, without diacritics (the Polish "ł" has none to remove, so it is turned into "l")."""
     decomposed = unicodedata.normalize("NFKD", text.replace("ł", "l").replace("Ł", "L"))
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
-
-
-# How the City abbreviates the words of stop names ("Dw. Centralny"), folded: what a person types in full still finds them.
-_ABBREVIATIONS = {
-    "os": ("osiedle",),
-    "pl": ("plac",),
-    "al": ("aleja", "aleje"),
-    "cm": ("cmentarz",),
-    "dw": ("dworzec",),
-    "ks": ("ksiadz", "ksiedza"),
-    "pln": ("polnocny", "polnocna"),
-    "pld": ("poludniowy", "poludniowa"),
-    "gen": ("general", "generala"),
-    "sw": ("swiety", "swietego", "swieta"),
-    "zach": ("zachodni", "zachodnia"),
-    "wsch": ("wschodni", "wschodnia"),
-    "gl": ("glowny", "glowna"),
-    "maz": ("mazowiecki", "mazowiecka"),
-}
-
-
-def _words_of(text: str) -> list[str]:
-    """The words of a folded name or query, without punctuation."""
-    return re.findall(r"[0-9a-z]+", text)
-
-
-def _words_match(wanted: list[str], name: str) -> bool:
-    """Whether every word typed starts a word of the name, an abbreviation of the City's counting as the word it stands for
-    ("dworzec centr" finds "Dw. Centralny")."""
-    spelled = [w for word in _words_of(name) for w in (word, *_ABBREVIATIONS.get(word, ()))]
-    return bool(wanted) and all(any(w.startswith(word) for w in spelled) for word in wanted)
-
-
-def _matches(numbers: re.Match[str] | None, wanted: str, stop_id: str, stop_nr: str, name: str) -> bool:
-    """Whether a pole is what the user typed: the stop ID (or the ID and the pole number) when it was typed as numbers, else
-    a part of the stop's name, or the words of it (see ``_words_match``)."""
-    if numbers:
-        return stop_id == numbers.group(1) and (numbers.group(2) is None or stop_nr == numbers.group(2))
-    folded = _fold(name)
-    return bool(wanted) and (wanted in folded or _words_match(_words_of(wanted), folded))
 
 
 def _index_stops(rows: list[Any]) -> dict[str, dict[str, dict[str, Any]]]:
@@ -179,24 +139,24 @@ class StopCatalogue:
         info = poles[stop_nr] if stop_nr in poles else next(iter(poles.values()))
         return True, dict(info)
 
-    async def search(self, client: "ZTMStopClient", query: str, limit: int = SEARCH_LIMIT) -> tuple[bool | None, list[dict[str, Any]]]:
-        """``(readable, poles)``: the poles whose stop name contains ``query`` (case, diacritics and the Polish "ł" do not matter),
-        or whose stop ID, or stop ID and pole number ("7009" or "7009/01"), is what was typed. A pole is
-        ``{"stop_id", "stop_nr", "name", "direction"}``, sorted by name, ID and number; at most ``limit + 1`` come back, so
-        that the caller can tell "too many" from "all of them"."""
+    async def stop_names(self, client: "ZTMStopClient", stop_ids: Iterable[str]) -> tuple[bool | None, dict[str, str]]:
+        """``(readable, {stop ID: name})`` for the stops asked for (those the catalogue does not know are left out): the names the
+        setup shows next to a stop's ID. ``readable`` is as in ``find``."""
+        readable, index = await self._load(client)
+        if index is None:
+            return readable, {}
+        return True, {i: str(next(iter(index[i].values())).get("nazwa_zespolu") or "") for i in stop_ids if index.get(i)}
+
+    async def poles_of(self, client: "ZTMStopClient", stop_id: str) -> tuple[bool | None, list[dict[str, Any]]]:
+        """``(readable, poles)`` of one stop, each ``{"stop_id", "stop_nr", "name", "direction"}`` in the catalogue's order (the
+        direction is what the old API's catalogue says; the new one's says nothing)."""
         readable, index = await self._load(client)
         if index is None:
             return readable, []
-        wanted = _fold(query).strip()
-        numbers = re.fullmatch(r"(\d{1,9})(?:/(\d{2}))?", query.strip())
-        found: list[dict[str, Any]] = []
-        for stop_id, poles in index.items():
-            for stop_nr, info in poles.items():
-                name = str(info.get("nazwa_zespolu") or "")
-                if _matches(numbers, wanted, stop_id, stop_nr, name):
-                    found.append({"stop_id": stop_id, "stop_nr": stop_nr, "name": name, "direction": str(info.get("kierunek") or "")})
-        found.sort(key=lambda p: (_fold(p["name"]), p["stop_id"], p["stop_nr"]))
-        return True, found[: limit + 1]
+        return True, [
+            {"stop_id": stop_id, "stop_nr": nr, "name": str(info.get("nazwa_zespolu") or ""), "direction": str(info.get("kierunek") or "")}
+            for nr, info in index.get(stop_id, {}).items()
+        ]
 
 
 # What the legacy API puts in ``result`` when it does not know the stop pole / line (measured).

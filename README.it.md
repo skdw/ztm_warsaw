@@ -70,7 +70,7 @@ L’integrazione legge gli orari, perciò mostra partenze **programmate**. Non m
 - ✅ L’integrazione supporta autobus, tram, metropolitana e treni urbani (SKM), comprese le linee notturne, espresse e locali.
 - ✅ Lo stato del sensore è l’ora della prossima partenza. Le tre successive, la prima e l’ultima partenza della giornata si trovano negli attributi.
 - ✅ Un sensore *Stato* a parte spiega con parole semplici cosa succede, per esempio «L’ultima partenza della giornata è passata».
-- ✅ Aggiungi una fermata scrivendo una parte del suo nome. Poi scegli la linea e, se la linea serve più di un punto di fermata, la direzione in cui viaggi, quindi non devi cercare nessun numero.
+- ✅ Aggiungi una linea scegliendola da un elenco, poi una delle sue fermate per nome e, se la linea serve più di un punto di fermata, la direzione in cui viaggi, quindi non scrivi il nome di una fermata né cerchi numeri.
 - ✅ Puoi aggiungere più linee e fermate, impostare un tempo di cammino fino alla fermata, attivare un calendario delle partenze e vedere il veicolo sulla mappa. Calendario e veicolo sono disattivati per impostazione predefinita.
 - ✅ L’interfaccia è disponibile in otto lingue: inglese, polacco, ucraino, russo, tedesco, spagnolo, francese e italiano. Un programma ha tradotto le sei più recenti, quindi le correzioni come pull request sono benvenute.
 
@@ -130,8 +130,8 @@ Una vecchia chiave API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, da [api.um.warsz
 
 1. Vai su **Impostazioni → Dispositivi e servizi**.
 2. Fai clic su **+ Aggiungi integrazione** e cerca **Trasporto pubblico di Varsavia**.
-3. Incolla il token e scrivi una parte del nome della fermata (per esempio `Marcelin`) o il suo ID.
-4. Se il nome corrisponde a più fermate, scegli la fermata. Poi scegli la linea: sono elencate solo le linee che oggi vi fermano. Se la linea serve più di un punto di fermata, l’integrazione elenca i punti con la direzione in cui la linea parte da ciascuno, e scegli il tuo (il numero è sul cartello della fermata).
+3. Incolla il token e scegli la linea dall’elenco (oppure scrivi il suo numero, per esempio `151`).
+4. Scegli una delle fermate della linea: sono elencate per nome. Se la linea serve più di un punto di fermata, l’integrazione elenca i punti con la direzione in cui la linea parte da ciascuno, e scegli il tuo (il numero è sul cartello della fermata).
 
 L’integrazione chiama il sensore per esempio `sensor.line_151_from_7009_01`. Un’altra fermata della linea si aggiunge con **Aggiungi fermata**. Se conosci i numeri, spunta nella prima schermata **Conosco i numeri: li inserisco io**. Tempo di cammino, calendario, veicolo sulla mappa e rimozione di una linea sono spiegati nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 

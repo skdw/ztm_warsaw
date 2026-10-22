@@ -3,18 +3,19 @@
   "config": {
     "step": {
       "user": {
-        "description": "Introduce tu clave API o token y parte del nombre de tu parada (o su ID). Después elegirás la línea y la dirección en la que viajas.",
+        "description": "Introduce tu clave API o token y la línea que quieres. Después elegirás su parada y la dirección en la que viajas.",
         "data": {
           "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia",
-          "stop": "Nombre o ID de la parada (p. ej. Marcelin o 3044)",
+          "line": "Línea (p. ej. 151 o N31)",
           "manual": "Conozco los números: los introduciré yo"
         }
       },
       "stop": {
         "title": "¿Qué parada?",
-        "description": "Estas paradas coinciden con «{query}».",
+        "description": "Las paradas que sirve la línea {line}.",
         "data": {
-          "stop": "Parada"
+          "stop": "Parada",
+          "show_vehicles": "Mostrar en el mapa los vehículos de esta línea"
         }
       },
       "reauth_confirm": {
@@ -53,14 +54,6 @@
         "description": "La línea {line} para en {stop} en más de un poste. Cada poste muestra la dirección en la que la línea sale de él; su número también está en el cartel.",
         "data": {
           "pole": "Poste"
-        }
-      },
-      "line": {
-        "title": "¿Qué línea?",
-        "description": "Las líneas que hoy paran en {stop}.",
-        "data": {
-          "line": "Línea",
-          "show_vehicles": "Mostrar en el mapa los vehículos de esta línea"
         }
       },
       "reauth_menu": {
@@ -105,12 +98,9 @@
       "unknown": "Se ha producido un error desconocido.",
       "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
       "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»).",
-      "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
-      "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre.",
-      "no_lines": "Hoy ninguna línea para en ese poste. Elige otro.",
       "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
-      "cannot_load_lines": "No se pudieron cargar las líneas de ese poste. Inténtalo de nuevo o vuelve y introduce los números tú mismo.",
-      "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua."
+      "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua.",
+      "unknown_line": "Esa línea no está en la lista. Elige una de la lista o marca «Conozco los números» para introducirla tú mismo."
     },
     "abort": {
       "single_instance_allowed": "Solo se permite una instancia.",
@@ -312,9 +302,9 @@
       "step": {
         "user": {
           "title": "Añadir una parada de la línea {line}",
-          "description": "Otra parada de la línea {line}. Escribe parte de su nombre o su ID.",
+          "description": "Otra parada de la línea {line}. Elígela de la lista o marca «Conozco los números».",
           "data": {
-            "stop": "Nombre o ID de la parada (p. ej. Marcelin o 3044)",
+            "stop": "Parada",
             "manual": "Conozco los números: los introduciré yo"
           }
         },
@@ -339,13 +329,6 @@
           "data": {
             "pole": "Poste"
           }
-        },
-        "stop": {
-          "title": "¿Qué parada?",
-          "description": "Estas paradas coinciden con «{query}».",
-          "data": {
-            "stop": "Parada"
-          }
         }
       },
       "error": {
@@ -359,12 +342,9 @@
         "unknown": "Se ha producido un error desconocido.",
         "invalid_token_or_unavailable": "La API de la ciudad de Varsovia no aceptó el token o no está disponible en este momento. Comprueba el token e inténtalo de nuevo más tarde.",
         "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»).",
-        "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
-        "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre.",
-        "no_lines": "Hoy ninguna línea para en ese poste. Elige otro.",
         "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
-        "cannot_load_lines": "No se pudieron cargar las líneas de ese poste. Inténtalo de nuevo o vuelve y introduce los números tú mismo.",
-        "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua."
+        "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua.",
+        "choose_a_stop": "Elige una parada o marca «Conozco los números»."
       },
       "abort": {
         "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",

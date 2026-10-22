@@ -70,7 +70,7 @@ La integración lee horarios, por eso muestra salidas **programadas**. No muestr
 - ✅ La integración admite autobuses, tranvías, metro y cercanías (SKM), también líneas nocturnas, exprés y locales.
 - ✅ El estado del sensor es la hora de la próxima salida. Las tres siguientes, y la primera y la última salida del día, están en los atributos.
 - ✅ Un sensor de *Estado* aparte explica con palabras sencillas lo que ocurre, por ejemplo «Ya salió la última salida del día».
-- ✅ Añades una parada escribiendo parte de su nombre. Después eliges la línea y, si la línea sirve a más de un punto de parada, la dirección en la que viajas, así que no tienes que buscar ningún número.
+- ✅ Añades una línea eligiéndola de una lista, después una de sus paradas por el nombre y, si la línea sirve a más de un punto de parada, la dirección en la que viajas, así que no escribes el nombre de una parada ni buscas números.
 - ✅ Puedes añadir varias líneas y paradas, fijar un tiempo de paseo hasta la parada, activar un calendario de salidas y ver el vehículo en el mapa. El calendario y el vehículo vienen desactivados.
 - ✅ La interfaz está en ocho idiomas: inglés, polaco, ucraniano, ruso, alemán, español, francés e italiano. Un programa tradujo los seis más recientes, así que las correcciones en forma de pull request son bienvenidas.
 
@@ -130,8 +130,8 @@ Una clave antigua de la API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.
 
 1. Ve a **Configuración → Dispositivos y servicios**.
 2. Pulsa **+ Añadir integración** y busca **Transporte público de Varsovia**.
-3. Pega tu token y escribe parte del nombre de la parada (por ejemplo, `Marcelin`) o su ID.
-4. Si el nombre coincide con varias paradas, elige la parada. Después elige la línea: solo aparecen las líneas que paran allí hoy. Si la línea sirve a más de un punto de parada, la integración muestra los puntos con la dirección en la que la línea sale de cada uno, y eliges el tuyo (su número está en el cartel de la parada).
+3. Pega tu token y elige la línea de la lista (o escribe su número, por ejemplo `151`).
+4. Elige una de las paradas de la línea: aparecen con su nombre. Si la línea sirve a más de un punto de parada, la integración muestra los puntos con la dirección en la que la línea sale de cada uno, y eliges el tuyo (su número está en el cartel de la parada).
 
 La integración llamará al sensor, por ejemplo, `sensor.line_151_from_7009_01`. Otra parada de la línea la añades con **Añadir parada**. Si conoces los números, marca en la primera pantalla **Conozco los números: los introduciré yo**. El tiempo de paseo, el calendario, el vehículo en el mapa y cómo quitar una línea se explican en la [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
