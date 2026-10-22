@@ -59,26 +59,20 @@
 
 </details>
 
-The integration displays **scheduled departures** using the City of Warsaw’s open data. Each sensor shows departures for one line at a selected stop point. Add them to your Home Assistant dashboard or use them in automations, such as a reminder to leave home before your bus departs.
+The integration displays in Home Assistant **when the next bus, tram or train leaves your stop**. For every line at the stop pole you choose, it creates one sensor that you can put on a dashboard or use in an automation, for example to get a notification when it is time to leave home. It uses the City of Warsaw's open data, so you need no extra hardware.
 
-The data come from published timetables. The integration has these limitations:
-
-- no delays or disruption alerts — the API provides scheduled departures, updated once a day. The vehicle of the next departure can be shown on the map as an optional entity that needs a token (see the wiki);
-- timetables are available only for the current service day — the public API does not provide other dates;
-- no route or transfer planning — use [wtp.waw.pl](https://wtp.waw.pl) for this.
+The integration reads timetables, so it displays **scheduled** departures. It does not show delays or disruptions, it has no timetables for days other than the current service day, and it does not plan journeys (use [wtp.waw.pl](https://wtp.waw.pl) for that). With a token you can also see on the map the vehicle that will make the next departure.
 
 ---
 
 ## 🔧 Features
 
-- ✅ Buses, trams, metro and SKM trains, including night, cemetery, express and local services.
-- ✅ Support for multiple lines and stops.
-- ✅ The next departure time as the sensor’s state, ready to use in dashboards and automations. The following three departures are stored as attributes (`Next 1`–`Next 3`).
-- ✅ A “No service” message when there are no departures left, and an `unavailable` state when a valid timetable cannot be obtained (see [Troubleshooting](#-troubleshooting)).
-- ✅ Setup in the Home Assistant interface in eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. The six new language versions were machine-translated; corrections are welcome as pull requests.
-- ✅ Sensor attributes with the stop’s name and coordinates, direction of travel, timetable link and notes. The coordinates let you display the stop on a map.
-- ✅ API key or token changes through **Configure**, including when switching to the City’s new API.
-- ✅ A separate **calendar** entity for each sensor, disabled by default. Enable it in the entity settings to see each departure of the service day as a one-minute event. A calendar trigger can start an automation, for example eight minutes before departure, without templates.
+- ✅ The integration supports buses, trams, the metro and urban rail (SKM), including night, express and local lines.
+- ✅ The state of the sensor is the time of the next departure. You find the three after it, and the first and the last departure of the day, in the attributes.
+- ✅ A separate *Status* sensor explains in plain words what is going on, for example "The last departure of the day has gone".
+- ✅ You add a stop by typing part of its name, then pick the pole and the line from a list, so you never look up a number.
+- ✅ You can add several lines and stops, set a walking time to the stop, turn on a calendar of departures and see the vehicle on the map. The calendar and the vehicle are off by default.
+- ✅ The interface is in eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. A program translated the six newer ones, so corrections as pull requests are welcome.
 
 ---
 
@@ -109,12 +103,9 @@ The data come from published timetables. The integration has these limitations:
 
 ## 🧭 Getting a key or token
 
-The integration supports credentials for both City of Warsaw APIs:
+You get a free token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): enter any nickname, accept the terms and download the token. A token is a long text made of three parts separated by dots.
 
-- **Token for the new API (recommended):** at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), enter a nickname, accept the terms and download your token. It is a long string with three parts separated by dots.
-- **Key for the old API:** a key from [api.um.warszawa.pl](https://api.um.warszawa.pl) has the format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. The old API has stopped answering at times, and the City has not announced when it will be switched off. We recommend switching to the new API.
-
-The integration recognises the credential type and sends it only to the matching API. To replace an old key with a token, choose **Configure** for the line and paste the token. Your line and stop settings will be preserved. You do not need to add the integration again: setup will reject a duplicate configuration for the same line and stop point.
+An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl](https://api.um.warszawa.pl)) still works, but the server behind it sometimes stops answering. The City has also given no date for switching it off, and the vehicle on the map works only with a token. To switch to a token, open the notice in **Repairs**, or choose **Configure** on the line, and paste the token. The settings of the line stay.
 
 ---
 
@@ -139,33 +130,28 @@ The integration recognises the credential type and sends it only to the matching
 
 1. Go to **Settings → Devices & services**.
 2. Click **+ Add Integration** and search for **Warsaw Public Transport**.
-3. Fill in:
-   - **API key or token** (see above),
-   - **Stop ID** and **stop point number** (for example 7009 and 01),
-   - **Line number** (for example 151).
+3. Paste your token and type a part of the stop's name (for example `Marcelin`) or its ID.
+4. Pick the pole (its number is on the stop sign, one per direction) and the line. Only lines that stop there today are listed.
 
-The entity ID includes the line number, stop ID and stop point number, for example `sensor.line_151_from_7009_01`. To change an API key or token, open **Settings → Devices & services → Warsaw Public Transport** and choose **Configure** for the line. Your line and stop settings will be preserved. Configurations that still use an old key show a notice in **Repairs** explaining how to switch to a token. You can ignore the notice.
-
-The **stop ID** is shared by all stop points belonging to the same stop. The **stop point number** identifies a specific boarding location, usually for one direction. It is normally two digits, such as 01 or 02, and appears on the stop sign. In Polish, this numbered stop point is called a *słupek*.
+The integration names the sensor, for example `sensor.line_151_from_7009_01`. You add another stop of the line with **Add stop**. If you know the numbers, tick **I know the numbers: let me enter them myself** on the first screen. The [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) explains the walking time, the calendar, the vehicle on the map and how to remove a line.
 
 ---
 
 ## 🩺 Troubleshooting
 
-- **The sensor is `unknown` and its attributes show “No service”.** The line does not run today, or all departures have passed. This is expected behaviour. Check the timetable at [wtp.waw.pl](https://wtp.waw.pl) or call 19115.
-- **The sensor is `unavailable`.** The API did not return a valid timetable. Possible causes include a rejected key, incorrect stop, stop point or line details, or an unsupported response format. If the first data fetch fails for a reason other than a rejected key, Home Assistant retries setup automatically. Rejected keys are handled as described below. See the Home Assistant log for details; API keys and tokens are not logged. The sensor becomes available again when it receives valid data. If the problem persists, check the credentials, stop, stop point and line.
-- **Home Assistant asks for a new key.** This happens when the old API rejects the key three times in a row. Setup retries also count; a network or server error breaks the sequence. Enter a new API key or token in the form. Your line and stop settings will be preserved, and a valid key will be accepted even if the line does not run today. The sensor remains unavailable until you update the credentials. The new API does not distinguish a rejected token from a service outage. If a timetable has already been downloaded, the sensor uses it until the service day ends, then becomes unavailable. No credential-change form appears automatically. If you revoked the token, enter a new one through **Configure** for the line.
-- **Reporting a problem.** Open the line’s configuration, choose *Download diagnostics* and attach the file to your issue. It contains configuration and timetable information. The API key or token is replaced with `**REDACTED**`.
-- **Departures are still shown during an API outage.** After a successful download, a timeout, network error or server error (HTTP 5xx) does not immediately make the sensor unavailable. The integration uses the saved timetable until the service day ends and retries every hour. Scheduled departures do not change during the day. The diagnostic sensor **Last update**, available in the entity settings and disabled by default, shows the last successful download time.
-- **Setup reports that the line was not found.** The API lists only lines running that day. For example, a weekday-only line cannot be added on a Sunday. Try again on a day when the line has scheduled departures.
-- **A line appears on wtp.waw.pl but not in the integration.** The journey planner uses a larger dataset than the public API. The integration can display only data provided by the API.
-- **Night-line departure times** (`N01`, `N44`, etc.). A service day can extend past midnight: `24:50` means 00:50 the following day, and `26:20` means 02:20. The integration converts these times correctly. A departure recorded as `26:15` means 02:15 the following day; at 02:00 it appears as a departure in 15 minutes.
+- **The sensor has the state `unknown` and the attribute "No service".** The line does not run today, or its last departure has gone. This is not an error. The *Status* sensor tells you which of the two it is. You can check the timetable at [wtp.waw.pl](https://wtp.waw.pl) or by calling 19115.
+- **The sensor has the state `unavailable`.** The City did not return a valid timetable, because it rejected the token or does not know the stop, the pole or the line. You find the reason in the Home Assistant log. Keys and tokens never appear in it.
+- **The log shows network errors and you use an old key.** The City's old server sometimes stops answering. The sensors then keep the last timetable and ask again later. The problem disappears when you switch to a token.
+- **Home Assistant asks for a new key.** The City rejected the key three times in a row. Enter a new key or token in the form. Your settings stay.
+- **You want to report a problem.** Choose *Download diagnostics* on the entry and attach the file to your issue. The key and the token are replaced in it with `**REDACTED**`.
+
+More answers are in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
 ---
 
 ## 📚 Documentation
 
-The [wiki user manual](https://github.com/solarssk/ztm_warsaw/wiki) covers installation, configuration, timetables, service days and troubleshooting. It is available in English, with source files in [`docs/wiki/`](docs/wiki).
+The user manual is in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki): [Configuration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) describes the walking time and removing a line, [Concepts](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) explains the service day and what each entity displays, [Examples](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) has cards and automations to copy, and [Troubleshooting](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) answers common questions. The wiki is in English and its source files are in [`docs/wiki/`](docs/wiki).
 
 ---
 
