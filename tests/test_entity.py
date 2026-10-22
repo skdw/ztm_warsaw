@@ -35,7 +35,7 @@ def test_the_stop_record_is_empty_when_reading_the_data_fails(error):
 
 
 def test_the_stop_record_is_what_the_data_holds():
-    assert entity.stop_info_of(SimpleNamespace(data=SimpleNamespace(stop_info={"nazwa_zespolu": "Marcelin"}))) == {"nazwa_zespolu": "Marcelin"}
+    assert entity.stop_info_of(SimpleNamespace(data=SimpleNamespace(stop_info={"nazwa_zespolu": "Rondo Daszyńskiego"}))) == {"nazwa_zespolu": "Rondo Daszyńskiego"}
 
 
 def test_the_timetable_link_has_the_line_and_falls_back_to_the_general_one_when_the_date_cannot_be_made():

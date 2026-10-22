@@ -55,10 +55,10 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
 - **A clearer README**: it says plainly that these are scheduled departures, not live positions.
 - **Configure fits your key**: an entry with an old key is nudged to a token with the steps to get one, while an entry that already has a token is just asked for the new one.
-- **Set up a line by picking from lists**: you choose the stop from the City's list (type a part of its name to narrow it), then a line that stops there today, then the direction you travel in, and a token you already use is offered again instead of being pasted twice.
+- **Set up a line by stop, direction and line**: you type a part of the stop's name, pick the direction you travel in and then a line that stops there today, a token you already use is offered again instead of being pasted twice, and the City's abbreviations are understood ("Dworzec Centralny" finds "Dw. Centralny").
 - **Vehicles on the map from the setup**: with a token, the line screen has a checkbox to show the line's vehicles on the map right away.
 - **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have are grouped for you.
-- **The stop's name where you look for it**: entries are titled "Line 176 from Marcelin 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
+- **The stop's name where you look for it**: entries are titled "Line 176 from Rondo Daszyńskiego 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
 
 ### Fixed
 

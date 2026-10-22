@@ -70,7 +70,7 @@ L’intégration lit les horaires, elle affiche donc des départs **prévus**. E
 - ✅ L’intégration prend en charge les bus, les tramways, le métro et les trains urbains (SKM), y compris les lignes de nuit, express et locales.
 - ✅ L’état du capteur est l’heure du prochain départ. Vous trouvez les trois suivants, ainsi que le premier et le dernier départ de la journée, dans les attributs.
 - ✅ Un capteur *État* distinct explique en mots simples ce qui se passe, par exemple « Le dernier départ de la journée est passé ».
-- ✅ Vous ajoutez un arrêt en le choisissant dans la liste de la ville (saisissez une partie du nom pour la réduire), puis une ligne qui s’y arrête aujourd’hui et, si la ligne dessert plus d’un point d’arrêt, la direction dans laquelle vous voyagez : inutile de chercher un numéro.
+- ✅ Vous ajoutez un arrêt en tapant une partie de son nom. Vous choisissez ensuite la direction dans laquelle vous voyagez (si l’arrêt a plus d’un point d’arrêt) et la ligne : inutile de chercher un numéro.
 - ✅ Vous pouvez ajouter plusieurs lignes et arrêts, régler un temps de marche jusqu’à l’arrêt, activer un calendrier des départs et voir le véhicule sur la carte. Le calendrier et le véhicule sont désactivés par défaut.
 - ✅ L’interface existe en huit langues : anglais, polonais, ukrainien, russe, allemand, espagnol, français et italien. Un programme a traduit les six plus récentes ; les corrections sous forme de pull request sont les bienvenues.
 
@@ -130,8 +130,8 @@ Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warsza
 
 1. Allez dans **Paramètres → Appareils et services**.
 2. Cliquez sur **+ Ajouter une intégration** et cherchez **Transports publics de Varsovie**.
-3. Collez votre jeton, puis choisissez l’arrêt dans la liste (saisissez une partie du nom, par exemple `Marcelin`, pour la réduire).
-4. Choisissez la ligne : seules les lignes qui s’y arrêtent aujourd’hui sont proposées. Si la ligne dessert plus d’un point d’arrêt, l’intégration liste les points avec la direction dans laquelle la ligne en part, et vous choisissez le vôtre (son numéro figure sur le panneau).
+3. Collez votre jeton, saisissez une partie du nom de l’arrêt (par exemple `Rondo Daszyńskiego`) ou son ID, puis choisissez l’arrêt.
+4. Choisissez le point d’arrêt selon où il va (son numéro figure sur le panneau, et l’intégration affiche la direction lue dans l’horaire), puis la ligne : seules les lignes qui s’y arrêtent aujourd’hui sont proposées.
 
 L’intégration nomme le capteur par exemple `sensor.line_151_from_7009_01`. Vous ajoutez un autre arrêt de la ligne avec **Ajouter un arrêt**. Si vous connaissez les numéros, cochez **Je connais les numéros : je les saisis moi-même** sur le premier écran. Le temps de marche, le calendrier, le véhicule sur la carte et la suppression d’une ligne sont expliqués dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 

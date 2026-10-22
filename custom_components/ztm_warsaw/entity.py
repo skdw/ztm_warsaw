@@ -89,6 +89,6 @@ class ZtmStopEntity(CoordinatorEntity[ZTMStopCoordinator]):
         return stop_info_of(self.coordinator)
 
     def _name_with_stop(self, suffix: str) -> str | None:
-        """The entity's name with the stop's name in it ("Line 176 Marcelin 01 Status"), or None until the name is known (the entity ID was made from the numbers)."""
+        """The entity's name with the stop's name in it ("Line 176 Rondo Daszyńskiego 01 Status"), or None until the name is known (the entity ID was made from the numbers)."""
         stop_name = self._stop_info().get("nazwa_zespolu")
         return f"Line {self._line} {stop_name} {self._stop_number} {suffix}" if stop_name else None

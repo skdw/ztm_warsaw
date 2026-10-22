@@ -3,14 +3,14 @@
   "config": {
     "step": {
       "user": {
-        "description": "Inserisci la tua chiave API o token. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
+        "description": "Inserisci la tua chiave API o token. Poi sceglierai la fermata, la direzione in cui viaggi e la linea.",
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
           "manual": "Conosco i numeri: li inserisco io"
         }
       },
       "user_existing": {
-        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
+        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto. Poi sceglierai la fermata, la direzione in cui viaggi e la linea.",
         "data": {
           "token": "Token già in uso",
           "api_key": "Oppure incolla un’altra chiave API o token (viene usato al posto di quello scelto sopra)",
@@ -19,9 +19,23 @@
       },
       "stop": {
         "title": "Quale fermata?",
-        "description": "Scegli una fermata; scrivi una parte del nome per restringere l’elenco.",
+        "description": "Scrivi una parte del nome della fermata (o il suo ID).",
+        "data": {
+          "query": "Nome o ID della fermata (es. Rondo Daszyńskiego o 3044)"
+        }
+      },
+      "pick": {
+        "title": "Quale fermata?",
+        "description": "Queste fermate corrispondono a «{query}».",
         "data": {
           "stop": "Fermata"
+        }
+      },
+      "pole": {
+        "title": "In quale direzione?",
+        "description": "La fermata {stop} ha più di un palo con linee. Ogni palo mostra dove si va, e il numero è anche sul cartello.",
+        "data": {
+          "pole": "Palo"
         }
       },
       "line": {
@@ -61,13 +75,6 @@
           "busstop_id": "ID della fermata (es. 3044)",
           "busstop_nr": "Numero del punto di fermata (es. 02)",
           "line": "Numero della linea (es. N31)"
-        }
-      },
-      "pole": {
-        "title": "In quale direzione?",
-        "description": "La linea {line} ferma a {stop} a più di un palo. Ogni palo mostra la direzione in cui la linea parte da lì; il numero è anche sul cartello.",
-        "data": {
-          "pole": "Palo"
         }
       },
       "reauth_menu": {
@@ -115,7 +122,9 @@
       "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
       "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave.",
       "no_lines": "Oggi nessuna linea ferma a questa fermata. Scegline un’altra.",
-      "cannot_load_lines": "Non è stato possibile caricare le linee di questa fermata. Riprova oppure torna indietro e inserisci i numeri tu."
+      "cannot_load_lines": "Non è stato possibile caricare le linee di questa fermata. Riprova oppure torna indietro e inserisci i numeri tu.",
+      "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
+      "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome."
     },
     "abort": {
       "single_instance_allowed": "È consentita una sola istanza.",
@@ -317,9 +326,9 @@
       "step": {
         "user": {
           "title": "Aggiungi una fermata della linea {line}",
-          "description": "Un’altra fermata della linea {line}. Sceglila dall’elenco (scrivi una parte del nome per restringerlo) oppure seleziona «Conosco i numeri».",
+          "description": "Un’altra fermata della linea {line}. Scrivi parte del nome o l’ID.",
           "data": {
-            "stop": "Fermata",
+            "query": "Nome o ID della fermata (es. Rondo Daszyńskiego o 3044)",
             "manual": "Conosco i numeri: li inserisco io"
           }
         },
@@ -344,6 +353,13 @@
           "data": {
             "pole": "Palo"
           }
+        },
+        "pick": {
+          "title": "Quale fermata?",
+          "description": "Queste fermate corrispondono a «{query}».",
+          "data": {
+            "stop": "Fermata"
+          }
         }
       },
       "error": {
@@ -359,7 +375,9 @@
         "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
         "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
         "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave.",
-        "choose_a_stop": "Scegli una fermata oppure seleziona «Conosco i numeri»."
+        "choose_a_stop": "Scegli una fermata oppure seleziona «Conosco i numeri».",
+        "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
+        "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome."
       },
       "abort": {
         "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",

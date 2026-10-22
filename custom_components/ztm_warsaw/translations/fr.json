@@ -3,14 +3,14 @@
   "config": {
     "step": {
       "user": {
-        "description": "Saisissez votre clé API ou jeton. Vous choisirez ensuite l’arrêt, puis la ligne, puis la direction dans laquelle vous voyagez.",
+        "description": "Saisissez votre clé API ou jeton. Vous choisirez ensuite l’arrêt, la direction dans laquelle vous voyagez et la ligne.",
         "data": {
           "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
           "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "user_existing": {
-        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous. Vous choisirez ensuite l’arrêt, puis la ligne, puis la direction dans laquelle vous voyagez.",
+        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous. Vous choisirez ensuite l’arrêt, la direction dans laquelle vous voyagez et la ligne.",
         "data": {
           "token": "Jeton déjà utilisé",
           "api_key": "Ou collez une autre clé API ou un autre jeton (il remplace celui choisi ci-dessus)",
@@ -19,9 +19,23 @@
       },
       "stop": {
         "title": "Quel arrêt ?",
-        "description": "Choisissez un arrêt ; saisissez une partie de son nom pour réduire la liste.",
+        "description": "Saisissez une partie du nom de l’arrêt (ou son ID).",
+        "data": {
+          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)"
+        }
+      },
+      "pick": {
+        "title": "Quel arrêt ?",
+        "description": "Ces arrêts correspondent à « {query} ».",
         "data": {
           "stop": "Arrêt"
+        }
+      },
+      "pole": {
+        "title": "Dans quelle direction ?",
+        "description": "L’arrêt {stop} a plus d’un poteau avec des lignes. Chaque poteau indique où l’on va, et son numéro est aussi sur la plaque.",
+        "data": {
+          "pole": "Poteau"
         }
       },
       "line": {
@@ -61,13 +75,6 @@
           "busstop_id": "ID de l’arrêt (p. ex. 3044)",
           "busstop_nr": "Numéro du point d’arrêt (p. ex. 02)",
           "line": "Numéro de la ligne (p. ex. N31)"
-        }
-      },
-      "pole": {
-        "title": "Dans quelle direction ?",
-        "description": "La ligne {line} s’arrête à {stop} à plus d’un poteau. Chaque poteau indique la direction dans laquelle la ligne en part ; son numéro est aussi sur la plaque.",
-        "data": {
-          "pole": "Poteau"
         }
       },
       "reauth_menu": {
@@ -115,7 +122,9 @@
       "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
       "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé.",
       "no_lines": "Aucune ligne ne s’arrête aujourd’hui à cet arrêt. Choisissez-en un autre.",
-      "cannot_load_lines": "Les lignes de cet arrêt n’ont pas pu être chargées. Réessayez ou revenez en arrière et saisissez les numéros vous-même."
+      "cannot_load_lines": "Les lignes de cet arrêt n’ont pas pu être chargées. Réessayez ou revenez en arrière et saisissez les numéros vous-même.",
+      "no_stop_found": "Aucun arrêt ne correspond. Essayez une autre partie du nom ou l’ID de l’arrêt.",
+      "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance est autorisée.",
@@ -317,9 +326,9 @@
       "step": {
         "user": {
           "title": "Ajouter un arrêt de la ligne {line}",
-          "description": "Un autre arrêt de la ligne {line}. Choisissez-le dans la liste (saisissez une partie du nom pour la réduire) ou cochez « Je connais les numéros ».",
+          "description": "Un autre arrêt de la ligne {line}. Tapez une partie de son nom ou son ID.",
           "data": {
-            "stop": "Arrêt",
+            "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)",
             "manual": "Je connais les numéros : je les saisis moi-même"
           }
         },
@@ -344,6 +353,13 @@
           "data": {
             "pole": "Poteau"
           }
+        },
+        "pick": {
+          "title": "Quel arrêt ?",
+          "description": "Ces arrêts correspondent à « {query} ».",
+          "data": {
+            "stop": "Arrêt"
+          }
         }
       },
       "error": {
@@ -359,7 +375,9 @@
         "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »).",
         "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
         "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé.",
-        "choose_a_stop": "Choisissez un arrêt ou cochez « Je connais les numéros »."
+        "choose_a_stop": "Choisissez un arrêt ou cochez « Je connais les numéros ».",
+        "no_stop_found": "Aucun arrêt ne correspond. Essayez une autre partie du nom ou l’ID de l’arrêt.",
+        "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom."
       },
       "abort": {
         "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",

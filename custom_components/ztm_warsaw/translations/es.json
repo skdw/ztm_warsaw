@@ -3,14 +3,14 @@
   "config": {
     "step": {
       "user": {
-        "description": "Introduce tu clave API o token. Después elegirás la parada, luego la línea y por último la dirección en la que viajas.",
+        "description": "Introduce tu clave API o token. Después elegirás la parada, la dirección en la que viajas y la línea.",
         "data": {
           "api_key": "Clave API o token del portal de datos abiertos de la ciudad de Varsovia",
           "manual": "Conozco los números: los introduciré yo"
         }
       },
       "user_existing": {
-        "description": "Ya hay una línea configurada con un token. Elige ese token o pega otro más abajo. Después elegirás la parada, luego la línea y por último la dirección en la que viajas.",
+        "description": "Ya hay una línea configurada con un token. Elige ese token o pega otro más abajo. Después elegirás la parada, la dirección en la que viajas y la línea.",
         "data": {
           "token": "Token que ya se usa",
           "api_key": "O pega otra clave API o token (se usa en lugar del elegido arriba)",
@@ -19,9 +19,23 @@
       },
       "stop": {
         "title": "¿Qué parada?",
-        "description": "Elige una parada; escribe parte de su nombre para acotar la lista.",
+        "description": "Escribe parte del nombre de la parada (o su ID).",
+        "data": {
+          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)"
+        }
+      },
+      "pick": {
+        "title": "¿Qué parada?",
+        "description": "Estas paradas coinciden con «{query}».",
         "data": {
           "stop": "Parada"
+        }
+      },
+      "pole": {
+        "title": "¿En qué dirección?",
+        "description": "La parada {stop} tiene más de un poste con líneas. Cada poste muestra hacia dónde va, y su número también está en el cartel.",
+        "data": {
+          "pole": "Poste"
         }
       },
       "line": {
@@ -61,13 +75,6 @@
           "busstop_id": "ID de la parada (p. ej. 3044)",
           "busstop_nr": "Número del punto de parada (p. ej. 02)",
           "line": "Número de línea (p. ej. N31)"
-        }
-      },
-      "pole": {
-        "title": "¿En qué dirección?",
-        "description": "La línea {line} para en {stop} en más de un poste. Cada poste muestra la dirección en la que la línea sale de él; su número también está en el cartel.",
-        "data": {
-          "pole": "Poste"
         }
       },
       "reauth_menu": {
@@ -115,7 +122,9 @@
       "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
       "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua.",
       "no_lines": "Hoy no para ninguna línea en esa parada. Elige otra.",
-      "cannot_load_lines": "No se pudieron cargar las líneas de esa parada. Inténtalo de nuevo o vuelve y escribe los números tú mismo."
+      "cannot_load_lines": "No se pudieron cargar las líneas de esa parada. Inténtalo de nuevo o vuelve y escribe los números tú mismo.",
+      "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
+      "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre."
     },
     "abort": {
       "single_instance_allowed": "Solo se permite una instancia.",
@@ -317,9 +326,9 @@
       "step": {
         "user": {
           "title": "Añadir una parada de la línea {line}",
-          "description": "Otra parada de la línea {line}. Elígela de la lista (escribe parte del nombre para acotarla) o marca «Conozco los números».",
+          "description": "Otra parada de la línea {line}. Escribe parte de su nombre o su ID.",
           "data": {
-            "stop": "Parada",
+            "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)",
             "manual": "Conozco los números: los introduciré yo"
           }
         },
@@ -344,6 +353,13 @@
           "data": {
             "pole": "Poste"
           }
+        },
+        "pick": {
+          "title": "¿Qué parada?",
+          "description": "Estas paradas coinciden con «{query}».",
+          "data": {
+            "stop": "Parada"
+          }
         }
       },
       "error": {
@@ -359,7 +375,9 @@
         "invalid_stop_id": "El ID de la parada solo puede contener dígitos (p. ej. «3044»).",
         "cannot_load_stops": "No se pudo cargar la lista de paradas, así que introduce los números tú mismo (y revisa tu clave o token si sigue fallando).",
         "old_api_retired": "La API antigua de la ciudad de Varsovia ya no funciona. Consigue un token en dane.um.warszawa.pl/pl/key-api e introdúcelo en lugar de la clave antigua.",
-        "choose_a_stop": "Elige una parada o marca «Conozco los números»."
+        "choose_a_stop": "Elige una parada o marca «Conozco los números».",
+        "no_stop_found": "No coincide ninguna parada. Prueba otra parte del nombre o el ID de la parada.",
+        "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre."
       },
       "abort": {
         "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",

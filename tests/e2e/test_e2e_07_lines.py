@@ -83,13 +83,15 @@ async def test_e2e_32_adding_a_stop_reloads_the_entry_once(env):
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_02") is not None
 
 
-async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_then_the_pole(env):
+async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_by_name_then_the_pole(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
     assert (form["type"], form["step_id"]) == ("form", "user")
-    assert [str(k) for k in form["data_schema"].schema] == ["stop", "manual"]
-    poles = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert [str(k) for k in form["data_schema"].schema] == ["query", "manual"]
+    stops = await manager.async_configure(form["flow_id"], {"query": stop_name_for("7009")[:12]})
+    assert (stops["type"], stops["step_id"]) == ("form", "pick"), "the name fits more than one stop: which one is asked first"
+    poles = await manager.async_configure(stops["flow_id"], {"stop": "7009"})
     assert (poles["type"], poles["step_id"]) == ("form", "pole")
     assert {o["value"] for o in poles["data_schema"].schema["pole"].config["options"]} == {"7009/01", "7009/02"}
     done = await manager.async_configure(poles["flow_id"], {"pole": "7009/02"})
@@ -434,7 +436,7 @@ async def test_e2e_38_a_title_the_user_chose_is_kept(env):
 
 
 async def test_e2e_38_the_title_that_1_2_0b5_made_with_the_stops_goes_back_to_the_plain_one(env):
-    """b5 and b6 titled a line "Line 525 · Marcelin 01, Marcelin 02" and remembered it in an option; both are cleaned up."""
+    """b5 and b6 titled a line "Line 525 · Rondo Daszyńskiego 01, Rondo Daszyńskiego 02" and remembered it in an option; both are cleaned up."""
     entry = await env.add_entry_via_flow(line=LINE)
     old = f"Line {LINE} · {stop_name_for('7009')} 01, {stop_name_for('7009')} 02"
     env.hass.config_entries.async_update_entry(entry, title=old, options={"generated_title": old})

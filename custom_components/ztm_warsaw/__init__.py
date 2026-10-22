@@ -176,7 +176,7 @@ def _stop_name_of(entry: ConfigEntry, subentry_id: str | None = None) -> str | N
 
 
 def _stop_text(stop_id: str, pole: str, name: str | None) -> str:
-    """How a notice names the stop: "Marcelin 15 (1085/15)", or just the numbers while the name is not known."""
+    """How a notice names the stop: "Rondo Daszyńskiego 15 (1085/15)", or just the numbers while the name is not known."""
     if not name:
         return f"{stop_id}/{pole}"
     # The name comes from the City and goes into a Markdown text: keep letters, digits, spaces, hyphens, commas and
@@ -186,7 +186,7 @@ def _stop_text(stop_id: str, pole: str, name: str | None) -> str:
 
 
 def _use_stop_name_in_title(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Title a stop "Line 176 from Marcelin 15" instead of "Line 176 from 1085/15" (a version 1 entry), or "Marcelin 15"
+    """Title a stop "Line 176 from Rondo Daszyńskiego 15" instead of "Line 176 from 1085/15" (a version 1 entry), or "Rondo Daszyńskiego 15"
     instead of "1085/15" (the subentry of a line), unless the user gave it their own."""
     for unit in stop_units(entry):
         name = _stop_name_of(entry, unit.subentry_id)
