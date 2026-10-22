@@ -33,8 +33,8 @@ rules:
   docs-installation-instructions:
     status: done
   docs-removal-instructions:
-    status: todo
-    comment: The wiki does not say how to remove a line or a stop yet (the rewrite of the documentation will).
+    status: done
+    comment: The Configuration page of the wiki says how to remove a stop, a line and the integration.
   docs-conditions:
     status: exempt
     comment: There are no conditions.
@@ -99,8 +99,8 @@ rules:
   docs-data-update:
     status: done
   docs-examples:
-    status: todo
-    comment: The rewrite of the wiki will add examples of cards and automations.
+    status: done
+    comment: The Examples page of the wiki has cards and automations to copy.
   docs-known-limitations:
     status: done
   docs-supported-devices:
@@ -111,8 +111,8 @@ rules:
   docs-troubleshooting:
     status: done
   docs-use-cases:
-    status: todo
-    comment: The rewrite of the wiki will add use cases.
+    status: done
+    comment: The Examples page of the wiki starts with the ideas people use it for.
   dynamic-devices:
     status: todo
     comment: A stop added to a line gets a device of its own, but the line is reloaded to get it (automatically, within a second or two); the rule asks for entities that are added without a reload. A removed stop's device can be deleted from its page.

@@ -44,7 +44,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
 - **More languages**: setup, notices and dialogs now also in Ukrainian, Russian, German, Spanish, French and Italian, and the README in all eight languages, with a language switch at the top. The new languages are machine-translated, so corrections are welcome.
-- **A real manual**: the wiki is rewritten and published from the repository, so it stays up to date.
+- **A real manual**: the wiki is rewritten in short pages with a quick start, copy-and-paste cards and automations, answers to common questions and how to remove things, and it is published from the repository so it stays up to date.
 
 ### Changed
 
