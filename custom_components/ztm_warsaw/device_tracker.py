@@ -9,6 +9,7 @@ and its ``Status`` says why, instead of showing a place the vehicle is no longer
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.device_tracker import TrackerEntity  # type: ignore[attr-defined]  # exported at runtime in every version, but not declared so by 2026.10
@@ -26,6 +27,7 @@ PARALLEL_UPDATES = 0  # the feed fetches the positions once for all the entities
 
 # What ``Status`` can say (the attribute is for a card or a template, in English like the other attributes).
 TRACKING = "tracking"
+NO_BRIGADE = "no_brigade"  # the departure does not say which brigade makes it, so no vehicle can be found
 NO_VEHICLE = "no_vehicle"  # the vehicle has not started the line yet, or the City does not report it
 OLD_POSITION = "old_position"
 TOO_EARLY = "too_early"  # the next departure is not near yet, so nothing is asked
@@ -60,7 +62,20 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
     async def async_added_to_hass(self) -> None:
         """Follow the feed while the entity is on: the feed polls for it when its next departure is near."""
         await super().async_added_to_hass()
+        self._take_stop_name()  # now that the entity ID is made (from the numbers), the name may carry the stop's name
         self.async_on_remove(self._feed.subscribe(self._wanted_line, self._feed_changed))
+
+    def _take_stop_name(self) -> None:
+        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
+        name = self._name_with_stop("Vehicle")
+        if name:
+            self._attr_name = name
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """A new timetable (or the stop's name arriving): take the name and show the state again."""
+        self._take_stop_name()
+        super()._handle_coordinator_update()
 
     @callback
     def _feed_changed(self) -> None:
@@ -68,17 +83,23 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
         self.async_write_ha_state()
 
     def _next_departure(self) -> Any:
-        """The next departure the coordinator holds, or None (no timetable that may be shown, or none ahead)."""
+        """The departure the main sensor shows as the next one (the first that is not sooner than the walking time), or None
+        (no timetable that may be shown, or none ahead)."""
         now = dt_util.utcnow()
         if not self.coordinator.is_usable(now):
             return None
-        upcoming = self.coordinator.upcoming(now)
+        upcoming = self.coordinator.upcoming(now + self._walk())
         return upcoming[0] if upcoming else None
 
+    def _walk(self) -> timedelta:
+        """The time the user needs to walk to the stop (none when no walking time is set)."""
+        return timedelta(minutes=self.coordinator.walking_minutes)
+
     def _wanted_line(self) -> str | None:
-        """The line to look for while the next departure is near, else None (then nothing is asked of the City)."""
+        """The line to look for while the next departure is near (counting from when the user has to leave), else None
+        (then nothing is asked of the City)."""
         departure = self._next_departure()
-        if departure is None or not departure.brygada or departure.moment - dt_util.utcnow() > WANTED_WITHIN:
+        if departure is None or not departure.brygada or departure.moment - dt_util.utcnow() > WANTED_WITHIN + self._walk():
             return None
         return self.coordinator.line
 
@@ -97,8 +118,10 @@ class ZTMVehicleTracker(ZtmStopEntity, TrackerEntity):
     def _status(self) -> str:
         """Why the tracker shows what it shows."""
         departure = self._next_departure()
-        if departure is None or not departure.brygada:
+        if departure is None:
             return NO_TIMETABLE
+        if not departure.brygada:
+            return NO_BRIGADE
         if self._wanted_line() is None:
             return TOO_EARLY
         if self._shown() is not None:

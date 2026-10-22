@@ -10,7 +10,7 @@ from homeassistant.util import dt as dt_util
 
 from custom_components.ztm_warsaw.const import DOMAIN
 
-from .fake_city import DEFAULT_TOKEN, WARSAW, Http
+from .fake_city import DEFAULT_TOKEN, WARSAW, Http, stop_name_for
 
 pytestmark = pytest.mark.e2e
 
@@ -150,3 +150,47 @@ async def test_e2e_45_two_lines_with_one_token_share_one_request(env):
     assert env.city.count("vehicles") == 1, "one request for both followers (both are buses)"
     assert env.hass.states.get(TRACKER).attributes["Status"] == "tracking"
     assert env.hass.states.get("device_tracker.line_523_from_7009_01_vehicle").attributes["Vehicle number"] == "55"
+
+
+async def test_e2e_45_the_tracker_follows_the_departure_the_sensor_shows_when_there_is_a_walking_time(env):
+    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, data={
+        "api_key": DEFAULT_TOKEN, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 3,
+    })
+    env.entity_registry.async_get_or_create(
+        "device_tracker", DOMAIN, "line_151_from_7009_01_vehicle", config_entry=entry, disabled_by=None,
+        suggested_object_id="line_151_from_7009_01_vehicle",
+    )
+    env.city.vehicles = [_row(brigade="1", number="111"), _row(brigade="2", number="222")]
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.hass.states.get(TRACKER).attributes["Vehicle number"] == "111", "the next departure is at 12:04, brigade 1"
+    coordinator = entry.runtime_data["coordinator"]
+    coordinator.walking_minutes = 10  # the sensor now skips 12:04 and shows 12:24, the departure of brigade 2
+    await env.advance(seconds=31)
+    state = env.hass.states.get(TRACKER)
+    assert state.attributes["Vehicle number"] == "222"
+    assert state.attributes["Status"] == "tracking", "12:24 is more than 15 minutes away, but the user has to leave 10 minutes earlier"
+
+
+async def test_e2e_45_a_departure_without_a_brigade_says_so_and_is_not_a_missing_timetable(env):
+    entry = await _entry(env, rows=[_row()])
+    coordinator = entry.runtime_data["coordinator"]
+    for departure in coordinator.data.departures:
+        departure.brygada = None
+    await env.advance(seconds=31)
+    assert env.hass.states.get(TRACKER).attributes["Status"] == "no_brigade"
+
+
+async def test_e2e_45_the_tracker_takes_the_stop_name_into_its_name(env):
+    await _entry(env, rows=[_row()])
+    assert env.hass.states.get(TRACKER).attributes["friendly_name"] == f"Line 151 {stop_name_for('7009')} 01 Vehicle"
+
+
+async def test_e2e_45_without_the_position_of_the_stop_there_is_no_distance(env):
+    entry = await _entry(env, rows=[_row()])
+    coordinator = entry.runtime_data["coordinator"]
+    coordinator.data.stop_info = {"nazwa_zespolu": "Somewhere"}  # a stop whose position the City did not give
+    await env.advance(seconds=31)
+    attrs = env.hass.states.get(TRACKER).attributes
+    assert attrs["Status"] == "tracking"
+    assert "Distance to stop" not in attrs
