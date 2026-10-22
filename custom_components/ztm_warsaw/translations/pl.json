@@ -3,11 +3,18 @@
   "config": {
     "step": {
       "user": {
-        "description": "Podaj klucz API lub token i fragment nazwy przystanku (albo jego ID). W następnych krokach wybierzesz słupek i linię.",
+        "description": "Podaj klucz API lub token i fragment nazwy przystanku (albo jego ID). W następnych krokach wybierzesz linię i kierunek, w którym jedziesz.",
         "data": {
           "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
           "stop": "Nazwa lub ID przystanku (np. Marcelin albo 3044)",
           "manual": "Znam numery: wpiszę je sam"
+        }
+      },
+      "stop": {
+        "title": "Który przystanek?",
+        "description": "Te przystanki pasują do „{query}”.",
+        "data": {
+          "stop": "Przystanek"
         }
       },
       "reauth_confirm": {
@@ -42,8 +49,8 @@
         }
       },
       "pole": {
-        "title": "Który słupek?",
-        "description": "Pasują do „{query}”. Przystanek ma osobny słupek dla każdego kierunku, a jego numer jest na tabliczce.",
+        "title": "W którą stronę?",
+        "description": "Linia {line} zatrzymuje się na przystanku {stop} przy więcej niż jednym słupku. Przy każdym słupku widać kierunek, w którym linia z niego odjeżdża, a jego numer jest też na tabliczce.",
         "data": {
           "pole": "Słupek"
         }
@@ -326,10 +333,17 @@
           }
         },
         "pole": {
-          "title": "Który słupek?",
-          "description": "Pasują do „{query}”. Przystanek ma osobny słupek dla każdego kierunku, a jego numer jest na tabliczce.",
+          "title": "W którą stronę?",
+          "description": "Linia {line} zatrzymuje się na przystanku {stop} przy więcej niż jednym słupku. Przy każdym słupku widać kierunek, w którym linia z niego odjeżdża, a jego numer jest też na tabliczce.",
           "data": {
             "pole": "Słupek"
+          }
+        },
+        "stop": {
+          "title": "Który przystanek?",
+          "description": "Te przystanki pasują do „{query}”.",
+          "data": {
+            "stop": "Przystanek"
           }
         }
       },

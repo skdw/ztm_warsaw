@@ -3,11 +3,18 @@
   "config": {
     "step": {
       "user": {
-        "description": "Inserisci la tua chiave API o token e parte del nome della fermata (o il suo ID). Poi sceglierai il palo e la linea.",
+        "description": "Inserisci la tua chiave API o token e parte del nome della fermata (o il suo ID). Poi sceglierai la linea e la direzione in cui viaggi.",
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
           "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
           "manual": "Conosco i numeri: li inserisco io"
+        }
+      },
+      "stop": {
+        "title": "Quale fermata?",
+        "description": "Queste fermate corrispondono a «{query}».",
+        "data": {
+          "stop": "Fermata"
         }
       },
       "reauth_confirm": {
@@ -42,8 +49,8 @@
         }
       },
       "pole": {
-        "title": "Quale palo?",
-        "description": "Corrispondono a «{query}». Una fermata ha un palo per ogni direzione; il numero è sul cartello.",
+        "title": "In quale direzione?",
+        "description": "La linea {line} ferma a {stop} a più di un palo. Ogni palo mostra la direzione in cui la linea parte da lì; il numero è anche sul cartello.",
         "data": {
           "pole": "Palo"
         }
@@ -326,10 +333,17 @@
           }
         },
         "pole": {
-          "title": "Quale palo?",
-          "description": "Corrispondono a «{query}». Una fermata ha un palo per ogni direzione; il numero è sul cartello.",
+          "title": "In quale direzione?",
+          "description": "La linea {line} ferma a {stop} a più di un palo. Ogni palo mostra la direzione in cui la linea parte da lì; il numero è anche sul cartello.",
           "data": {
             "pole": "Palo"
+          }
+        },
+        "stop": {
+          "title": "Quale fermata?",
+          "description": "Queste fermate corrispondono a «{query}».",
+          "data": {
+            "stop": "Fermata"
           }
         }
       },

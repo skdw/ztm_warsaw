@@ -1,4 +1,4 @@
-"""E2E-43: the setup dialog is three short screens (the key and part of the stop's name, the pole, the line), not four empty fields."""
+"""E2E-43: the setup dialog is short screens (the key and part of the stop's name, the stop if the name fits several, the line, the pole with its direction), not four empty fields."""
 
 from __future__ import annotations
 
@@ -37,21 +37,24 @@ async def test_e2e_43_the_first_screen_asks_for_the_key_and_a_part_of_the_name_a
     assert env.city.count() == 0
 
 
-async def test_e2e_43_a_part_of_the_name_leads_to_the_poles_then_the_lines_then_an_entry(env):
-    poles = await _search(env, NAME[:12].lower())
-    assert (poles["type"], poles["step_id"]) == ("form", "pole")
-    options = poles["data_schema"].schema["pole"].config["options"]
-    values = [o["value"] for o in options]
-    assert {"7009/01", "7009/02"} <= set(values)
-    label = next(o["label"] for o in options if o["value"] == "7009/01")
-    assert label.startswith(f"{NAME} 01")
-    assert label.endswith("(7009/01)")
-    lines = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+async def test_e2e_43_a_part_of_the_name_leads_to_the_stop_then_the_line_then_the_pole_with_its_direction(env):
+    stops = await _search(env, NAME[:12].lower())
+    assert (stops["type"], stops["step_id"]) == ("form", "stop"), "the name fits more than one stop"
+    options = stops["data_schema"].schema["stop"].config["options"]
+    assert {"label": f"{NAME} (7009)", "value": "7009"} in options
+    lines = await env.hass.config_entries.flow.async_configure(stops["flow_id"], {"stop": "7009"})
     assert (lines["type"], lines["step_id"]) == ("form", "line")
     choices = [o["value"] for o in lines["data_schema"].schema["line"].config["options"]]
     assert LINE in choices
     assert choices == sorted(choices, key=lambda x: (0, int(x), x) if x.isdigit() else (1, 0, x)), "numbers first, then letters"
-    done = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    poles = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    assert (poles["type"], poles["step_id"]) == ("form", "pole"), "the line serves more than one pole of the stop"
+    options = poles["data_schema"].schema["pole"].config["options"]
+    assert {"7009/01", "7009/02"} <= {o["value"] for o in options}
+    label = next(o["label"] for o in options if o["value"] == "7009/01")
+    assert label.startswith(f"{NAME} 01 → "), "the direction the line takes from the pole is shown"
+    assert label.endswith("(7009/01)")
+    done = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
     await env.settle()
     assert done["type"] == "create_entry", done
     entry = done["result"]
@@ -61,11 +64,25 @@ async def test_e2e_43_a_part_of_the_name_leads_to_the_poles_then_the_lines_then_
     assert dict(stop.data) == {"busstop_id": 7009, "busstop_nr": "01"}
 
 
-async def test_e2e_43_a_stop_id_finds_all_its_poles_and_an_id_with_a_pole_finds_one(env):
-    poles = await _search(env, "7009")
+async def test_e2e_43_a_line_that_serves_only_one_pole_of_the_stop_skips_the_pole_screen(env):
+    done = await env.submit_wizard(query="7009/01", line=LINE)
+    assert (done["type"], done["result"].data["line"]) == ("create_entry", LINE), "a pole typed as numbers is the only pole"
+
+
+async def test_e2e_43_the_words_of_a_name_find_it_whatever_the_abbreviation(env):
+    from custom_components.ztm_warsaw.client import _matches
+
+    assert _matches(None, "dworzec centralny", "1", "01", "Dw. Centralny")
+    assert _matches(None, "dw centr", "1", "01", "Dw. Centralny")
+    assert _matches(None, "osiedle gorczewska", "1", "01", "Os. Gorczewska")
+    assert not _matches(None, "dworzec zachodni", "1", "01", "Dw. Centralny")
+
+
+async def test_e2e_43_a_stop_id_goes_to_its_lines_and_the_poles_it_has_are_chosen_after_the_line(env):
+    lines = await _search(env, "7009")
+    assert (lines["type"], lines["step_id"]) == ("form", "line"), "one stop: it is not asked which"
+    poles = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
     assert [o["value"] for o in poles["data_schema"].schema["pole"].config["options"]][:2] == ["7009/01", "7009/02"]
-    one = await _search(env, "7009/02")
-    assert [o["value"] for o in one["data_schema"].schema["pole"].config["options"]] == ["7009/02"]
 
 
 async def test_e2e_43_nothing_found_stays_on_the_first_screen_with_the_key_kept_and_says_so(env):
@@ -98,41 +115,59 @@ async def test_e2e_43_i_know_the_numbers_goes_straight_to_the_form_of_the_number
     assert (result["step_id"], result["errors"]) == ("manual", {})
 
 
-async def test_e2e_43_a_pole_no_line_stops_at_today_says_so_and_offers_the_poles_again(env):
-    poles = await _search(env, "7009")
+async def test_e2e_43_a_stop_no_line_stops_at_today_says_so_and_goes_back(env):
     with patch.object(config_flow, "lines_at", AsyncMock(return_value=[])):
-        result = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
-    assert (result["step_id"], result["errors"]) == ("pole", {"base": "no_lines"})
+        result = await _search(env, "7009")
+    assert (result["step_id"], result["errors"]) == ("user", {"base": "no_lines"})
 
 
-async def test_e2e_43_lines_the_city_does_not_give_are_reported_and_the_poles_offered_again(env):
-    poles = await _search(env, "7009")
+async def test_e2e_43_lines_the_city_does_not_give_are_reported_and_the_search_offered_again(env):
     with patch.object(config_flow, "lines_at", AsyncMock(return_value=None)):
-        result = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
-    assert (result["step_id"], result["errors"]) == ("pole", {"base": "cannot_load_lines"})
+        result = await _search(env, "7009")
+    assert (result["step_id"], result["errors"]) == ("user", {"base": "cannot_load_lines"})
 
 
 async def test_e2e_43_a_key_the_city_rejects_at_the_lines_goes_back_to_the_first_screen(env):
-    poles = await _search(env, "7009")
     with patch.object(config_flow, "lines_at", AsyncMock(side_effect=ZTMAuthError("rejected"))):
-        result = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+        result = await _search(env, "7009")
     assert (result["step_id"], result["errors"]) == ("user", {"base": "invalid_api_key"})
 
 
-async def test_e2e_43_a_line_the_city_then_refuses_is_reported_on_the_line_screen(env):
-    poles = await _search(env, "7009")
-    lines = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+async def test_e2e_43_a_name_that_fits_several_stops_goes_back_to_the_choice_of_the_stop_when_no_line_is_found(env):
+    stops = await _search(env, NAME[:12].lower())
+    with patch.object(config_flow, "lines_at", AsyncMock(return_value=[])):
+        result = await env.hass.config_entries.flow.async_configure(stops["flow_id"], {"stop": "7009"})
+    assert (result["step_id"], result["errors"]) == ("stop", {"base": "no_lines"})
+
+
+async def test_e2e_43_a_line_that_no_pole_serves_any_more_is_reported_on_the_line_screen(env):
+    lines = await _search(env, "7009")
+    with patch.object(config_flow, "poles_for_line", AsyncMock(return_value=[])):
+        result = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    assert (result["step_id"], result["errors"]) == ("line", {"base": "cannot_load_lines"})
+
+
+async def test_e2e_43_a_line_the_city_then_refuses_is_reported_on_the_pole_screen(env):
+    lines = await _search(env, "7009")
+    poles = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    with patch.object(config_flow, "error_for", AsyncMock(return_value=("no_departures", True))):
+        result = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+    assert (result["step_id"], result["errors"]) == ("pole", {"base": "no_departures"})
+
+
+async def test_e2e_43_a_line_the_city_then_refuses_at_its_only_pole_is_reported_on_the_line_screen(env):
+    lines = await _search(env, "7009/01")
     with patch.object(config_flow, "error_for", AsyncMock(return_value=("no_departures", True))):
         result = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
     assert (result["step_id"], result["errors"]) == ("line", {"base": "no_departures"})
 
 
 async def test_e2e_43_the_same_stop_pole_and_line_cannot_be_added_twice_and_another_stop_joins_the_line(env):
-    first = await env.submit_wizard(query="7009/01", pole="7009/01", line=LINE)
+    first = await env.submit_wizard(query="7009/01", line=LINE)
     assert first["type"] == "create_entry"
-    again = await env.submit_wizard(query="7009/01", pole="7009/01", line=LINE)
+    again = await env.submit_wizard(query="7009/01", line=LINE)
     assert (again["type"], again["reason"]) == ("abort", "already_configured")
-    other = await env.submit_wizard(query="7009/02", pole="7009/02", line=LINE)
+    other = await env.submit_wizard(query="7009/02", line=LINE)
     assert (other["type"], other["reason"]) == ("abort", "stop_added")
     entry = first["result"]
     assert sorted(s.data["busstop_nr"] for s in entry.subentries.values()) == ["01", "02"]
@@ -156,9 +191,10 @@ async def test_e2e_43_add_stop_refuses_a_pole_the_line_does_not_stop_at(env):
     manager = env.hass.config_entries.subentries
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
     poles = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert poles["step_id"] == "pole", "the line serves both poles of the stop"
     with patch.object(config_flow, "error_for", AsyncMock(return_value=("line_not_found", True))):
         result = await manager.async_configure(poles["flow_id"], {"pole": "7009/02"})
-    assert (result["step_id"], result["errors"]) == ("pole", {"base": "line_not_found"})
+    assert (result["step_id"], result["errors"]) == ("user", {"base": "line_not_found"})
     assert len(entry.subentries) == 1
 
 
@@ -211,3 +247,41 @@ async def test_e2e_43_the_check_of_the_timetable_tells_a_broken_answer_from_a_mi
     with patch.object(ZTMStopClient, "get", AsyncMock(return_value=None)):
         with pytest.raises(ValueError, match="api_connection_error"):
             await config_flow._check_timetable(client)
+
+
+async def test_e2e_43_a_direction_the_timetable_cannot_give_falls_back_to_the_catalogue_and_a_rejected_key_is_passed_on(env):
+    from custom_components.ztm_warsaw.client import ZTMApiError, ZTMStopClient
+
+    pole = {"stop_id": "7009", "stop_nr": "01", "name": NAME, "direction": "Catalogue direction"}
+    with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMApiError("down"))):
+        assert await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE) == "Catalogue direction"
+    with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMAuthError("rejected"))), pytest.raises(ZTMAuthError):
+        await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE)
+
+
+async def test_e2e_43_add_stop_with_a_line_that_serves_one_pole_adds_it_without_asking_which(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    with patch.object(config_flow, "poles_for_line", AsyncMock(return_value=[{"stop_id": "7009", "stop_nr": "02", "name": NAME, "direction": "x"}])):
+        done = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert done["type"] == "create_entry", done
+
+
+async def test_e2e_43_add_stop_says_so_when_the_line_serves_no_pole_of_the_stop_or_the_key_is_rejected(env):
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    with patch.object(config_flow, "poles_for_line", AsyncMock(return_value=[])):
+        none = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert (none["step_id"], none["errors"]) == ("user", {"base": "line_not_found"})
+    with patch.object(config_flow, "poles_for_line", AsyncMock(side_effect=ZTMAuthError("rejected"))):
+        rejected = await manager.async_configure(none["flow_id"], {"stop": "7009"})
+    assert (rejected["step_id"], rejected["errors"]) == ("user", {"base": "invalid_api_key"})
+
+
+async def test_e2e_43_a_key_the_city_rejects_when_the_poles_of_the_line_are_looked_up_goes_back_to_the_first_screen(env):
+    lines = await _search(env, "7009")
+    with patch.object(config_flow, "poles_for_line", AsyncMock(side_effect=ZTMAuthError("rejected"))):
+        result = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    assert (result["step_id"], result["errors"]) == ("user", {"base": "invalid_api_key"})

@@ -79,12 +79,44 @@ def _fold(text: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
 
 
+# How the City abbreviates the words of stop names ("Dw. Centralny"), folded: what a person types in full still finds them.
+_ABBREVIATIONS = {
+    "os": ("osiedle",),
+    "pl": ("plac",),
+    "al": ("aleja", "aleje"),
+    "cm": ("cmentarz",),
+    "dw": ("dworzec",),
+    "ks": ("ksiadz", "ksiedza"),
+    "pln": ("polnocny", "polnocna"),
+    "pld": ("poludniowy", "poludniowa"),
+    "gen": ("general", "generala"),
+    "sw": ("swiety", "swietego", "swieta"),
+    "zach": ("zachodni", "zachodnia"),
+    "wsch": ("wschodni", "wschodnia"),
+    "gl": ("glowny", "glowna"),
+    "maz": ("mazowiecki", "mazowiecka"),
+}
+
+
+def _words_of(text: str) -> list[str]:
+    """The words of a folded name or query, without punctuation."""
+    return re.findall(r"[0-9a-z]+", text)
+
+
+def _words_match(wanted: list[str], name: str) -> bool:
+    """Whether every word typed starts a word of the name, an abbreviation of the City's counting as the word it stands for
+    ("dworzec centr" finds "Dw. Centralny")."""
+    spelled = [w for word in _words_of(name) for w in (word, *_ABBREVIATIONS.get(word, ()))]
+    return bool(wanted) and all(any(w.startswith(word) for w in spelled) for word in wanted)
+
+
 def _matches(numbers: re.Match[str] | None, wanted: str, stop_id: str, stop_nr: str, name: str) -> bool:
-    """Whether a pole is what the user typed: the stop ID (or the ID and the pole number) when it was typed as numbers, else a
-    part of the stop's name."""
+    """Whether a pole is what the user typed: the stop ID (or the ID and the pole number) when it was typed as numbers, else
+    a part of the stop's name, or the words of it (see ``_words_match``)."""
     if numbers:
         return stop_id == numbers.group(1) and (numbers.group(2) is None or stop_nr == numbers.group(2))
-    return bool(wanted) and wanted in _fold(name)
+    folded = _fold(name)
+    return bool(wanted) and (wanted in folded or _words_match(_words_of(wanted), folded))
 
 
 def _index_stops(rows: list[Any]) -> dict[str, dict[str, dict[str, Any]]]:

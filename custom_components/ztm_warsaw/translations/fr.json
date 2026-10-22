@@ -3,11 +3,18 @@
   "config": {
     "step": {
       "user": {
-        "description": "Saisissez votre clé API ou jeton et une partie du nom de votre arrêt (ou son ID). Vous choisirez ensuite le poteau et la ligne.",
+        "description": "Saisissez votre clé API ou jeton et une partie du nom de votre arrêt (ou son ID). Vous choisirez ensuite la ligne et la direction dans laquelle vous voyagez.",
         "data": {
           "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
           "stop": "Nom ou ID de l’arrêt (p. ex. Marcelin ou 3044)",
           "manual": "Je connais les numéros : je les saisis moi-même"
+        }
+      },
+      "stop": {
+        "title": "Quel arrêt ?",
+        "description": "Ces arrêts correspondent à « {query} ».",
+        "data": {
+          "stop": "Arrêt"
         }
       },
       "reauth_confirm": {
@@ -42,8 +49,8 @@
         }
       },
       "pole": {
-        "title": "Quel poteau ?",
-        "description": "Correspondances pour « {query} ». Un arrêt a un poteau par direction ; son numéro est sur la plaque.",
+        "title": "Dans quelle direction ?",
+        "description": "La ligne {line} s’arrête à {stop} à plus d’un poteau. Chaque poteau indique la direction dans laquelle la ligne en part ; son numéro est aussi sur la plaque.",
         "data": {
           "pole": "Poteau"
         }
@@ -326,10 +333,17 @@
           }
         },
         "pole": {
-          "title": "Quel poteau ?",
-          "description": "Correspondances pour « {query} ». Un arrêt a un poteau par direction ; son numéro est sur la plaque.",
+          "title": "Dans quelle direction ?",
+          "description": "La ligne {line} s’arrête à {stop} à plus d’un poteau. Chaque poteau indique la direction dans laquelle la ligne en part ; son numéro est aussi sur la plaque.",
           "data": {
             "pole": "Poteau"
+          }
+        },
+        "stop": {
+          "title": "Quel arrêt ?",
+          "description": "Ces arrêts correspondent à « {query} ».",
+          "data": {
+            "stop": "Arrêt"
           }
         }
       },
