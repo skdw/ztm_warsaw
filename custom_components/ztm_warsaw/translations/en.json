@@ -129,6 +129,11 @@
           "city_error": "Could not get the timetable"
         }
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "Vehicle"
+      }
     }
   },
   "issues": {

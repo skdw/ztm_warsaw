@@ -1,6 +1,6 @@
 # 🚍 Warsaw Public Transport (ztm_warsaw)
 
-A Home Assistant integration that shows the next **scheduled** departures of one Warsaw public-transport line at one stop pole as a sensor. The data come from the City of Warsaw's open data portal. It is a timetable, not a live view: there are no vehicle positions, delays or disruptions.
+A Home Assistant integration that shows the next **scheduled** departures of one Warsaw public-transport line at one stop pole as a sensor. The data come from the City of Warsaw's open data portal. It is a timetable, not a live view: there are no delays or disruptions. The vehicle of the next departure can be shown on the map as an optional entity (token required).
 
 This wiki is the user manual. The project's front page, with the features and screenshots, is the [README](https://github.com/solarssk/ztm_warsaw#readme).
 

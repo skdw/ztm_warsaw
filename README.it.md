@@ -63,7 +63,7 @@ L’integrazione mostra le **partenze previste dall’orario** utilizzando i dat
 
 I dati provengono dagli orari pubblicati. L’integrazione presenta questi limiti:
 
-- non mostra la posizione dei veicoli in tempo reale, i ritardi o gli avvisi di disservizio: l’API fornisce partenze programmate, aggiornate una volta al giorno;
+- non mostra ritardi né avvisi di disservizio: l’API fornisce partenze programmate, aggiornate una volta al giorno. Il veicolo della prossima partenza può comparire sulla mappa come entità facoltativa (serve un token, vedi la wiki);
 - gli orari sono disponibili solo per il giorno di servizio corrente: l’API pubblica non fornisce altre date;
 - non pianifica percorsi o coincidenze: per questo, usa [wtp.waw.pl](https://wtp.waw.pl).
 

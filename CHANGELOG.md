@@ -40,6 +40,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Choose the token to reuse**: when your lines have different tokens, the notice about an old key lets you pick one by its last four characters and the lines that use it.
 - **Lines say which stops they have**: a line is titled like "Line 176 · Marcelin 01, Marcelin 02", so the list of lines (for example when you add a stop) shows which is which. A title you chose yourself stays.
 - **When the first and the last bus is**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure` for the day, so a card can still say "the last bus left at 23:41" when the state is *unknown* after the last departure, after a restart or for a sensor added late.
+- **The vehicle on the map** (off by default, needs a token): switch on *Vehicle* in a stop's entity settings to see the bus or tram that will make the next departure as a pin, with its number and how far it is from the stop. When the City does not report it, it is not shown.
 - **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
 - **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
 - **Polish setup screen**: the setup is now also in Polish.
@@ -67,6 +68,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Errors look like errors**: a rejected key or an unreadable answer shows as `unavailable`, not as a misleading "No service".
 - **Slow start-up**: if the City does not answer when Home Assistant starts, the integration tries again instead of waiting an hour.
 - **A quick second try after a hiccup**: if the City cannot be reached for a moment (right after Home Assistant starts, say), your sensors keep their timetable and ask again after five minutes instead of waiting an hour.
+- **A quiet log during an outage**: when the City cannot be reached for hours, the log says so once instead of every hour, and the integration asks less and less often until the City answers again.
 - **Lighter on the City**: the stop list is downloaded once for all your sensors, not once each.
 - **No duplicate entries**: you can no longer add the same stop, pole and line twice.
 - **Under the hood**: no reload when you rename an entry, keys are never logged or sent through redirects, and the integration loads on Home Assistant 2026.10.

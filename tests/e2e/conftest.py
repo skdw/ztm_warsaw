@@ -388,7 +388,11 @@ class Env:
 
 
 @pytest.fixture
-async def env(clock, hass, enable_custom_integrations, fake_city, sleeps) -> Env:
-    """The one fixture e2e tests use. Order matters: clock first, then hass, then the fake city."""
+async def env(clock, hass, enable_custom_integrations, fake_city, sleeps) -> AsyncIterator[Env]:
+    """The one fixture e2e tests use. Order matters: clock first, then hass, then the fake city.
+
+    Home Assistant's device tracker component (set up for the vehicle tracker) wakes every five seconds to look for stale
+    devices; ``run_to`` steps from timer to timer, so that timer is switched off here: it has nothing to do with the integration."""
     await hass.config.async_set_time_zone("Europe/Warsaw")
-    return Env(hass, clock, fake_city, sleeps)
+    with patch("homeassistant.components.device_tracker.legacy.async_track_utc_time_change", return_value=lambda: None):
+        yield Env(hass, clock, fake_city, sleeps)

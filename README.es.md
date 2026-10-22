@@ -63,7 +63,7 @@ La integración muestra **salidas programadas** a partir de los datos abiertos d
 
 Los datos proceden de los horarios publicados. La integración tiene las siguientes limitaciones:
 
-- no muestra la ubicación de los vehículos en tiempo real, retrasos ni incidencias: la API proporciona salidas programadas, actualizadas una vez al día;
+- no muestra retrasos ni incidencias: la API proporciona salidas programadas, actualizadas una vez al día. El vehículo de la próxima salida puede mostrarse en el mapa como una entidad opcional (requiere un token, véase la wiki);
 - solo ofrece horarios para el día de servicio actual: la API pública no proporciona otras fechas;
 - no planifica rutas ni transbordos: para ello, utiliza [wtp.waw.pl](https://wtp.waw.pl).
 

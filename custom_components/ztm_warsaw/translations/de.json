@@ -129,6 +129,11 @@
           "city_error": "Fahrplan konnte nicht abgerufen werden"
         }
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "Fahrzeug"
+      }
     }
   },
   "issues": {
