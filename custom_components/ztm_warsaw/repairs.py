@@ -37,8 +37,7 @@ class LegacyKeyRepairFlow(KeyChoice, RepairsFlow):
     def _key_entry(self) -> ConfigEntry:
         """The entry whose key is replaced (the steps check it is there before they ask)."""
         entry = self._entry()
-        if entry is None:
-            raise RuntimeError("the entry of the notice is gone")
+        assert entry is not None, "the steps that need the entry check that it is there first"
         return entry
 
     def _key_done(self) -> Any:

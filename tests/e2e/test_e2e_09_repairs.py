@@ -347,6 +347,8 @@ async def test_e2e_41_the_steps_abort_when_their_entry_or_a_donor_token_is_gone(
     await env.hass.config_entries.async_remove(entry.entry_id)
     gone = await handler.async_step_token()
     assert (gone["type"], gone["reason"]) == ("abort", "unknown")
+    gone_reuse = await handler.async_step_reuse()
+    assert (gone_reuse["type"], gone_reuse["reason"]) == ("abort", "unknown")
 
 
 THIRD_LINE = "523"

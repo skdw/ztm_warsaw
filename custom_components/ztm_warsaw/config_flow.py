@@ -219,11 +219,8 @@ def tokens_of_others(hass: HomeAssistant, entry: ConfigEntry) -> list[tuple[str,
     for other in _other_entries(hass, entry):
         key = entry_api_key(other) or ""
         if key_kind(key) == "token":
-            lines = found.setdefault(key, [])
-            line = line_label(other)
-            if line and line not in lines:
-                lines.append(line)
-    return list(found.items())
+            found.setdefault(key, []).append(line_label(other))
+    return [(key, list(dict.fromkeys(line for line in lines if line))) for key, lines in found.items()]
 
 
 def legacy_others(hass: HomeAssistant, entry: ConfigEntry) -> list[ConfigEntry]:
@@ -263,11 +260,11 @@ class KeyChoice:
 
     def _key_entry(self) -> ConfigEntry:
         """The entry whose key is replaced."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover - every dialog says which entry it changes
 
     def _key_done(self) -> Any:
         """End the dialog after the key was replaced."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover - every dialog says how it ends
 
     def _key_menu(self, step_id: str, options: list[str], entry: ConfigEntry) -> ConfigFlowResult:
         """A menu of the ways to replace an old key (shown only when a token of another line could be reused)."""
@@ -494,8 +491,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         """The entry whose key is replaced: the one a reauth was started for, or the one *Reconfigure* was chosen on."""
         if self.source == config_entries.SOURCE_REAUTH:
             entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-            if entry is None:
-                raise RuntimeError("the entry of the reauth is gone")
+            assert entry is not None, "the steps that need the entry check that it is there first"
             return entry
         return self._get_reconfigure_entry()
 
