@@ -99,6 +99,13 @@ changed once without a migration; do not repeat that.
   maintainer or by someone (or an agent) who has none of the context, and the code is what has to remember why.
   `scripts/check_docstrings.py` (also run by pytest) fails when one is missing; whether it is any good is for the review.
 
+### Languages
+
+- Every text a user reads is written in natural, idiomatic language, in all eight languages, following [docs/LOCALIZATION.md](docs/LOCALIZATION.md): it
+  covers the principles, the meaning of the transport words (stop, boarding place, line), the self-review after a translation and what a pull
+  request says about it. Passing `tests/test_translations.py` and `tests/test_readmes.py` only proves the structure. Do not call a text
+  approved by a native speaker when nobody checked it, and name a terminology question in the pull request instead of settling it silently.
+
 ### Secrets
 
 - An API key, token or password never goes into a commit, a fixture, a log line, an exception
@@ -180,6 +187,7 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `custom_components/ztm_warsaw/runtime.py` | The typed `runtime_data` of a loaded entry (`StopRuntime`, `LineRuntime`) and `ZtmConfigEntry`, the config entry with it |
 | `custom_components/ztm_warsaw/quality_scale.yaml` | Where the integration stands on Home Assistant's Integration Quality Scale, rule by rule (`done`, `exempt` with the reason, `todo`); change a status in the pull request that changes the code. `tests/test_quality_scale.py` checks every rule is there |
 | `scripts/check_docstrings.py` | Fails when a module, class or function has no docstring (also run by pytest; see Docstrings above) |
+| `docs/LOCALIZATION.md` | The standard for every text a user reads in the eight languages: style, the meaning of the transport words, the review a translation needs |
 | `docs/wiki/` | The source of the GitHub Wiki: edit the pages here, never in the wiki's web interface. `publish-wiki.yml` copies them on a push to `main`; `scripts/check_wiki_docs.py` (also run by pytest) checks that every page exists and every link resolves |
 | `CHANGELOG.md` | The source of the GitHub Release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to run the checks and open a pull request |
