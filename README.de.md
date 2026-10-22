@@ -112,7 +112,7 @@ Die Daten stammen aus veröffentlichten Fahrplänen. Dabei gelten folgende Einsc
 Die Integration unterstützt Zugangsdaten für beide APIs der Stadt Warschau:
 
 - **Token für die neue API (empfohlen):** Gib auf [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) einen Nicknamen ein, akzeptiere die Bedingungen und lade dein Token herunter. Es besteht aus einer langen Zeichenfolge mit drei durch Punkte getrennten Teilen.
-- **Schlüssel für die alte API:** Ein Schlüssel von [api.um.warszawa.pl](https://api.um.warszawa.pl) hat das Format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Die alte API funktioniert weiterhin, die Stadt hat aber noch keinen Abschalttermin bekannt gegeben. Wir empfehlen den Wechsel zur neuen API.
+- **Schlüssel für die alte API:** Ein Schlüssel von [api.um.warszawa.pl](https://api.um.warszawa.pl) hat das Format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. Die alte API antwortet zeitweise nicht, und die Stadt hat noch keinen Abschalttermin bekannt gegeben. Wir empfehlen den Wechsel zur neuen API.
 
 Die Integration erkennt die Art der Zugangsdaten und sendet sie ausschließlich an die passende API. Um einen alten Schlüssel durch ein Token zu ersetzen, wähle bei der Linie **Konfigurieren** und füge das Token ein. Die Einstellungen für Linie und Haltestellen bleiben erhalten. Du musst die Integration nicht erneut hinzufügen: Eine doppelte Konfiguration derselben Linie an derselben Halteposition wird abgelehnt.
 

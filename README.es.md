@@ -112,7 +112,7 @@ Los datos proceden de los horarios publicados. La integración tiene las siguien
 La integración admite las credenciales de ambas API de la ciudad de Varsovia:
 
 - **Token para la nueva API (recomendado):** en [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), introduce un seudónimo, acepta las condiciones y descarga tu token. Es una cadena larga de caracteres dividida en tres partes separadas por puntos.
-- **Clave para la API antigua:** una clave de [api.um.warszawa.pl](https://api.um.warszawa.pl) tiene el formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La API antigua sigue funcionando, pero la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API.
+- **Clave para la API antigua:** una clave de [api.um.warszawa.pl](https://api.um.warszawa.pl) tiene el formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. La API antigua deja de responder a ratos, y la ciudad no ha anunciado cuándo dejará de estar disponible. Recomendamos cambiar a la nueva API.
 
 La integración reconoce el tipo de credencial y la envía únicamente a la API correspondiente. Para sustituir una clave antigua por un token, selecciona **Configurar** en la línea y pega el token. Se conservarán los ajustes de la línea y de las paradas. No hace falta volver a añadir la integración: el asistente rechaza configuraciones duplicadas de la misma línea y punto de parada.
 
