@@ -377,3 +377,21 @@ async def test_e2e_43_a_screen_asked_for_again_shows_itself_again(env):
     assert (await flow.async_configure(lines["flow_id"], None))["step_id"] == "line"
     search = await _search(env, "no such stop anywhere")
     assert (await flow.async_configure(search["flow_id"], None))["step_id"] == "stop"
+
+
+async def test_e2e_43_a_token_that_disappears_while_the_menu_is_open_goes_back_to_the_form_of_the_key(env):
+    entry = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    menu = await _first(env)
+    await env.hass.config_entries.async_remove(entry.entry_id)
+    form = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    assert (form["type"], form["step_id"]) == ("form", "user")
+
+
+async def test_e2e_43_a_token_picked_by_a_number_that_is_gone_shows_the_menu_again(env):
+    await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    other = await env.add_entry(api_key=DEFAULT_TOKEN[:-4] + "ZZZZ", line="523")
+    menu = await _first(env)
+    pick = await env.hass.config_entries.flow.async_configure(menu["flow_id"], {"next_step_id": "use_token"})
+    await env.hass.config_entries.async_remove(other.entry_id)
+    again = await env.hass.config_entries.flow.async_configure(pick["flow_id"], {"token": "1"})
+    assert (again["type"], again["step_id"]) == ("menu", "user_existing")

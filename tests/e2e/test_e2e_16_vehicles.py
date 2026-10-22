@@ -6,6 +6,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from homeassistant.helpers.entity_registry import RegistryEntryDisabler
 from homeassistant.util import dt as dt_util
 
 from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES, DOMAIN
@@ -239,3 +240,19 @@ async def test_e2e_45_a_stop_position_that_is_not_a_place_gives_no_distance(env,
     coordinator.data.stop_info = {**coordinator.data.stop_info, "szer_geo": bad[0], "dlug_geo": bad[1]}
     await env.advance(seconds=31)
     assert env.hass.states.get(SENSOR).state == "unknown", bad
+
+
+async def test_e2e_45_a_distance_sensor_that_an_earlier_version_left_disabled_is_switched_on_but_one_the_user_switched_off_is_not(env):
+    env.city.vehicles = [_row()]
+    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, options={CONF_SHOW_VEHICLES: True})
+    env.entity_registry.async_get_or_create(
+        "sensor", DOMAIN, "line_151_from_7009_01_vehicle_distance", config_entry=entry,
+        disabled_by=RegistryEntryDisabler.INTEGRATION, suggested_object_id="line_151_from_7009_01_vehicle_distance",
+    )
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR).disabled_by is None
+    env.entity_registry.async_update_entity(SENSOR, disabled_by=RegistryEntryDisabler.USER)
+    await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get(SENSOR).disabled_by == RegistryEntryDisabler.USER

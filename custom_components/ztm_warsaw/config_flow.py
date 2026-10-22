@@ -499,13 +499,18 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
     async def async_step_use_token(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The menu's first choice: the token that is in use (when more than one is, which of them is asked first)."""
         self._tokens = tokens_in_use(self.hass)
+        if not self._tokens:  # the token was removed while the menu was open
+            return self._user_form()
         if len(self._tokens) > 1 and user_input is None:
             choices = [SelectOptionDict(value=n, label=label) for n, label in token_choices(self._tokens).items()]
             schema = _form(
                 {vol.Required(CONF_TOKEN, default=choices[0]["value"]): SelectSelector(SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST))}
             )
             return self.async_show_form(step_id="use_token", data_schema=schema)
-        self._key = self._tokens[int(user_input[CONF_TOKEN]) if user_input else 0][0]  # the form only lets a number of the list through
+        number = int(user_input[CONF_TOKEN]) if user_input else 0
+        if number >= len(self._tokens):  # a token was removed while the choice was open
+            return self._token_menu()
+        self._key = self._tokens[number][0]
         return self._stop_form()
 
     def _asks_for_vehicles(self) -> bool:

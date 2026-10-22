@@ -563,6 +563,15 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
 
 
 # Home Assistant awaits this function with these three arguments, so it has to be a coroutine function that takes all three.
+def _enable_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
+    """Switch on the distance sensors that an earlier version registered as disabled (they were off by default): only the
+    integration's own disabling is lifted, a sensor the user switched off stays off."""
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if entity.unique_id.endswith("_vehicle_distance") and entity.disabled_by == er.RegistryEntryDisabler.INTEGRATION:
+            registry.async_update_entity(entity.entity_id, disabled_by=None)
+
+
 def _remove_distance_sensors(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
     """Take the distance sensors of the entry out of the registry: the line does not show its vehicles (any more)."""
     registry = er.async_get(hass)
@@ -575,7 +584,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
     """Set up the ZTM sensors of a config entry: those of every stop it runs, and with a token and *Show the vehicles of this line on the
     map* ticked, the distance of the vehicle of the next departure of each stop (a line that does not show its vehicles has none)."""
     shows_vehicles = bool(config_entry.options.get(CONF_SHOW_VEHICLES, False))
-    if not shows_vehicles:
+    if shows_vehicles:
+        _enable_distance_sensors(hass, config_entry)
+    else:
         _remove_distance_sensors(hass, config_entry)
     try:
         for subentry_id, runtime in runtimes(config_entry).items():
