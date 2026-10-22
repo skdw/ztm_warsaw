@@ -457,10 +457,11 @@ class ZTMStopClient:
         """An answer after an outage that was said: say that the City is back (once)."""
         if result is not None and self._outage_said:
             self._outage_said = False
-            if not self._legacy or self._catalogue.old_api_said:
+            if not self._legacy:
                 _LOGGER.info("The City of Warsaw answers again")
-            if self._legacy:
+            elif self._catalogue.old_api_said:  # the old API's outage was said once for all the stops: so is its end
                 self._catalogue.old_api_said = False
+                _LOGGER.info("The City of Warsaw's old API answers again")
 
     async def _attempt(self, url: str, params: dict[str, Any] | None, expect_json: bool, method: str, json_body: dict[str, Any] | None,
                        headers: dict[str, str] | None, wrap: bool, attempt: int, limit: int) -> Any:
