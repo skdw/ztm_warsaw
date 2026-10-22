@@ -10,7 +10,7 @@
         }
       },
       "user_existing": {
-        "description": "Jakaś linia jest już skonfigurowana z tokenem ({tokens}). Użyj go albo wklej inny. W następnych krokach wybierzesz przystanek, kierunek, w którym jedziesz, i linię.",
+        "description": "Co najmniej jedna linia korzysta już z tokenu ({tokens}). Użyj go albo wklej inny. W następnych krokach wybierzesz przystanek, kierunek, w którym jedziesz, i linię.",
         "menu_options": {
           "use_token": "Użyj tokenu, który już jest używany",
           "paste_token": "Wklej inny token"
