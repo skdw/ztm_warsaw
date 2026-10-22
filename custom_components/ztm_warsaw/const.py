@@ -17,4 +17,15 @@ CONF_ATTRIBUTION = "Data provided by Miasto Stołeczne Warszawa and Zarząd Tran
 
 # Platforms exposed by this integration
 KEY_PORTAL_URL = "https://dane.um.warszawa.pl/pl/key-api"  # where the City gives a token of the new API
+# The City's old API (api.um.warszawa.pl) stopped answering on 2026-10-21 and the City said nothing. While this is True the
+# integration sends no request to it: an old key gets a clear message to replace it with a token. The code of the old API
+# stays until 2.0 (the tests switch this off to keep it working); if the City ever brings the old API back, set it to False.
+LEGACY_API_RETIRED = True
+
+
+def legacy_api_retired() -> bool:
+    """Whether the City's old API is treated as gone (read at the moment of the call, so a test can switch it)."""
+    return LEGACY_API_RETIRED
+
+
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.DEVICE_TRACKER]

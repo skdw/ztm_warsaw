@@ -13,11 +13,11 @@ from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ztm_warsaw.const import DOMAIN
-from tests.e2e.fake_city import DEFAULT_KEY, FakeCity, route_to_fake_city
+from tests.e2e.fake_city import DEFAULT_TOKEN, FakeCity, route_to_fake_city
 
 pytestmark = pytest.mark.compat
 
-ENTRY_DATA = {"api_key": DEFAULT_KEY, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 1}
+ENTRY_DATA = {"api_key": DEFAULT_TOKEN, "busstop_id": 7009, "busstop_nr": "01", "line": "151", "departures": 1}
 SENSOR = "sensor.line_151_from_7009_01"
 
 

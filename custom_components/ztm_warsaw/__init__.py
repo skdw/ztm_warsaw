@@ -12,7 +12,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS
+from .const import DOMAIN, KEY_PORTAL_URL, PLATFORMS, legacy_api_retired
 from .client import StopCatalogue, ZTMStopClient, key_kind, user_agent
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
@@ -104,6 +104,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
         coordinator.walking_minutes = unit.walking_minutes
         built[unit.subentry_id] = {"coordinator": coordinator, "client": client}
 
+    if any(rt["client"].retired for rt in built.values()) and not catalogue.old_api_said:
+        catalogue.old_api_said = True  # once for all the lines of this instance
+        _LOGGER.warning(
+            "A key for the City of Warsaw's old API is in use, and that API has stopped working: the line gets no new timetable "
+            "until the key is replaced with a token (see the notices in Settings > Repairs)"
+        )
     _update_legacy_issue(hass, entry)  # before the first load: an entry that fails to load needs the hint most
     await _first_refresh([rt["coordinator"] for rt in built.values()])
 
@@ -269,6 +275,11 @@ def _update_duplicate_issue(hass: HomeAssistant, entry: ConfigEntry, removed: st
         ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
 
 
+def _legacy_severity() -> ir.IssueSeverity:
+    """An error while the City's old API is gone (the line gets no timetable), a warning if it is ever brought back."""
+    return ir.IssueSeverity.ERROR if legacy_api_retired() else ir.IssueSeverity.WARNING
+
+
 def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """A notice (Repairs, can be dismissed) for an entry that still uses a key of the City's old API: it works, but the
     City publishes no date for its end and the token of the new API is its current service. Configure changes the key."""
@@ -285,7 +296,7 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
             issue_id,
             is_fixable=True,  # the token can be pasted in the notice itself (repairs.py)
             data={"entry_id": entry.entry_id},
-            severity=ir.IssueSeverity.WARNING,
+            severity=_legacy_severity(),
             translation_key="legacy_key_line",
             translation_placeholders={"line": line_of(entry) or "", "portal": KEY_PORTAL_URL},
         )
@@ -297,7 +308,7 @@ def _update_legacy_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
         issue_id,
         is_fixable=True,  # the token can be pasted in the notice itself (repairs.py)
         data={"entry_id": entry.entry_id},
-        severity=ir.IssueSeverity.WARNING,
+        severity=_legacy_severity(),
         translation_key="legacy_key",
         translation_placeholders={
             "line": unit.line,

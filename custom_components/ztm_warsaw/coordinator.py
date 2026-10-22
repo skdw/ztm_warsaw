@@ -81,13 +81,16 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         # The last answer on disk, so a restart does not lose the night tail that the API no longer serves.
         self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry_id))
 
-        # Hourly timetable refresh handled by DataUpdateCoordinator
-        self.update_interval = timedelta(hours=1)
+        # Hourly timetable refresh handled by DataUpdateCoordinator; none for a key of the City's old API, which is gone
+        self.update_interval = None if client.retired else timedelta(hours=1)
 
     async def async_config_entry_first_refresh(self) -> None:
         """First refresh of the entry: a failure or a missing answer within the deadline makes Home Assistant retry the
         setup (ConfigEntryNotReady) instead of leaving an entity that waits for the next hourly refresh."""
         await self._restore()
+        if self.client.retired:  # nothing to fetch from the City's old API: hold what was saved, entities say why there is no timetable
+            self.start_without_timetable()
+            return
         try:
             async with asyncio.timeout(SETUP_DEADLINE):
                 await super().async_config_entry_first_refresh()
@@ -193,7 +196,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._store.async_delay_save(lambda: payload, 30)
 
     def _schedule_flip_refresh(self) -> None:
-        """Ask again at 03:06 Warsaw time, when the update of the API is over."""
+        """Ask again at 03:06 Warsaw time, when the update of the API is over (never for the City's old API, which is gone)."""
+        if self.client.retired:
+            return
         self._flip_unsub = async_track_point_in_utc_time(self.hass, self._flip_refresh, next_flip_refresh(dt_util.utcnow()))
 
     @callback

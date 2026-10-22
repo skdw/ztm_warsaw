@@ -394,5 +394,10 @@ async def env(clock, hass, enable_custom_integrations, fake_city, sleeps) -> Asy
     Home Assistant's device tracker component (set up for the vehicle tracker) wakes every five seconds to look for stale
     devices; ``run_to`` steps from timer to timer, so that timer is switched off here: it has nothing to do with the integration."""
     await hass.config.async_set_time_zone("Europe/Warsaw")
-    with patch("homeassistant.components.device_tracker.legacy.async_track_utc_time_change", return_value=lambda: None):
+    # The City's old API is treated as gone in production (const.LEGACY_API_RETIRED); its code stays until 2.0, and these
+    # tests keep it covered against the fake city. The tests of the retired mode switch it back on.
+    with (
+        patch("homeassistant.components.device_tracker.legacy.async_track_utc_time_change", return_value=lambda: None),
+        patch("custom_components.ztm_warsaw.const.LEGACY_API_RETIRED", False),
+    ):
         yield Env(hass, clock, fake_city, sleeps)

@@ -11,6 +11,7 @@ class _Client:
     """A stand-in client whose catalogue download gives these rows (the shape of the legacy answer)."""
 
     uses_token = False
+    retired = False
 
     def __init__(self, stops):
         """Remember the stops: ``(stop id, pole, name, direction)``."""

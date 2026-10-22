@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Warszawski Transport Publiczny",
-        "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
+        "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
           "api_key": "Klucz API lub token"
         }
@@ -69,7 +69,8 @@
       "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy.",
       "no_lines": "Dziś żadna linia nie zatrzymuje się na tym słupku. Wybierz inny.",
       "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
-      "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam."
+      "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam.",
+      "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jedną instancję tej integracji.",
@@ -84,7 +85,7 @@
     "step": {
       "init": {
         "title": "Warszawski Transport Publiczny",
-        "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
+        "description": "**Ta konfiguracja korzysta ze starego API m.st. Warszawy ({current}).**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nAby zacząć korzystać z nowego API:\n\n1. Pobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}).\n2. Wklej go w polu poniżej.\n\nUstawienia linii i przystanków zostaną zachowane.",
         "data": {
           "api_key": "Klucz API lub token"
         }
@@ -126,7 +127,8 @@
           "no_service_today": "Dziś nie kursuje",
           "city_updating": "Trwa aktualizacja rozkładów (ok. 2:10–3:05)",
           "waiting": "Czekam na rozkład",
-          "city_error": "Nie udało się pobrać rozkładu"
+          "city_error": "Nie udało się pobrać rozkładu",
+          "old_api": "Stare API nie działa: wymień klucz na token"
         }
       }
     },
@@ -147,7 +149,7 @@
         "step": {
           "token": {
             "title": "Zastąp stary klucz tokenem",
-            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
+            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
             "data": {
               "api_key": "Token",
               "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
@@ -155,7 +157,7 @@
           },
           "init": {
             "title": "Stary klucz API",
-            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
+            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
             "menu_options": {
               "token": "Wklej token",
               "ignore": "Zachowaj stary klucz i zignoruj powiadomienie",
@@ -179,7 +181,8 @@
           "line_not_found": "Nie znaleziono podanej linii na wybranym słupku przystankowym.",
           "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
           "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
-          "unknown": "Wystąpił nieznany błąd."
+          "unknown": "Wystąpił nieznany błąd.",
+          "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza."
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
@@ -194,7 +197,7 @@
         "step": {
           "token": {
             "title": "Zastąp stary klucz tokenem",
-            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
+            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nWklej poniżej token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}). Zastąpi on stary klucz. Ustawienia przystanków zostaną zachowane.",
             "data": {
               "api_key": "Token",
               "all_lines": "Użyj go dla każdej linii, która ma jeszcze stary klucz"
@@ -202,7 +205,7 @@
           },
           "init": {
             "title": "Stary klucz API",
-            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API bywa nieczynne, a miasto nie ogłosiło terminu jego wyłączenia. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
+            "description": "**Linia {line} korzysta z klucza do starego API m.st. Warszawy.**\n\nStare API miasta przestało odpowiadać, więc ta linia nie dostaje rozkładów, dopóki nie wymienisz klucza na token. Zalecamy przejście na nowe API, które wymaga tokenu.\n\nPobierz token ze strony [dane.um.warszawa.pl/pl/key-api]({portal}), a następnie wybierz „Wklej token”, aby zastąpić nim stary klucz. Ustawienia przystanków zostaną zachowane. Możesz też nadal korzystać ze starego klucza i zignorować to powiadomienie.",
             "menu_options": {
               "token": "Wklej token",
               "ignore": "Zachowaj stary klucz i zignoruj powiadomienie",
@@ -226,7 +229,8 @@
           "line_not_found": "Nie znaleziono podanej linii na wybranym słupku przystankowym.",
           "no_departures": "Dziś nie ma zaplanowanych odjazdów tej linii z wybranego przystanku.",
           "no_valid_times": "API nie zwróciło prawidłowych godzin odjazdów.",
-          "unknown": "Wystąpił nieznany błąd."
+          "unknown": "Wystąpił nieznany błąd.",
+          "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza."
         },
         "abort": {
           "unknown": "Konfiguracja, której dotyczy to powiadomienie, została usunięta lub nie można jej zmienić.",
@@ -295,7 +299,8 @@
         "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy.",
         "no_lines": "Dziś żadna linia nie zatrzymuje się na tym słupku. Wybierz inny.",
         "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
-        "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam."
+        "cannot_load_lines": "Nie udało się pobrać linii dla tego słupka. Spróbuj ponownie albo wróć i wpisz numery sam.",
+        "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza."
       },
       "abort": {
         "already_configured": "Wybrana linia jest już skonfigurowana dla tego słupka przystankowego.",
