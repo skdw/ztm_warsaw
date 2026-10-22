@@ -105,7 +105,7 @@ Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. N
 
 Bezpłatny token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): wpisz dowolny pseudonim, zaakceptuj regulamin i pobierz token. Token to długi tekst złożony z trzech części oddzielonych kropkami.
 
-Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl)) nadal działa, ale serwer, który go obsługuje, czasem przestaje odpowiadać. Miasto nie podało też terminu jego wyłączenia, a pojazd na mapie działa tylko z tokenem. Żeby przejść na token, otwórz powiadomienie w **Problemach** albo wybierz przy linii **Konfiguruj** i wklej token. Ustawienia linii zostaną zachowane.
+Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl)) już nie działa. Obsługujący go serwer przestał odpowiadać 21 października 2026, a integracja już go nie pyta. Linia ze starym kluczem nie dostaje więc nowego rozkładu, dopóki nie wymienisz klucza na token: otwórz powiadomienie w **Problemach** albo wybierz przy linii **Konfiguruj** i wklej token. Ustawienia linii zostaną zachowane.
 
 ---
 
@@ -141,7 +141,7 @@ Integracja nazwie sensor na przykład `sensor.line_151_from_7009_01`. Kolejny pr
 
 - **Sensor ma stan `unknown` i atrybut „No service”.** Linia dziś nie kursuje albo jej ostatni odjazd już był. To nie jest błąd. Którą z tych dwóch sytuacji mamy, powie sensor *Status*. Rozkład sprawdzisz na [wtp.waw.pl](https://wtp.waw.pl) albo pod numerem 19115.
 - **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu, bo odrzuciło token albo nie zna przystanku, słupka lub linii. Przyczynę znajdziesz w logu Home Assistant. Klucze i tokeny nigdy się w nim nie pojawiają.
-- **W logu są błędy sieci, a masz stary klucz.** Stary serwer miasta czasem przestaje odpowiadać. Sensory zachowują wtedy ostatni rozkład i po jakimś czasie pytają ponownie. Problem znika po przejściu na token.
+- **Linia pokazuje, że stare API już nie działa.** Stare API miasta przestało odpowiadać 21 października 2026, a integracja już go nie pyta. Linia zachowuje rozkład, który miała, do końca doby rozkładowej. Wymień stary klucz na token, tak jak opisano wyżej.
 - **Home Assistant prosi o nowy klucz.** Miasto odrzuciło klucz trzy razy z rzędu. Wpisz w formularzu nowy klucz albo token. Ustawienia zostaną zachowane.
 - **Chcesz zgłosić problem.** Wybierz przy wpisie *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Klucz i token są w nim zastąpione napisem `**REDACTED**`.
 

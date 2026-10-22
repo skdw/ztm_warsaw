@@ -105,7 +105,7 @@ The integration reads timetables, so it displays **scheduled** departures. It do
 
 You get a free token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): enter any nickname, accept the terms and download the token. A token is a long text made of three parts separated by dots.
 
-An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl](https://api.um.warszawa.pl)) still works, but the server behind it sometimes stops answering. The City has also given no date for switching it off, and the vehicle on the map works only with a token. To switch to a token, open the notice in **Repairs**, or choose **Configure** on the line, and paste the token. The settings of the line stay.
+An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl](https://api.um.warszawa.pl)) no longer works. The server behind it stopped answering on 21 October 2026, and the integration does not ask it any more. A line with an old key therefore gets no new timetable until you replace the key with a token: open the notice in **Repairs**, or choose **Configure** on the line, and paste the token. The settings of the line stay.
 
 ---
 
@@ -141,7 +141,7 @@ The integration names the sensor, for example `sensor.line_151_from_7009_01`. Yo
 
 - **The sensor has the state `unknown` and the attribute "No service".** The line does not run today, or its last departure has gone. This is not an error. The *Status* sensor tells you which of the two it is. You can check the timetable at [wtp.waw.pl](https://wtp.waw.pl) or by calling 19115.
 - **The sensor has the state `unavailable`.** The City did not return a valid timetable, because it rejected the token or does not know the stop, the pole or the line. You find the reason in the Home Assistant log. Keys and tokens never appear in it.
-- **The log shows network errors and you use an old key.** The City's old server sometimes stops answering. The sensors then keep the last timetable and ask again later. The problem disappears when you switch to a token.
+- **Your line says that the old API no longer works.** The City's old API stopped answering on 21 October 2026, and the integration does not ask it any more. The line keeps the timetable it had until the service day ends. Replace the old key with a token, as described above.
 - **Home Assistant asks for a new key.** The City rejected the key three times in a row. Enter a new key or token in the form. Your settings stay.
 - **You want to report a problem.** Choose *Download diagnostics* on the entry and attach the file to your issue. The key and the token are replaced in it with `**REDACTED**`.
 

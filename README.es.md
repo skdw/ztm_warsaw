@@ -105,7 +105,7 @@ La integración lee horarios, por eso muestra salidas **programadas**. No muestr
 
 Un token gratuito lo consigues en [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): escribe un apodo cualquiera, acepta las condiciones y descarga el token. Un token es un texto largo formado por tres partes separadas por puntos.
 
-Una clave antigua de la API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) sigue funcionando, pero el servidor que la atiende a veces deja de responder. Además, la ciudad no ha dado fecha de cierre y el vehículo en el mapa solo funciona con token. Para pasar a un token, abre el aviso en **Reparaciones** o elige **Configurar** en la línea y pega el token. Los ajustes de la línea se conservan.
+Una clave antigua de la API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) ya no funciona. El servidor que la atendía dejó de responder el 21 de octubre de 2026, y la integración ya no le pregunta. Por eso una línea con clave antigua no recibe horarios nuevos hasta que sustituyas la clave por un token: abre el aviso en **Reparaciones** o elige **Configurar** en la línea y pega el token. Los ajustes de la línea se conservan.
 
 ---
 
@@ -141,7 +141,7 @@ La integración llamará al sensor, por ejemplo, `sensor.line_151_from_7009_01`.
 
 - **El sensor está en `unknown` y tiene el atributo «No service».** La línea no circula hoy o ya salió su última salida. No es un error. Cuál de los dos casos es lo dice el sensor de *Estado*. El horario lo puedes consultar en [wtp.waw.pl](https://wtp.waw.pl) o llamando al 19115.
 - **El sensor está en `unavailable`.** La ciudad no devolvió un horario válido porque rechazó el token o no conoce la parada, el punto de parada o la línea. El motivo está en el registro de Home Assistant. Las claves y los tokens nunca aparecen en él.
-- **En el registro hay errores de red y usas una clave antigua.** El servidor antiguo de la ciudad a veces deja de responder. Los sensores conservan entonces el último horario y vuelven a preguntar más tarde. El problema desaparece al pasar a un token.
+- **Tu línea indica que la API antigua ya no funciona.** La API antigua de la ciudad dejó de responder el 21 de octubre de 2026, y la integración ya no le pregunta. La línea conserva el horario que tenía hasta que termine el día de servicio. Sustituye la clave antigua por un token, como se describe arriba.
 - **Home Assistant pide una clave nueva.** La ciudad rechazó la clave tres veces seguidas. Introduce en el formulario una clave o un token nuevo. Los ajustes se conservan.
 - **Quieres informar de un problema.** Elige *Descargar diagnósticos* en la entrada y adjunta el archivo a tu issue. La clave y el token aparecen en él como `**REDACTED**`.
 

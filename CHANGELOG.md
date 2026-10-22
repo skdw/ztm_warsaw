@@ -14,7 +14,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 - **Your stops are grouped by line**: each line becomes one entry with its stops under it, and your sensors keep their names, IDs and settings. An automation or card that points at the old *device* needs choosing again, and there is no way back to 1.1.4, so take a backup first.
 - **Home Assistant 2026.1 or newer**: this version needs it, and HACS will not offer the update on an older one, so you stay on 1.1.4 until you upgrade Home Assistant.
-- **Switch to a token**: your old API key still works, but the City has set no end date. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in the notice in Repairs or in **Configure** on each entry.
+- **Replace an old key with a token now**: the City's old API stopped answering on 21 October 2026, so a line with an old key gets no new timetables. Get a token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) and paste it in the notice in Repairs.
 - **More departures on every sensor**: each sensor now lists the next departure and the three after it, so the "number of departures" choice is gone.
 - **Two entries for the same stop and line?** The second one never had a sensor, so remove it when Repairs tells you.
 
@@ -59,7 +59,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Fixed
 
-- **The old-API notice tells it as it is**: it no longer says the old API "still works", because the City's old server stops answering at times.
+- **The old-API notice tells it as it is**: it is an error now, and it says the old API has stopped answering, instead of "still works".
 - **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
 - **You can ignore the old-key notice**: its window now asks whether to paste a token or keep the old key and ignore the notice, because a notice that can be fixed had no Ignore button; an ignored one stays ignored after a restart.
 - **An empty stop ID field**: the stop ID in the setup and in *Add stop* starts empty instead of with 0, and anything that is not a number is refused with a clear message.
@@ -67,7 +67,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Errors look like errors**: a rejected key or an unreadable answer shows as `unavailable`, not as a misleading "No service".
 - **Slow start-up**: if the City does not answer when Home Assistant starts, the integration tries again instead of waiting an hour.
 - **A quick second try after a hiccup**: if the City cannot be reached for a moment (right after Home Assistant starts, say), your sensors keep their timetable and ask again after five minutes instead of waiting an hour.
-- **A clear note when the old API is down**: if the City's old API does not answer, the log says so once, and says to get a token, instead of one error for every stop.
+- **No more requests to the old API**: a line with an old key says why it has no timetable (*The old API no longer works: replace the key with a token*), the log says so once, and a new line cannot be set up with an old key.
 - **A quiet log during an outage**: when the City cannot be reached for hours, the log says so once instead of every hour, and the integration asks less and less often until the City answers again.
 - **Lighter on the City**: the stop list is downloaded once for all your sensors, not once each.
 - **No duplicate entries**: you can no longer add the same stop, pole and line twice.
