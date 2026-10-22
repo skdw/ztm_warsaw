@@ -60,7 +60,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Fixed
 
-- **The old-API notice tells it as it is**: it is an error now, and it says the old API has stopped answering, instead of "still works".
+- **One request per line**: a line with an old key shows a single notice asking for a token once for the whole line, named "Line 151" rather than by its stops.
 - **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
 - **You can ignore the old-key notice**: its window now asks whether to paste a token or keep the old key and ignore the notice, because a notice that can be fixed had no Ignore button; an ignored one stays ignored after a restart.
 - **An empty stop ID field**: the stop ID in the setup and in *Add stop* starts empty instead of with 0, and anything that is not a number is refused with a clear message.
