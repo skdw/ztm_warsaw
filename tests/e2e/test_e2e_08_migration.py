@@ -18,7 +18,7 @@ from custom_components.ztm_warsaw.const import DOMAIN
 from custom_components.ztm_warsaw.coordinator import store_key
 from custom_components.ztm_warsaw.migration import _carry_over, async_migrate_to_lines
 
-from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, stop_name_for
+from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN
 from .helpers import find_devices, subentry_of
 
 pytestmark = [pytest.mark.e2e, pytest.mark.migrate]
