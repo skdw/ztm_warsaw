@@ -59,7 +59,8 @@
         "title": "Quale linea?",
         "description": "Le linee che oggi fermano a {stop}.",
         "data": {
-          "line": "Linea"
+          "line": "Linea",
+          "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
         }
       },
       "reauth_menu": {

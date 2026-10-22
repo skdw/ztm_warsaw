@@ -59,7 +59,8 @@
         "title": "¿Qué línea?",
         "description": "Las líneas que hoy paran en {stop}.",
         "data": {
-          "line": "Línea"
+          "line": "Línea",
+          "show_vehicles": "Mostrar en el mapa los vehículos de esta línea"
         }
       },
       "reauth_menu": {

@@ -396,6 +396,8 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 self.hass.config_entries.async_add_subentry(existing, _subentry(stop))
             except HomeAssistantError:  # another flow added the same stop while the City was being asked
                 return self.async_abort(reason="already_configured")
+            if self._show_vehicles and key_kind(entry_api_key(existing) or "") == "token":  # ticked for a line that is set up: honoured
+                self.hass.config_entries.async_update_entry(existing, options={**existing.options, CONF_SHOW_VEHICLES: True})
             return self.async_abort(reason="stop_added")
         # The number of departures is no longer asked (3 are always listed); the key stays in the data as it was.
         return self.async_create_entry(
@@ -406,6 +408,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 CONF_DEPARTURES: NEXT_DEPARTURES,
             },
             subentries=[stop],
+            options={CONF_SHOW_VEHICLES: True} if self._show_vehicles else {},
         )
 
     def __init__(self) -> None:
@@ -415,6 +418,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         self._poles: list[dict[str, Any]] = []  # everything the search found
         self._stop_poles: list[dict[str, Any]] = []  # the poles of the stop that was picked
         self._line = ""
+        self._show_vehicles = False
         self._lines: list[str] = []
         self._line_poles: list[dict[str, Any]] = []  # the poles of that stop the picked line serves
 
@@ -475,11 +479,20 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         """Back to the step before the lines: the choice of the stop when there was one, else the first screen."""
         return self._stop_form(errors) if len(stops_of(self._poles)) > 1 else self._user_form(errors)
 
+    def _asks_for_vehicles(self) -> bool:
+        """Whether the line screen offers the map's vehicle pins: only with a token (the positions are its service)."""
+        return key_kind(self._key) == "token"
+
     def _line_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
         """The third step: which of the lines that stop at the stop."""
         return self.async_show_form(
             step_id="line",
-            data_schema=_form({vol.Required(CONF_LINE): _select([SelectOptionDict(value=line, label=line) for line in self._lines])}),
+            data_schema=_form(
+                {
+                    vol.Required(CONF_LINE): _select([SelectOptionDict(value=line, label=line) for line in self._lines]),
+                    **({vol.Optional(CONF_SHOW_VEHICLES, default=False): bool} if self._asks_for_vehicles() else {}),
+                }
+            ),
             errors=errors or {},
             description_placeholders={"stop": f"{self._stop_poles[0]['name']} ({self._stop_poles[0]['stop_id']})"},
         )
@@ -499,6 +512,7 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 return self._back({"base": "no_lines"})
             return self._line_form()
         self._line = user_input[CONF_LINE]
+        self._show_vehicles = bool(user_input.get(CONF_SHOW_VEHICLES, False)) and self._asks_for_vehicles()
         try:
             self._line_poles = await poles_for_line(self.hass, self._key, self._stop_poles, self._line)
         except ZTMAuthError:

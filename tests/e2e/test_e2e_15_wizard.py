@@ -11,7 +11,7 @@ from custom_components.ztm_warsaw import config_flow
 from custom_components.ztm_warsaw.client import ZTMAuthError, StopCatalogue
 from custom_components.ztm_warsaw.const import DOMAIN
 
-from .fake_city import DEFAULT_KEY, stop_name_for
+from .fake_city import DEFAULT_KEY, DEFAULT_TOKEN, stop_name_for
 
 pytestmark = pytest.mark.e2e
 
@@ -280,8 +280,33 @@ async def test_e2e_43_add_stop_says_so_when_the_line_serves_no_pole_of_the_stop_
     assert (rejected["step_id"], rejected["errors"]) == ("user", {"base": "invalid_api_key"})
 
 
+async def test_e2e_43_a_token_can_show_the_vehicles_of_the_new_line_on_the_map_from_the_start(env):
+    lines = await _search(env, "7009/01", api_key=DEFAULT_TOKEN)
+    assert "show_vehicles" in [str(k) for k in lines["data_schema"].schema]
+    done = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE, "show_vehicles": True})
+    assert done["type"] == "create_entry", done
+    assert dict(done["result"].options) == {"show_vehicles": True}
+
+
+async def test_e2e_43_the_vehicles_stay_off_unless_they_are_ticked_and_an_old_key_is_not_asked(env):
+    lines = await _search(env, "7009/01", api_key=DEFAULT_TOKEN)
+    done = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    assert dict(done["result"].options) == {}
+    old = await _search(env, "7009/01")
+    assert "show_vehicles" not in [str(k) for k in old["data_schema"].schema], "positions are a service of the token"
+
+
 async def test_e2e_43_a_key_the_city_rejects_when_the_poles_of_the_line_are_looked_up_goes_back_to_the_first_screen(env):
     lines = await _search(env, "7009")
     with patch.object(config_flow, "poles_for_line", AsyncMock(side_effect=ZTMAuthError("rejected"))):
         result = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
     assert (result["step_id"], result["errors"]) == ("user", {"base": "invalid_api_key"})
+
+
+async def test_e2e_43_ticking_the_vehicles_for_a_line_that_is_set_up_turns_them_on_for_that_line(env):
+    entry = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    lines = await _search(env, "7009/02", api_key=DEFAULT_TOKEN)
+    done = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE, "show_vehicles": True})
+    await env.settle()
+    assert (done["type"], done["reason"]) == ("abort", "stop_added")
+    assert entry.options.get("show_vehicles") is True
