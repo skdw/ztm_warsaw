@@ -63,7 +63,7 @@ The integration displays **scheduled departures** using the City of Warsaw’s o
 
 The data come from published timetables. The integration has these limitations:
 
-- no live vehicle locations, delays or disruption alerts — the API provides scheduled departures, updated once a day;
+- no delays or disruption alerts — the API provides scheduled departures, updated once a day. The vehicle of the next departure can be shown on the map as an optional entity that needs a token (see the wiki);
 - timetables are available only for the current service day — the public API does not provide other dates;
 - no route or transfer planning — use [wtp.waw.pl](https://wtp.waw.pl) for this.
 

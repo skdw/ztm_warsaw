@@ -129,6 +129,11 @@
           "city_error": "Nie udało się pobrać rozkładu"
         }
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "name": "Pojazd"
+      }
     }
   },
   "issues": {

@@ -39,6 +39,7 @@ from .data import (
     NEW_ACTION_LINES,
     NEW_ACTION_STOPS,
     NEW_ACTION_TIMETABLE,
+    NEW_ACTION_VEHICLES,
     SERVICE_UNAVAILABLE_PAYLOAD,
     DaySet,
 )
@@ -56,7 +57,7 @@ def _fake_jwt() -> str:
 
 DEFAULT_TOKEN = _fake_jwt()  # new-contract-shaped
 
-ENDPOINTS = ("timetable", "lines", "stops")
+ENDPOINTS = ("timetable", "lines", "stops", "vehicles")
 
 
 @dataclass
@@ -136,6 +137,7 @@ class FakeCity:
         self.ensure_ascii = False
         self.day_overrides: dict[date, str] = {}  # force a day set for a service date
         self.calls: list[Call] = []
+        self.vehicles: list[dict[str, Any]] = []  # the rows the vehicles endpoint answers with (both kinds; a test sets them)
         self.blocked: list[str] = []  # attempts to reach a host that is not the fake city
         self._rules: list[_Rule] = []
         self._gate = asyncio.Event()
@@ -419,7 +421,7 @@ class FakeCity:
     async def _new_handler(self, request: web.Request) -> web.StreamResponse:
         """Handle a new-contract request: record it with its decoded JSON body, apply a scripted behavior if any, else answer normally."""
         action = request.match_info["action"]
-        endpoint = {NEW_ACTION_TIMETABLE: "timetable", NEW_ACTION_LINES: "lines", NEW_ACTION_STOPS: "stops"}.get(
+        endpoint = {NEW_ACTION_TIMETABLE: "timetable", NEW_ACTION_LINES: "lines", NEW_ACTION_STOPS: "stops", NEW_ACTION_VEHICLES: "vehicles"}.get(
             action, "unknown"
         )
         body: Any = None
@@ -454,6 +456,12 @@ class FakeCity:
         if call.key not in self.valid_tokens:  # no header, "x.y.z", a forged signature or "Bearer <token>": the same
             call.behavior = "bad_token"
             return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
+        if call.endpoint == "vehicles":
+            kind = (call.body or {}).get("type") if isinstance(call.body, dict) else None
+            if kind not in (1, 2):  # OBSERVED: a string for the type answers an empty list
+                return self._new_json([])
+            trams = [r for r in self.vehicles if len(str(r.get("Lines"))) <= 2 and str(r.get("Lines")).isdigit()]
+            return self._new_json(trams if kind == 2 else [r for r in self.vehicles if r not in trams])
         if call.endpoint == "stops":
             return web.Response(
                 body=data.stops_catalogue_bytes(self.catalogue_bytes, ensure_ascii=self.ensure_ascii, new_host=True),

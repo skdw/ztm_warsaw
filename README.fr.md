@@ -63,7 +63,7 @@ L’intégration affiche les **départs prévus** à partir des données ouverte
 
 Les données proviennent des horaires publiés. L’intégration présente les limites suivantes :
 
-- pas de positions des véhicules en temps réel, de retards ni d’alertes de perturbation : l’API fournit des départs prévus, mis à jour une fois par jour ;
+- pas de retards ni d’alertes de perturbation : l’API fournit des départs prévus, mis à jour une fois par jour. Le véhicule du prochain départ peut s’afficher sur la carte, comme une entité facultative (il faut un jeton, voir le wiki) ;
 - les horaires sont disponibles uniquement pour la journée de service en cours : l’API publique ne fournit pas les autres dates ;
 - pas de calcul d’itinéraires ni de correspondances : utilisez [wtp.waw.pl](https://wtp.waw.pl) pour cela.
 

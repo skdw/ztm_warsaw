@@ -9,6 +9,7 @@ Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; n
 """
 
 import asyncio
+import hashlib
 import time
 import logging
 from typing import Any, Optional
@@ -33,6 +34,7 @@ _NEW_API = "https://dane.um.warszawa.pl/api/action/"
 _NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 _NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
 _NEW_LINES = "get_ztm_lista_linii_na_przystanku"
+_NEW_VEHICLES = "get_ztm_lokalizacja_pojazdow"
 _LEGACY_LINES_ID = "88cd555f-6f31-43ca-9de4-66c479ad5942"
 _TOKEN = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$")  # a JWT: three dot-separated segments
 # A key shaped like this belongs to the legacy host (GET, key in the query); any other key is a token for the new
@@ -325,10 +327,28 @@ class ZTMStopClient:
             headers={"Authorization": params["apikey"]}, wrap=True, limit=limit,
         )
 
+    async def get_vehicles(self, kind: int) -> list[Any] | None:
+        """The rows of the City's vehicle positions for the buses (``kind`` 1) or the trams (2), as the City sends them
+        (``Lines``, ``Brigade``, ``VehicleNumber``, ``Lat``, ``Lon``, ``Time``); None when the answer is missing or is not a list.
+        Only the new host serves them, so an old key gets None without a request."""
+        if self._legacy:
+            return None
+        answer = await self._get_with_retry(
+            _NEW_API + _NEW_VEHICLES, None, method="POST", json_body={"type": kind},
+            headers={"Authorization": self._params["apikey"]}, wrap=True,
+        )
+        result = answer.get("result") if isinstance(answer, dict) else None
+        return result if isinstance(result, list) else None
+
     @property
     def uses_token(self) -> bool:
         """Whether the key is a token of the new host (and not an old key); the shared catalogue keeps one index per kind."""
         return not self._legacy
+
+    @property
+    def key_id(self) -> str:
+        """A short fingerprint of the key that tells keys apart (one shared feed of positions per token) without holding the key."""
+        return hashlib.sha256(str(self._params["apikey"]).encode()).hexdigest()[:16]
 
     async def get_lines(self) -> list[str] | None:
         """The lines that stop at this pole today; None when the request failed. Raises ZTMApiError like get()."""

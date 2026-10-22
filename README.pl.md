@@ -63,7 +63,7 @@ Integracja wyświetla **planowane odjazdy** warszawskiej komunikacji miejskiej n
 
 Dane pochodzą z rozkładu jazdy. Integracja ma następujące ograniczenia:
 
-- nie pokazuje opóźnień, utrudnień ani bieżącej pozycji pojazdów — korzysta z planowanych odjazdów, aktualizowanych w API raz na dobę;
+- nie pokazuje opóźnień ani utrudnień — korzysta z planowanych odjazdów, aktualizowanych w API raz na dobę. Pojazd najbliższego odjazdu można pokazać na mapie jako opcjonalną encję (wymaga tokenu, szczegóły w wiki);
 - udostępnia rozkład tylko na bieżącą dobę — publiczne API nie zwraca rozkładów na inne dni;
 - nie planuje tras ani przesiadek — do tego służy [wtp.waw.pl](https://wtp.waw.pl).
 
