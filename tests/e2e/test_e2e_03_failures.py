@@ -588,6 +588,7 @@ async def test_e2e_16_the_end_of_an_outage_of_the_old_api_and_of_a_token_is_said
     """The old API's outage is said once for all the stops, so is its end; a token's end is said by its stop."""
     caplog.set_level(logging.INFO)
     await env.add_entry()  # an old key
+    await env.add_entry(line="525")  # a second line with an old key: the end is still said once
     await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
     env.city.always(None, Reset())
     await env.advance(seconds=3600 * 2)
