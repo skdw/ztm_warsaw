@@ -209,3 +209,22 @@ async def test_e2e_45_the_trackers_of_b6_are_removed_from_the_registry(env):
     await env.hass.config_entries.async_setup(entry.entry_id)
     await env.settle()
     assert not [e for e in env.entity_registry.entities.values() if e.domain == "device_tracker" and e.platform == DOMAIN]
+
+
+async def test_e2e_45_no_distance_while_the_departure_is_far_even_when_another_follower_holds_the_vehicle(env):
+    """The vehicles of the line shown on the map make the feed hold the vehicle: the sensor of a far departure still says nothing."""
+    from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES
+
+    env.city.vehicles = [_row()]
+    entry = await env.add_entry(setup=False, api_key=DEFAULT_TOKEN, options={CONF_SHOW_VEHICLES: True})
+    env.entity_registry.async_get_or_create(
+        "sensor", DOMAIN, "line_151_from_7009_01_vehicle_distance", config_entry=entry, disabled_by=None,
+        suggested_object_id="line_151_from_7009_01_vehicle_distance",
+    )
+    with patch("custom_components.ztm_warsaw.vehicle_sensor.WANTED_WITHIN", timedelta(minutes=1)):
+        await env.hass.config_entries.async_setup(entry.entry_id)
+        await env.settle()
+        await env.advance(seconds=31)
+    state = env.hass.states.get(SENSOR)
+    assert state.attributes["Status"] == "too_early"
+    assert state.state == "unknown"

@@ -169,3 +169,46 @@ async def test_e2e_48_configure_for_an_old_key_is_the_form_of_the_key_only(env):
     entry = await env.add_entry_via_flow(line="151")
     form = await env.hass.config_entries.options.async_init(entry.entry_id)
     assert [str(k) for k in form["data_schema"].schema] == ["api_key"]
+
+
+async def test_e2e_48_the_state_of_a_pin_is_its_distance_from_home_in_the_unit_of_the_instance(env):
+    """Home Assistant already converts to kilometres (or miles): the pin keeps that number and does not divide it again."""
+    env.city.vehicles = [_row(number="1001", lat=52.2297, lon=21.0122)]
+    await env.add_entry(api_key=DEFAULT_TOKEN, options={CONF_SHOW_VEHICLES: True})
+    (pin,) = _vehicles(env)
+    assert float(pin.state) == round(env.hass.config.distance(52.2297, 21.0122), 1)
+    assert float(pin.state) > 10, "a place in Warsaw is far from the home of the test instance, not 0.0 from a division by 1000"
+
+
+async def test_e2e_48_a_stop_whose_position_is_not_a_place_has_no_pin(env):
+    entry = await env.add_entry(api_key=DEFAULT_TOKEN)
+    assert len(_poles(env)) == 1
+    coordinator = entry.runtime_data["coordinator"]
+    coordinator.data.stop_info = {**coordinator.data.stop_info, "szer_geo": "nan"}
+    coordinator.async_set_updated_data(coordinator.data)
+    await env.settle()
+    assert _poles(env) == []
+
+
+async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
+    from custom_components.ztm_warsaw.geo_location import LineVehicles
+
+    class _Feed:
+        """A feed that holds no vehicle and remembers that it was left."""
+
+        left = 0
+
+        def subscribe(self, wanted, changed):
+            """Follow, and say how to stop following."""
+            return lambda: setattr(self, "left", self.left + 1)
+
+        def vehicles_of(self, line):
+            """No vehicle."""
+            return []
+
+    feed = _Feed()
+    pins = LineVehicles(env.hass, "151", feed, lambda entities: None)  # type: ignore[arg-type]
+    pins.start()
+    pins.stop()
+    pins.stop()
+    assert feed.left == 1
