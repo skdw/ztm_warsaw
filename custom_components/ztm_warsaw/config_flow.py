@@ -121,13 +121,6 @@ def stop_options(stops: dict[str, list[dict[str, Any]]]) -> list[SelectOptionDic
     return [SelectOptionDict(value=stop_id, label=f"{poles[0]['name']} ({stop_id})") for stop_id, poles in stops.items()]
 
 
-async def poles_of_stop(hass: HomeAssistant, key: str, stop_id: str) -> list[dict[str, Any]]:
-    """The poles of a stop from the City's catalogue (empty when it cannot be read or does not know the stop)."""
-    client, catalogue = await _client_for_catalogue(hass, key)
-    _, poles = await catalogue.poles_of(client, stop_id)
-    return poles
-
-
 async def lines_by_pole(hass: HomeAssistant, key: str, poles: list[dict[str, Any]]) -> dict[str, list[str] | None]:
     """``{pole number: the lines that stop there today}`` for the poles of one stop (None for a pole the City did not answer for).
     A rejected key is raised as ``ZTMAuthError``."""
@@ -159,7 +152,7 @@ async def pole_directions(
     async def hint(pole: dict[str, Any]) -> str:
         """Where the first lines of this pole head."""
         heads: list[str] = []
-        for line in (lines[pole["stop_nr"]] or [])[:2]:
+        for line in (lines.get(pole["stop_nr"]) or [])[:2]:
             head = await direction_of(hass, key, pole, line)
             if head and head not in heads:
                 heads.append(head)

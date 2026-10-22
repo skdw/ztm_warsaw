@@ -350,3 +350,15 @@ async def test_e2e_43_a_direction_the_timetable_cannot_give_falls_back_to_the_ca
         assert await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE) == "Catalogue direction"
     with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMAuthError("rejected"))), pytest.raises(ZTMAuthError):
         await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE)
+
+
+async def test_e2e_43_a_screen_asked_for_again_shows_itself_again(env):
+    flow = env.hass.config_entries.flow
+    pick = await _search(env, NAME[:12].lower())
+    assert (await flow.async_configure(pick["flow_id"], None))["step_id"] == "pick"
+    poles = await flow.async_configure(pick["flow_id"], {"stop": "7009"})
+    assert (await flow.async_configure(poles["flow_id"], None))["step_id"] == "pole"
+    lines = await flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+    assert (await flow.async_configure(lines["flow_id"], None))["step_id"] == "line"
+    search = await _search(env, "no such stop anywhere")
+    assert (await flow.async_configure(search["flow_id"], None))["step_id"] == "stop"
