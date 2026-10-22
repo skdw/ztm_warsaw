@@ -21,7 +21,7 @@
         "title": "¿Qué parada?",
         "description": "Escribe parte del nombre de la parada (o su ID).",
         "data": {
-          "query": "Nombre o ID de la parada (p. ej. Marcelin o 3044)"
+          "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)"
         }
       },
       "pick": {
@@ -328,7 +328,7 @@
           "title": "Añadir una parada de la línea {line}",
           "description": "Otra parada de la línea {line}. Escribe parte de su nombre o su ID.",
           "data": {
-            "stop": "Nombre o ID de la parada (p. ej. Marcelin o 3044)",
+            "query": "Nombre o ID de la parada (p. ej. Rondo Daszyńskiego o 3044)",
             "manual": "Conozco los números: los introduciré yo"
           }
         },

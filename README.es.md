@@ -130,7 +130,7 @@ Una clave antigua de la API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.
 
 1. Ve a **Configuración → Dispositivos y servicios**.
 2. Pulsa **+ Añadir integración** y busca **Transporte público de Varsovia**.
-3. Pega tu token, escribe parte del nombre de la parada (por ejemplo, `Marcelin`) o su ID y elige la parada.
+3. Pega tu token, escribe parte del nombre de la parada (por ejemplo, `Rondo Daszyńskiego`) o su ID y elige la parada.
 4. Elige el punto de parada por hacia dónde va (su número está en el cartel de la parada, y la integración muestra la dirección que lee del horario), y después la línea: solo aparecen las líneas que paran allí hoy.
 
 La integración llamará al sensor, por ejemplo, `sensor.line_151_from_7009_01`. Otra parada de la línea la añades con **Añadir parada**. Si conoces los números, marca en la primera pantalla **Conozco los números: los introduciré yo**. El tiempo de paseo, el calendario, el vehículo en el mapa y cómo quitar una línea se explican en la [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).

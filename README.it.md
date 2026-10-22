@@ -130,7 +130,7 @@ Una vecchia chiave API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, da [api.um.warsz
 
 1. Vai su **Impostazioni → Dispositivi e servizi**.
 2. Fai clic su **+ Aggiungi integrazione** e cerca **Trasporto pubblico di Varsavia**.
-3. Incolla il token, scrivi una parte del nome della fermata (per esempio `Marcelin`) o il suo ID e scegli la fermata.
+3. Incolla il token, scrivi una parte del nome della fermata (per esempio `Rondo Daszyńskiego`) o il suo ID e scegli la fermata.
 4. Scegli il punto di fermata in base a dove va (il numero è sul cartello della fermata, e l’integrazione mostra la direzione letta dall’orario), poi la linea: sono elencate solo le linee che oggi vi fermano.
 
 L’integrazione chiama il sensore per esempio `sensor.line_151_from_7009_01`. Un’altra fermata della linea si aggiunge con **Aggiungi fermata**. Se conosci i numeri, spunta nella prima schermata **Conosco i numeri: li inserisco io**. Tempo di cammino, calendario, veicolo sulla mappa e rimozione di una linea sono spiegati nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).

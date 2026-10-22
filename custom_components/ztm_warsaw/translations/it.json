@@ -21,7 +21,7 @@
         "title": "Quale fermata?",
         "description": "Scrivi una parte del nome della fermata (o il suo ID).",
         "data": {
-          "query": "Nome o ID della fermata (es. Marcelin o 3044)"
+          "query": "Nome o ID della fermata (es. Rondo Daszyńskiego o 3044)"
         }
       },
       "pick": {
@@ -328,7 +328,7 @@
           "title": "Aggiungi una fermata della linea {line}",
           "description": "Un’altra fermata della linea {line}. Scrivi parte del nome o l’ID.",
           "data": {
-            "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
+            "query": "Nome o ID della fermata (es. Rondo Daszyńskiego o 3044)",
             "manual": "Conosco i numeri: li inserisco io"
           }
         },

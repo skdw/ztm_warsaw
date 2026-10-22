@@ -62,7 +62,7 @@ async def async_migrate_to_lines(hass: HomeAssistant) -> None:
 
 
 def _stop_title(entry: ConfigEntry, unit: StopUnit) -> str:
-    """The title of a stop's subentry: its name when the entry was titled with it ("Line 176 from Marcelin 15")."""
+    """The title of a stop's subentry: its name when the entry was titled with it ("Line 176 from Rondo Daszyńskiego 15")."""
     numbers = f"{unit.stop_id}/{unit.stop_nr}"
     prefix = f"Line {unit.line} from "
     title = entry.title.strip()

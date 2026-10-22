@@ -130,7 +130,7 @@ Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warsz
 
 1. Przejdź do **Ustawienia → Urządzenia oraz usługi**.
 2. Kliknij **+ Dodaj integrację** i wyszukaj **Warszawski Transport Publiczny**.
-3. Wklej token, potem wpisz fragment nazwy przystanku (na przykład `Marcelin`) albo jego ID i wybierz przystanek.
+3. Wklej token, potem wpisz fragment nazwy przystanku (na przykład `Rondo Daszyńskiego`) albo jego ID i wybierz przystanek.
 4. Wybierz słupek według kierunku, w którym jedzie (numer jest na tabliczce przystanku, a integracja wyświetla kierunek odczytany z rozkładu), potem linię: na liście są tylko linie, które dziś tam się zatrzymują.
 
 Integracja nazwie sensor na przykład `sensor.line_151_from_7009_01`. Kolejny przystanek tej linii dodasz przyciskiem **Dodaj przystanek**. Jeśli znasz numery, zaznacz na pierwszym ekranie **Znam numery: wpiszę je sam**. Czas dojścia, kalendarz, pojazd na mapie i usuwanie linii opisuje [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).

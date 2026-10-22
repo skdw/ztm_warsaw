@@ -130,7 +130,7 @@ An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl
 
 1. Go to **Settings → Devices & services**.
 2. Click **+ Add Integration** and search for **Warsaw Public Transport**.
-3. Paste your token, then type a part of the stop's name (for example `Marcelin`) or its ID and pick the stop.
+3. Paste your token, then type a part of the stop's name (for example `Rondo Daszyńskiego`) or its ID and pick the stop.
 4. Pick the pole by where it goes (its number is on the stop sign; the integration shows the direction, read from the timetable), then the line: only lines that stop there today are listed.
 
 The integration names the sensor, for example `sensor.line_151_from_7009_01`. You add another stop of the line with **Add stop**. If you know the numbers, tick **I know the numbers: let me enter them myself** on the first screen. The [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) explains the walking time, the calendar, the vehicle on the map and how to remove a line.

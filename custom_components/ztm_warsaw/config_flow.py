@@ -118,7 +118,7 @@ def stops_of(poles: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
 
 
 def stop_options(stops: dict[str, list[dict[str, Any]]]) -> list[SelectOptionDict]:
-    """The choices of the stop step: "Marcelin (7009)"."""
+    """The choices of the stop step: "Rondo Daszyńskiego (7009)"."""
     return [SelectOptionDict(value=stop_id, label=f"{poles[0]['name']} ({stop_id})") for stop_id, poles in stops.items()]
 
 
@@ -130,7 +130,7 @@ async def lines_by_pole(hass: HomeAssistant, key: str, poles: list[dict[str, Any
 
 
 async def direction_of(hass: HomeAssistant, key: str, pole: dict[str, Any], line: str) -> str:
-    """Where this line goes from the pole, as the City's timetable says ("Metro Wilanowska"); what the catalogue says about the
+    """Where this line goes from the pole, as the City's timetable says ("Dworzec Centralny"); what the catalogue says about the
     pole when the timetable cannot be read (a token's catalogue says nothing), and empty when neither does."""
     client, _ = await _client_for_catalogue(hass, key, pole["stop_id"], pole["stop_nr"], line)
     try:
@@ -148,7 +148,7 @@ async def pole_directions(
 ) -> list[dict[str, Any]]:
     """The poles of a stop that have lines, each with where it goes: the City's catalogue has no direction, but its timetable
     says where each departure heads, so the poles are asked about their first two lines and the places are joined
-    ("Rechniewskiego, Metro Wilanowska"). A rejected key is raised as ``ZTMAuthError``."""
+    ("Rechniewskiego, Dworzec Centralny"). A rejected key is raised as ``ZTMAuthError``."""
 
     async def hint(pole: dict[str, Any]) -> str:
         """Where the first lines of this pole head."""
@@ -177,7 +177,7 @@ async def poles_for_line(hass: HomeAssistant, key: str, poles: list[dict[str, An
 
 
 def pole_options(poles: list[dict[str, Any]]) -> list[SelectOptionDict]:
-    """The choices of the pole step: "Marcelin 01 → Metro Wilanowska" (the arrow and the numbers are the same in every language)."""
+    """The choices of the pole step: "Rondo Daszyńskiego 01 → Dworzec Centralny" (the arrow and the numbers are the same in every language)."""
     return [
         SelectOptionDict(
             value=f"{p['stop_id']}/{p['stop_nr']}",

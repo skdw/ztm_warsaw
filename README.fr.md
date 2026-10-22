@@ -130,7 +130,7 @@ Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warsza
 
 1. Allez dans **Paramètres → Appareils et services**.
 2. Cliquez sur **+ Ajouter une intégration** et cherchez **Transports publics de Varsovie**.
-3. Collez votre jeton, saisissez une partie du nom de l’arrêt (par exemple `Marcelin`) ou son ID, puis choisissez l’arrêt.
+3. Collez votre jeton, saisissez une partie du nom de l’arrêt (par exemple `Rondo Daszyńskiego`) ou son ID, puis choisissez l’arrêt.
 4. Choisissez le point d’arrêt selon où il va (son numéro figure sur le panneau, et l’intégration affiche la direction lue dans l’horaire), puis la ligne : seules les lignes qui s’y arrêtent aujourd’hui sont proposées.
 
 L’intégration nomme le capteur par exemple `sensor.line_151_from_7009_01`. Vous ajoutez un autre arrêt de la ligne avec **Ajouter un arrêt**. Si vous connaissez les numéros, cochez **Je connais les numéros : je les saisis moi-même** sur le premier écran. Le temps de marche, le calendrier, le véhicule sur la carte et la suppression d’une ligne sont expliqués dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).

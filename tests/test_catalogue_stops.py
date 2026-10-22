@@ -24,8 +24,8 @@ class _Client:
 
 
 STOPS = [
-    ("1085", "01", "Marcelin", "Metro Wilanowska"),
-    ("1085", "02", "Marcelin", "Okęcie"),
+    ("1085", "01", "Rondo Daszyńskiego", "Dworzec Centralny"),
+    ("1085", "02", "Rondo Daszyńskiego", "Okęcie"),
     ("7009", "01", "Łazienki Królewskie", "Centrum"),
     ("3044", "01", "Żerań FSO", "Dworzec"),
 ]
@@ -38,7 +38,7 @@ def test_folding_ignores_case_diacritics_and_the_polish_l():
 async def test_the_poles_of_a_stop_come_with_their_name_and_direction():
     readable, poles = await StopCatalogue(ttl=0).poles_of(_Client(STOPS), "1085")
     assert readable is True
-    assert [(p["stop_nr"], p["name"], p["direction"]) for p in poles] == [("01", "Marcelin", "Metro Wilanowska"), ("02", "Marcelin", "Okęcie")]
+    assert [(p["stop_nr"], p["name"], p["direction"]) for p in poles] == [("01", "Rondo Daszyńskiego", "Dworzec Centralny"), ("02", "Rondo Daszyńskiego", "Okęcie")]
     assert (await StopCatalogue(ttl=0).poles_of(_Client(STOPS), "9999")) == (True, [])
 
 

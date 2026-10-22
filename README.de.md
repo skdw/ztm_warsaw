@@ -130,7 +130,7 @@ Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.wa
 
 1. Öffne **Einstellungen → Geräte & Dienste**.
 2. Klicke auf **+ Integration hinzufügen** und suche nach **Öffentlicher Nahverkehr Warschau**.
-3. Füge dein Token ein, tippe dann einen Teil des Haltestellennamens (zum Beispiel `Marcelin`) oder die ID ein und wähle die Haltestelle.
+3. Füge dein Token ein, tippe dann einen Teil des Haltestellennamens (zum Beispiel `Rondo Daszyńskiego`) oder die ID ein und wähle die Haltestelle.
 4. Wähle die Halteposition nach ihrer Richtung (die Nummer steht auf dem Haltestellenschild, und die Integration zeigt die Richtung, die sie aus dem Fahrplan liest), dann die Linie: Aufgelistet sind nur Linien, die dort heute halten.
 
 Die Integration benennt den Sensor zum Beispiel `sensor.line_151_from_7009_01`. Eine weitere Haltestelle der Linie fügst du mit **Haltestelle hinzufügen** hinzu. Kennst du die Nummern, setze auf dem ersten Bildschirm den Haken bei **Ich kenne die Nummern: Ich gebe sie selbst ein**. Gehzeit, Kalender, Fahrzeug auf der Karte und das Entfernen einer Linie erklärt das [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).

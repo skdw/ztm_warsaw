@@ -26,8 +26,8 @@ class _Client:
 
 
 STOPS = [
-    ("1085", "01", "Marcelin", "Metro Wilanowska"),
-    ("1085", "02", "Marcelin", "Okęcie"),
+    ("1085", "01", "Rondo Daszyńskiego", "Dworzec Centralny"),
+    ("1085", "02", "Rondo Daszyńskiego", "Okęcie"),
     ("7009", "01", "Łazienki Królewskie", "Centrum"),
     ("7009", "02", "Łazienki Królewskie", "Wilanów"),
     ("3044", "01", "Żerań FSO", "Dworzec"),
@@ -43,7 +43,7 @@ def test_folding_ignores_case_diacritics_and_the_polish_l():
     assert fold("Łazienki Żerań ĄĘ") == fold("lazienki zeran ae")
 
 
-@pytest.mark.parametrize("query", ["marc", "MARCELIN", "  marcelin "])
+@pytest.mark.parametrize("query", ["marc", "MARCELIN", "  rondo daszyńskiego "])
 async def test_a_name_is_found_by_any_part_of_it_whatever_the_case(query):
     readable, poles = await _search(query)
     assert readable is True
@@ -77,5 +77,5 @@ async def test_a_search_returns_one_more_than_the_limit_so_the_caller_can_tell_t
 
 
 async def test_a_catalogue_that_cannot_be_read_is_reported_and_finds_nothing():
-    readable, poles = await StopCatalogue(ttl=0).search(_Client([]), "marcelin")
+    readable, poles = await StopCatalogue(ttl=0).search(_Client([]), "rondo daszyńskiego")
     assert (readable, poles) == (False, [])

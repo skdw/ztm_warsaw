@@ -42,7 +42,7 @@ async def test_e2e_47_an_old_key_sends_no_request_and_the_line_says_why_it_has_n
 
 async def test_e2e_47_the_reauth_notice_names_the_line_not_its_stops(env, monkeypatch):
     entry = await env.add_entry_via_flow(line="151")  # a line entry, made while the old API still answered
-    old = "Line 151 · Marcelin 01"
+    old = "Line 151 · Rondo Daszyńskiego 01"
     env.hass.config_entries.async_update_entry(entry, title=old, options={"generated_title": old})
     monkeypatch.setattr("custom_components.ztm_warsaw.const.LEGACY_API_RETIRED", True)
     assert await env.hass.config_entries.async_reload(entry.entry_id)

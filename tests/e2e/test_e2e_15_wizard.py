@@ -305,7 +305,7 @@ async def test_e2e_43_a_token_picked_from_those_in_use_is_not_put_in_the_form_of
 async def test_e2e_43_the_poles_of_a_stop_are_told_apart_by_the_places_their_first_lines_go(env):
     poles = [{"stop_id": "7009", "stop_nr": "01", "name": NAME, "direction": "catalogue"}, {"stop_id": "7009", "stop_nr": "02", "name": NAME, "direction": "catalogue"}]
     lines = {"01": ["151", "523", "N25"], "02": []}
-    heads = {"151": "Rechniewskiego", "523": "Rechniewskiego", "N25": "Metro Wilanowska"}
+    heads = {"151": "Rechniewskiego", "523": "Rechniewskiego", "N25": "Dworzec Centralny"}
     with patch.object(config_flow, "direction_of", AsyncMock(side_effect=lambda hass, key, pole, line: heads[line])):
         found = await config_flow.pole_directions(env.hass, DEFAULT_KEY, poles, lines)
     assert [(p["stop_nr"], p["direction"]) for p in found] == [("01", "Rechniewskiego")], "two lines, one place; a pole without lines is left out"

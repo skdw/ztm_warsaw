@@ -436,7 +436,7 @@ async def test_e2e_38_a_title_the_user_chose_is_kept(env):
 
 
 async def test_e2e_38_the_title_that_1_2_0b5_made_with_the_stops_goes_back_to_the_plain_one(env):
-    """b5 and b6 titled a line "Line 525 · Marcelin 01, Marcelin 02" and remembered it in an option; both are cleaned up."""
+    """b5 and b6 titled a line "Line 525 · Rondo Daszyńskiego 01, Rondo Daszyńskiego 02" and remembered it in an option; both are cleaned up."""
     entry = await env.add_entry_via_flow(line=LINE)
     old = f"Line {LINE} · {stop_name_for('7009')} 01, {stop_name_for('7009')} 02"
     env.hass.config_entries.async_update_entry(entry, title=old, options={"generated_title": old})

@@ -21,7 +21,7 @@
         "title": "Quel arrêt ?",
         "description": "Saisissez une partie du nom de l’arrêt (ou son ID).",
         "data": {
-          "query": "Nom ou ID de l’arrêt (p. ex. Marcelin ou 3044)"
+          "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)"
         }
       },
       "pick": {
@@ -328,7 +328,7 @@
           "title": "Ajouter un arrêt de la ligne {line}",
           "description": "Un autre arrêt de la ligne {line}. Tapez une partie de son nom ou son ID.",
           "data": {
-            "stop": "Nom ou ID de l’arrêt (p. ex. Marcelin ou 3044)",
+            "query": "Nom ou ID de l’arrêt (p. ex. Rondo Daszyńskiego ou 3044)",
             "manual": "Je connais les numéros : je les saisis moi-même"
           }
         },
