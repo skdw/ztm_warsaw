@@ -25,6 +25,7 @@ from .entries import entry_api_key, line_of, stop_units
 
 
 CONF_ALL_LINES = "all_lines"  # the checkbox of the paste step: use the token for every line that still has an old key
+CONF_TOKEN = "token"  # the field of the step that picks one of several tokens (the number of the token in the list shown)
 
 
 class LegacyKeyRepairFlow(RepairsFlow):
@@ -46,7 +47,7 @@ class LegacyKeyRepairFlow(RepairsFlow):
         entry = self.hass.config_entries.async_get_entry(self._entry_id) if self._entry_id else None
         if entry is None or not key_can_change(entry):
             return self.async_abort(reason="unknown")
-        options = ["token", "reuse", "ignore"] if self._other_token(entry) else ["token", "ignore"]
+        options = ["token", "reuse", "ignore"] if self._tokens(entry) else ["token", "ignore"]
         return self.async_show_menu(
             step_id="init",
             menu_options=options,
@@ -57,9 +58,18 @@ class LegacyKeyRepairFlow(RepairsFlow):
         """The other entries of the integration, whose key can be read."""
         return [e for e in self.hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and entry_api_key(e)]
 
-    def _other_token(self, entry: ConfigEntry) -> str | None:
-        """A token another entry of the integration already has (the token is the account's, one for all lines), or None."""
-        return next((key for e in self._others(entry) if key_kind(key := entry_api_key(e) or "") == "token"), None)
+    def _tokens(self, entry: ConfigEntry) -> list[tuple[str, list[str]]]:
+        """The different tokens the other entries of the integration have, each with the lines that use it, in the order they
+        are met (a token is the account's: one serves every line, but there may be more than one account's)."""
+        found: dict[str, list[str]] = {}
+        for other in self._others(entry):
+            key = entry_api_key(other) or ""
+            if key_kind(key) == "token":
+                lines = found.setdefault(key, [])
+                line = self._line_of_entry(other)
+                if line and line not in lines:
+                    lines.append(line)
+        return list(found.items())
 
     def _legacy_others(self, entry: ConfigEntry) -> list[ConfigEntry]:
         """The other entries that still have an old key and could take the new token as well."""
@@ -69,9 +79,22 @@ class LegacyKeyRepairFlow(RepairsFlow):
         """Use the token another line already has: checked for this line like a pasted one, never shown. Aborts when the City does
         not accept it for this line (then pasting another is still possible by opening the notice again)."""
         entry = self.hass.config_entries.async_get_entry(self._entry_id) if self._entry_id else None
-        token = self._other_token(entry) if entry is not None else None
-        if entry is None or not key_can_change(entry) or token is None:
+        tokens = self._tokens(entry) if entry is not None else []
+        if entry is None or not key_can_change(entry) or not tokens:
             return self.async_abort(reason="unknown")
+        if len(tokens) == 1:
+            return await self._use(entry, tokens[0][0])
+        choices = {str(n): f"…{key[-4:]}  ·  {', '.join(lines) or '-'}" for n, (key, lines) in enumerate(tokens)}
+        if user_input is not None and user_input.get(CONF_TOKEN) in choices:
+            return await self._use(entry, tokens[int(user_input[CONF_TOKEN])][0])
+        return self.async_show_form(
+            step_id="reuse",
+            data_schema=cast("Any", vol.Schema({vol.Required(CONF_TOKEN): vol.In(choices)})),  # Home Assistant 2026.10 types it for another schema library
+            description_placeholders={"line": self._line_of_entry(entry)},
+        )
+
+    async def _use(self, entry: ConfigEntry, token: str) -> Any:  # the result type differs between Home Assistant versions
+        """Give the entry this token, checked for its line like a pasted one (the token is never shown)."""
         error, works = await key_error(self.hass, entry, token)
         if error is not None and not works:
             return self.async_abort(reason="reuse_rejected")
