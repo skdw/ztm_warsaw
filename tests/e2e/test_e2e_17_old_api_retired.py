@@ -31,11 +31,25 @@ async def test_e2e_47_an_old_key_sends_no_request_and_the_line_says_why_it_has_n
     assert env.city.count() == 0, "nothing is asked of the old API"
     assert env.state().state == "unavailable"
     assert env.hass.states.get(STATUS).state == "old_api"
-    issue = ir.async_get(env.hass).async_get_issue(DOMAIN, f"legacy_key_{entry.entry_id}")
-    assert issue is not None
-    assert issue.severity == ir.IssueSeverity.ERROR, "the notice is an error while the old API is gone"
+    registry = ir.async_get(env.hass)
+    assert registry.async_get_issue(DOMAIN, f"legacy_key_{entry.entry_id}") is None, "one notice per line: Home Assistant's own"
+    flows = env.hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    reauth = [f for f in flows if f["context"].get("source") == "reauth"]
+    assert len(reauth) == 1
     said = [r for r in caplog.records if r.levelno >= logging.WARNING and "old API" in r.getMessage()]
     assert len(said) == 1
+
+
+async def test_e2e_47_the_reauth_notice_names_the_line_not_its_stops(env, monkeypatch):
+    entry = await env.add_entry_via_flow(line="151")  # a line entry, made while the old API still answered
+    old = "Line 151 · Marcelin 01"
+    env.hass.config_entries.async_update_entry(entry, title=old, options={"generated_title": old})
+    monkeypatch.setattr("custom_components.ztm_warsaw.const.LEGACY_API_RETIRED", True)
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    reauth = [f for f in env.hass.config_entries.flow.async_progress_by_handler(DOMAIN) if f["context"].get("source") == "reauth"]
+    assert len(reauth) == 1
+    assert reauth[0]["context"]["title_placeholders"]["name"] == "Line 151"
 
 
 async def test_e2e_47_it_is_said_once_for_all_the_lines(env, retired, caplog):
