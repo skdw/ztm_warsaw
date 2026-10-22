@@ -59,20 +59,20 @@
 
 </details>
 
-Pokazuje, **kiedy odjedzie najbliższy autobus, tramwaj lub pociąg z Twojego przystanku**: jeden sensor dla linii na słupku, do pulpitu i do automatyzacji, na przykład „powiedz mi, kiedy wyjść”. Korzysta z otwartych danych m.st. Warszawy i nie wymaga żadnego dodatkowego sprzętu.
+Integracja wyświetla w Home Assistancie, **kiedy z Twojego przystanku odjedzie najbliższy autobus, tramwaj albo pociąg**. Dla każdej linii na wybranym słupku tworzy jeden sensor, który możesz umieścić na pulpicie albo wykorzystać w automatyzacji, na przykład żeby dostać powiadomienie, kiedy trzeba wyjść z domu. Dane bierze z otwartych danych m.st. Warszawy, więc nie potrzebujesz żadnego dodatkowego sprzętu.
 
-Pokazuje **planowane** odjazdy: bez opóźnień i utrudnień, tylko bieżącą dobę rozkładową i bez planowania podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Pojazd najbliższego odjazdu można pokazać na mapie (opcjonalnie, wymaga tokenu).
+Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. Nie pokazuje opóźnień ani utrudnień, nie zna rozkładów na inne dni niż bieżąca doba rozkładowa i nie planuje podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Jeśli masz token, możesz dodatkowo zobaczyć na mapie pojazd, który obsłuży najbliższy odjazd.
 
 ---
 
 ## 🔧 Funkcje
 
-- ✅ Autobusy, tramwaje, metro i SKM, także linie nocne, ekspresowe i lokalne.
-- ✅ Stanem sensora jest najbliższy odjazd; trzy kolejne oraz pierwszy i ostatni odjazd doby są w atrybutach.
-- ✅ Sensor *Status* mówi zwykłymi słowami, co się dzieje („Ostatni odjazd dzisiaj już był”).
-- ✅ Konfiguracja przez wyszukanie przystanku po nazwie, potem wybór słupka i linii: nie trzeba szukać żadnych numerów.
-- ✅ Wiele linii i przystanków, opcjonalny czas dojścia, opcjonalny kalendarz i opcjonalna pinezka pojazdu na mapie.
-- ✅ Osiem języków: angielski, polski, ukraiński, rosyjski, niemiecki, hiszpański, francuski i włoski. Sześć nowszych przetłumaczono maszynowo; poprawki mile widziane jako pull requesty.
+- ✅ Integracja obsługuje autobusy, tramwaje, metro i SKM, także linie nocne, ekspresowe i lokalne.
+- ✅ Stanem sensora jest godzina najbliższego odjazdu. Trzy następne odjazdy oraz pierwszy i ostatni odjazd doby znajdziesz w atrybutach.
+- ✅ Osobny sensor *Status* wyjaśnia zwykłymi słowami, co się dzieje, na przykład „Ostatni odjazd dzisiaj już był”.
+- ✅ Przystanek dodajesz, wpisując fragment jego nazwy. Potem wybierasz słupek i linię z listy, więc nie musisz szukać żadnych numerów.
+- ✅ Możesz dodać wiele linii i przystanków, ustawić czas dojścia na przystanek, włączyć kalendarz odjazdów i zobaczyć pojazd na mapie. Kalendarz i pojazd są domyślnie wyłączone.
+- ✅ Interfejs jest w ośmiu językach: angielskim, polskim, ukraińskim, rosyjskim, niemieckim, hiszpańskim, francuskim i włoskim. Sześć nowszych wersji przetłumaczył program, więc poprawki w postaci pull requestów są mile widziane.
 
 ---
 
@@ -103,9 +103,9 @@ Pokazuje **planowane** odjazdy: bez opóźnień i utrudnień, tylko bieżącą d
 
 ## 🧭 Klucz i token
 
-Bezpłatny token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): wpisz dowolny pseudonim, zaakceptuj regulamin i pobierz token. To długi tekst z trzech części oddzielonych kropkami.
+Bezpłatny token pobierzesz na stronie [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): wpisz dowolny pseudonim, zaakceptuj regulamin i pobierz token. Token to długi tekst złożony z trzech części oddzielonych kropkami.
 
-Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl)) nadal działa, ale ten serwer bywa nieczynny, miasto nie podało terminu jego wyłączenia, a pojazd na mapie wymaga tokenu. Aby przejść na token, otwórz powiadomienie w **Problemach** albo wybierz **Konfiguruj** przy linii i wklej token. Twoje ustawienia zostaną zachowane.
+Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warszawa.pl](https://api.um.warszawa.pl)) nadal działa, ale serwer, który go obsługuje, czasem przestaje odpowiadać. Miasto nie podało też terminu jego wyłączenia, a pojazd na mapie działa tylko z tokenem. Żeby przejść na token, otwórz powiadomienie w **Problemach** albo wybierz przy linii **Konfiguruj** i wklej token. Ustawienia linii zostaną zachowane.
 
 ---
 
@@ -133,25 +133,25 @@ Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warsz
 3. Wklej token i wpisz fragment nazwy przystanku (na przykład `Marcelin`) albo jego ID.
 4. Wybierz słupek (numer jest na tabliczce przystanku, każdy kierunek ma swój) i linię. Na liście są tylko linie, które dziś tam zatrzymują się.
 
-Sensor ma nazwę w rodzaju `sensor.line_151_from_7009_01`. Kolejny przystanek tej linii dodasz przez **Dodaj przystanek**. Jeśli znasz numery, zaznacz **Znam numery** na pierwszym ekranie. Czas dojścia, kalendarz, pinezkę pojazdu i usuwanie linii opisuje [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
+Integracja nazwie sensor na przykład `sensor.line_151_from_7009_01`. Kolejny przystanek tej linii dodasz przyciskiem **Dodaj przystanek**. Jeśli znasz numery, zaznacz na pierwszym ekranie **Znam numery: wpiszę je sam**. Czas dojścia, kalendarz, pojazd na mapie i usuwanie linii opisuje [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Rozwiązywanie problemów
 
-- **Sensor ma stan `unknown` i pokazuje „No service”.** Linia dziś nie kursuje albo jej ostatni odjazd już był. To normalne. Który to przypadek, mówi sensor *Status*; rozkład jest na [wtp.waw.pl](https://wtp.waw.pl), można też zadzwonić pod 19115.
-- **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu: odrzucony token albo przystanek, słupek lub linia, których nie zna. Przyczyna jest w logu Home Assistanta (klucze i tokeny nigdy tam nie trafiają).
-- **Błędy sieci, a masz stary klucz.** Stary serwer miasta bywa nieczynny. Sensory zachowują rozkład, który mają, i pytają ponownie później; przejście na token rozwiązuje problem.
-- **Home Assistant prosi o nowy klucz.** Miasto trzy razy z rzędu odrzuciło klucz. Wpisz nowy klucz lub token w formularzu; ustawienia zostaną zachowane.
-- **Zgłaszanie problemu.** Wybierz przy wpisie *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Klucz lub token jest w nim zastąpiony napisem `**REDACTED**`.
+- **Sensor ma stan `unknown` i atrybut „No service”.** Linia dziś nie kursuje albo jej ostatni odjazd już był. To nie jest błąd. Którą z tych dwóch sytuacji mamy, powie sensor *Status*. Rozkład sprawdzisz na [wtp.waw.pl](https://wtp.waw.pl) albo pod numerem 19115.
+- **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu, bo odrzuciło token albo nie zna przystanku, słupka lub linii. Przyczynę znajdziesz w logu Home Assistanta. Klucze i tokeny nigdy się w nim nie pojawiają.
+- **W logu są błędy sieci, a masz stary klucz.** Stary serwer miasta czasem przestaje odpowiadać. Sensory zachowują wtedy ostatni rozkład i po jakimś czasie pytają ponownie. Problem znika po przejściu na token.
+- **Home Assistant prosi o nowy klucz.** Miasto odrzuciło klucz trzy razy z rzędu. Wpisz w formularzu nowy klucz albo token. Ustawienia zostaną zachowane.
+- **Chcesz zgłosić problem.** Wybierz przy wpisie *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Klucz i token są w nim zastąpione napisem `**REDACTED**`.
 
-Więcej odpowiedzi jest w [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
+Więcej odpowiedzi znajdziesz w [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
 ---
 
 ## 📚 Dokumentacja
 
-[Wiki](https://github.com/solarssk/ztm_warsaw/wiki) to instrukcja obsługi: [Konfiguracja](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (czas dojścia, usuwanie linii), [Pojęcia](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (doba rozkładowa, co pokazuje każda encja), [Przykłady](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (karty i automatyzacje do skopiowania) i [Rozwiązywanie problemów](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). Jest po angielsku; źródło leży w [`docs/wiki/`](docs/wiki).
+Instrukcja obsługi jest w [wiki](https://github.com/solarssk/ztm_warsaw/wiki): [Konfiguracja](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) opisuje czas dojścia i usuwanie linii, [Pojęcia](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) wyjaśniają dobę rozkładową i to, co wyświetla każda encja, [Przykłady](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) zawierają karty i automatyzacje do skopiowania, a [Rozwiązywanie problemów](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) odpowiada na typowe pytania. Wiki jest po angielsku, a pliki źródłowe leżą w [`docs/wiki/`](docs/wiki).
 
 ---
 

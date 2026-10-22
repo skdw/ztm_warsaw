@@ -59,20 +59,20 @@
 
 </details>
 
-Mostra **quando parte il prossimo autobus, tram o treno dalla tua fermata**: un sensore per una linea a un punto di fermata, per la tua dashboard e per automazioni come «dimmi quando uscire». Usa i dati aperti della città di Varsavia e non richiede hardware aggiuntivo.
+L’integrazione mostra in Home Assistant **quando parte dalla tua fermata il prossimo autobus, tram o treno**. Per ogni linea al punto di fermata scelto crea un sensore che puoi mettere in una dashboard o usare in un’automazione, per esempio per ricevere una notifica quando è ora di uscire di casa. Usa i dati aperti della città di Varsavia, quindi non serve hardware aggiuntivo.
 
-Mostra partenze **programmate**: niente ritardi né avvisi di disservizio, solo il giorno di servizio in corso e nessuna pianificazione di viaggi (per questo c’è [wtp.waw.pl](https://wtp.waw.pl)). Il veicolo della prossima partenza può comparire sulla mappa (facoltativo, serve un token).
+L’integrazione legge gli orari, perciò mostra partenze **programmate**. Non mostra ritardi né disservizi, non conosce gli orari di giorni diversi dal giorno di servizio in corso e non pianifica viaggi (per questo c’è [wtp.waw.pl](https://wtp.waw.pl)). Con un token puoi anche vedere sulla mappa il veicolo che effettuerà la prossima partenza.
 
 ---
 
 ## 🔧 Funzionalità
 
-- ✅ Autobus, tram, metropolitana e treni urbani (SKM), comprese le linee notturne, espresse e locali.
-- ✅ La prossima partenza è lo stato del sensore; le tre successive, la prima e l’ultima partenza della giornata sono attributi.
-- ✅ Un sensore *Stato* dice con parole semplici cosa sta succedendo («L’ultima partenza della giornata è passata»).
-- ✅ Configurazione cercando il nome della fermata e scegliendo poi il punto di fermata e la linea: nessun numero da cercare.
-- ✅ Più linee e fermate, un tempo di cammino facoltativo, un calendario facoltativo e un segnaposto facoltativo del veicolo sulla mappa.
-- ✅ Otto lingue: inglese, polacco, ucraino, russo, tedesco, spagnolo, francese e italiano. Le sei più recenti sono tradotte automaticamente; le correzioni sono benvenute come pull request.
+- ✅ L’integrazione supporta autobus, tram, metropolitana e treni urbani (SKM), comprese le linee notturne, espresse e locali.
+- ✅ Lo stato del sensore è l’ora della prossima partenza. Le tre successive, la prima e l’ultima partenza della giornata si trovano negli attributi.
+- ✅ Un sensore *Stato* a parte spiega con parole semplici cosa succede, per esempio «L’ultima partenza della giornata è passata».
+- ✅ Aggiungi una fermata scrivendo una parte del suo nome. Poi scegli il punto di fermata e la linea da un elenco, quindi non devi cercare nessun numero.
+- ✅ Puoi aggiungere più linee e fermate, impostare un tempo di cammino fino alla fermata, attivare un calendario delle partenze e vedere il veicolo sulla mappa. Calendario e veicolo sono disattivati per impostazione predefinita.
+- ✅ L’interfaccia è disponibile in otto lingue: inglese, polacco, ucraino, russo, tedesco, spagnolo, francese e italiano. Un programma ha tradotto le sei più recenti, quindi le correzioni come pull request sono benvenute.
 
 ---
 
@@ -103,9 +103,9 @@ Mostra partenze **programmate**: niente ritardi né avvisi di disservizio, solo 
 
 ## 🧭 Come ottenere una chiave o un token
 
-Ottieni un token gratuito su [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): inserisci un nickname, accetta le condizioni e scaricalo. È un testo lungo in tre parti separate da punti.
+Un token gratuito si ottiene su [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): inserisci un nickname qualsiasi, accetta le condizioni e scarica il token. Un token è un testo lungo composto da tre parti separate da punti.
 
-Una vecchia chiave API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, da [api.um.warszawa.pl](https://api.um.warszawa.pl)) funziona ancora, ma quel server a volte non risponde, la città non ha indicato una data di chiusura e il veicolo sulla mappa richiede un token. Per cambiare, apri l’avviso in **Riparazioni** oppure scegli **Configura** sulla linea e incolla il token. Le tue impostazioni restano.
+Una vecchia chiave API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, da [api.um.warszawa.pl](https://api.um.warszawa.pl)) funziona ancora, ma il server che la gestisce a volte smette di rispondere. La città non ha inoltre indicato una data di chiusura e il veicolo sulla mappa funziona solo con un token. Per passare a un token, apri l’avviso in **Riparazioni** oppure scegli **Configura** sulla linea e incolla il token. Le impostazioni della linea restano.
 
 ---
 
@@ -133,17 +133,17 @@ Una vecchia chiave API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, da [api.um.warsz
 3. Incolla il token e scrivi una parte del nome della fermata (per esempio `Marcelin`) o il suo ID.
 4. Scegli il punto di fermata (il numero è sul cartello della fermata, uno per direzione) e la linea. Sono elencate solo le linee che oggi vi fermano.
 
-Il sensore si chiama per esempio `sensor.line_151_from_7009_01`. Un’altra fermata della linea si aggiunge con **Aggiungi fermata**. Se conosci già i numeri, spunta **Conosco i numeri** nella prima schermata. Il tempo di cammino, il calendario, il segnaposto del veicolo e come rimuovere una linea sono nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
+L’integrazione chiama il sensore per esempio `sensor.line_151_from_7009_01`. Un’altra fermata della linea si aggiunge con **Aggiungi fermata**. Se conosci i numeri, spunta nella prima schermata **Conosco i numeri: li inserisco io**. Tempo di cammino, calendario, veicolo sulla mappa e rimozione di una linea sono spiegati nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Risoluzione dei problemi
 
-- **Il sensore è `unknown` e mostra «No service».** La linea oggi non circola o la sua ultima partenza è passata. È normale. Quale dei due casi lo dice il sensore *Stato*; l’orario è su [wtp.waw.pl](https://wtp.waw.pl), oppure chiama il 19115.
-- **Il sensore è `unavailable`.** La città non ha restituito un orario valido: un token rifiutato, oppure una fermata, un punto di fermata o una linea che non conosce. Il motivo è nel registro di Home Assistant (chiavi e token non vi compaiono mai).
-- **Errori di rete, con una vecchia chiave.** Il vecchio server della città a volte non risponde. I sensori tengono l’orario che hanno e chiedono di nuovo più tardi; passare a un token risolve.
-- **Home Assistant chiede una nuova chiave.** La città ha rifiutato la chiave tre volte di fila. Inserisci una nuova chiave o un nuovo token nel modulo; le tue impostazioni restano.
-- **Segnalare un problema.** Scegli *Scarica la diagnostica* sulla voce e allega il file alla tua issue. La chiave o il token vi compare come `**REDACTED**`.
+- **Il sensore è `unknown` e ha l’attributo «No service».** La linea oggi non circola oppure la sua ultima partenza è passata. Non è un errore. Quale dei due casi sia lo dice il sensore *Stato*. L’orario si controlla su [wtp.waw.pl](https://wtp.waw.pl) o chiamando il 19115.
+- **Il sensore è `unavailable`.** La città non ha restituito un orario valido, perché ha rifiutato il token oppure non conosce la fermata, il punto di fermata o la linea. Il motivo è nel registro di Home Assistant. Chiavi e token non vi compaiono mai.
+- **Nel registro ci sono errori di rete e usi una vecchia chiave.** Il vecchio server della città a volte non risponde. I sensori tengono allora l’ultimo orario e chiedono di nuovo più tardi. Con un token il problema sparisce.
+- **Home Assistant chiede una nuova chiave.** La città ha rifiutato la chiave tre volte di fila. Inserisci nel modulo una nuova chiave o un nuovo token. Le impostazioni restano.
+- **Vuoi segnalare un problema.** Scegli *Scarica la diagnostica* sulla voce e allega il file alla tua issue. La chiave e il token vi compaiono come `**REDACTED**`.
 
 Altre risposte sono nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
@@ -151,7 +151,7 @@ Altre risposte sono nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-
 
 ## 📚 Documentazione
 
-La [wiki](https://github.com/solarssk/ztm_warsaw/wiki) è il manuale d’uso: [Configurazione](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (tempo di cammino, rimuovere una linea), [Concetti](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (il giorno di servizio, cosa mostra ogni entità), [Esempi](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (schede e automazioni da copiare) e [Risoluzione dei problemi](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). È in inglese; i sorgenti sono in [`docs/wiki/`](docs/wiki).
+Il manuale d’uso è nella [wiki](https://github.com/solarssk/ztm_warsaw/wiki): [Configurazione](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) descrive il tempo di cammino e la rimozione di una linea, [Concetti](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) spiega il giorno di servizio e cosa mostra ogni entità, [Esempi](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) offre schede e automazioni da copiare, e [Risoluzione dei problemi](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) risponde alle domande più comuni. La wiki è scritta in inglese e i sorgenti sono in [`docs/wiki/`](docs/wiki).
 
 ---
 

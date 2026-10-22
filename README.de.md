@@ -59,20 +59,20 @@
 
 </details>
 
-Zeigt, **wann der nächste Bus, die nächste Straßenbahn oder der nächste Zug an deiner Haltestelle fährt**: ein Sensor für eine Linie an einer Halteposition, für dein Dashboard und für Automationen wie „sag mir, wann ich losgehen muss“. Er nutzt die offenen Daten der Stadt Warschau und braucht keine zusätzliche Hardware.
+Die Integration zeigt in Home Assistant, **wann an deiner Haltestelle der nächste Bus, die nächste Straßenbahn oder der nächste Zug abfährt**. Für jede Linie an der gewählten Halteposition legt sie einen Sensor an, den du in ein Dashboard setzen oder in einer Automation nutzen kannst, zum Beispiel für eine Benachrichtigung, wann du losgehen musst. Sie nutzt die offenen Daten der Stadt Warschau, du brauchst also keine zusätzliche Hardware.
 
-Angezeigt werden **planmäßige** Abfahrten: keine Verspätungen oder Störungsmeldungen, nur der aktuelle Betriebstag und keine Reiseplanung (dafür gibt es [wtp.waw.pl](https://wtp.waw.pl)). Das Fahrzeug der nächsten Abfahrt lässt sich auf der Karte zeigen (optional, ein Token ist nötig).
+Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. Verspätungen und Störungen zeigt sie nicht, Fahrpläne für andere Tage als den aktuellen Betriebstag kennt sie nicht, und Reisen plant sie nicht (dafür gibt es [wtp.waw.pl](https://wtp.waw.pl)). Mit einem Token kannst du zusätzlich auf der Karte sehen, welches Fahrzeug die nächste Abfahrt fährt.
 
 ---
 
 ## 🔧 Funktionen
 
-- ✅ Busse, Straßenbahnen, U-Bahn und S-Bahn (SKM), auch Nacht-, Express- und Lokallinien.
-- ✅ Die nächste Abfahrt ist der Zustand des Sensors; die drei danach sowie die erste und die letzte Abfahrt des Tages sind Attribute.
-- ✅ Ein *Status*-Sensor sagt in einfachen Worten, was los ist („Die letzte Abfahrt des Tages ist vorbei“).
-- ✅ Einrichtung über die Suche nach dem Haltestellennamen, dann Halteposition und Linie wählen: keine Nummern nachschlagen.
-- ✅ Mehrere Linien und Haltestellen, optional eine Gehzeit, optional ein Kalender und optional eine Markierung des Fahrzeugs auf der Karte.
-- ✅ Acht Sprachen: Englisch, Polnisch, Ukrainisch, Russisch, Deutsch, Spanisch, Französisch und Italienisch. Die sechs neueren sind maschinell übersetzt; Korrekturen sind als Pull Request willkommen.
+- ✅ Die Integration unterstützt Busse, Straßenbahnen, die U-Bahn und die S-Bahn (SKM), auch Nacht-, Express- und Lokallinien.
+- ✅ Der Zustand des Sensors ist die Zeit der nächsten Abfahrt. Die drei folgenden Abfahrten sowie die erste und die letzte Abfahrt des Tages findest du in den Attributen.
+- ✅ Ein eigener *Status*-Sensor erklärt in einfachen Worten, was gerade los ist, zum Beispiel „Die letzte Abfahrt des Tages ist vorbei“.
+- ✅ Eine Haltestelle fügst du hinzu, indem du einen Teil ihres Namens tippst. Danach wählst du Halteposition und Linie aus einer Liste, du musst also keine Nummern nachschlagen.
+- ✅ Du kannst mehrere Linien und Haltestellen hinzufügen, eine Gehzeit zur Haltestelle festlegen, einen Abfahrtskalender einschalten und das Fahrzeug auf der Karte sehen. Kalender und Fahrzeug sind standardmäßig ausgeschaltet.
+- ✅ Die Oberfläche gibt es in acht Sprachen: Englisch, Polnisch, Ukrainisch, Russisch, Deutsch, Spanisch, Französisch und Italienisch. Die sechs neueren hat ein Programm übersetzt, Korrekturen als Pull Request sind daher willkommen.
 
 ---
 
@@ -103,9 +103,9 @@ Angezeigt werden **planmäßige** Abfahrten: keine Verspätungen oder Störungsm
 
 ## 🧭 Schlüssel oder Token besorgen
 
-Ein kostenloses Token bekommst du unter [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): Spitznamen eingeben, Bedingungen akzeptieren und das Token herunterladen. Es ist ein langer Text aus drei Teilen, die durch Punkte getrennt sind.
+Ein kostenloses Token bekommst du unter [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): Gib einen beliebigen Spitznamen ein, akzeptiere die Bedingungen und lade das Token herunter. Ein Token ist ein langer Text aus drei Teilen, die durch Punkte getrennt sind.
 
-Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.warszawa.pl](https://api.um.warszawa.pl)) funktioniert noch, aber dieser Server antwortet zeitweise nicht, die Stadt hat kein Abschaltdatum genannt und das Fahrzeug auf der Karte braucht ein Token. Zum Wechseln öffne den Hinweis unter **Reparaturen** oder wähle bei der Linie **Konfigurieren** und füge das Token ein. Deine Einstellungen bleiben erhalten.
+Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.warszawa.pl](https://api.um.warszawa.pl)) funktioniert noch, aber der Server dahinter antwortet manchmal nicht mehr. Die Stadt hat außerdem kein Abschaltdatum genannt, und das Fahrzeug auf der Karte funktioniert nur mit einem Token. Um zu einem Token zu wechseln, öffne den Hinweis unter **Reparaturen** oder wähle bei der Linie **Konfigurieren** und füge das Token ein. Die Einstellungen der Linie bleiben erhalten.
 
 ---
 
@@ -133,17 +133,17 @@ Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.wa
 3. Füge dein Token ein und gib einen Teil des Haltestellennamens (zum Beispiel `Marcelin`) oder die ID ein.
 4. Wähle die Halteposition (die Nummer steht auf dem Haltestellenschild, jede Richtung hat eine eigene) und die Linie. Aufgelistet sind nur Linien, die dort heute halten.
 
-Der Sensor heißt zum Beispiel `sensor.line_151_from_7009_01`. Eine weitere Haltestelle der Linie fügst du mit **Haltestelle hinzufügen** hinzu. Kennst du die Nummern schon, setze auf dem ersten Bildschirm den Haken bei **Ich kenne die Nummern**. Gehzeit, Kalender, Fahrzeugmarkierung und das Entfernen einer Linie stehen im [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
+Die Integration benennt den Sensor zum Beispiel `sensor.line_151_from_7009_01`. Eine weitere Haltestelle der Linie fügst du mit **Haltestelle hinzufügen** hinzu. Kennst du die Nummern, setze auf dem ersten Bildschirm den Haken bei **Ich kenne die Nummern: Ich gebe sie selbst ein**. Gehzeit, Kalender, Fahrzeug auf der Karte und das Entfernen einer Linie erklärt das [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Fehlerbehebung
 
-- **Der Sensor ist `unknown` und zeigt „No service“.** Die Linie fährt heute nicht, oder ihre letzte Abfahrt ist vorbei. Das ist normal. Welcher Fall es ist, sagt der *Status*-Sensor; den Fahrplan gibt es auf [wtp.waw.pl](https://wtp.waw.pl), oder ruf 19115 an.
-- **Der Sensor ist `unavailable`.** Die Stadt hat keinen gültigen Fahrplan geliefert: ein abgelehntes Token oder eine Haltestelle, Halteposition oder Linie, die sie nicht kennt. Der Grund steht im Home-Assistant-Protokoll (Schlüssel und Token werden nie protokolliert).
-- **Netzwerkfehler, und du nutzt einen alten Schlüssel.** Der alte Server der Stadt antwortet zeitweise nicht. Die Sensoren behalten ihren Fahrplan und fragen später erneut; der Wechsel zu einem Token behebt das.
-- **Home Assistant verlangt einen neuen Schlüssel.** Die Stadt hat den Schlüssel dreimal hintereinander abgelehnt. Gib im Formular einen neuen Schlüssel oder ein Token ein; deine Einstellungen bleiben erhalten.
-- **Ein Problem melden.** Wähle beim Eintrag *Diagnosedaten herunterladen* und hänge die Datei an dein Issue. Schlüssel oder Token sind darin durch `**REDACTED**` ersetzt.
+- **Der Sensor hat den Zustand `unknown` und das Attribut „No service“.** Die Linie fährt heute nicht, oder ihre letzte Abfahrt ist vorbei. Das ist kein Fehler. Welcher der beiden Fälle vorliegt, sagt der *Status*-Sensor. Den Fahrplan findest du auf [wtp.waw.pl](https://wtp.waw.pl) oder unter der Nummer 19115.
+- **Der Sensor hat den Zustand `unavailable`.** Die Stadt hat keinen gültigen Fahrplan geliefert, weil sie das Token abgelehnt hat oder die Haltestelle, die Halteposition oder die Linie nicht kennt. Den Grund findest du im Protokoll von Home Assistant. Schlüssel und Token tauchen dort nie auf.
+- **Im Protokoll stehen Netzwerkfehler, und du nutzt einen alten Schlüssel.** Der alte Server der Stadt antwortet manchmal nicht. Die Sensoren behalten dann den letzten Fahrplan und fragen später erneut nach. Mit einem Token verschwindet das Problem.
+- **Home Assistant verlangt einen neuen Schlüssel.** Die Stadt hat den Schlüssel dreimal hintereinander abgelehnt. Gib im Formular einen neuen Schlüssel oder ein Token ein. Die Einstellungen bleiben erhalten.
+- **Du möchtest ein Problem melden.** Wähle beim Eintrag *Diagnosedaten herunterladen* und hänge die Datei an dein Issue an. Schlüssel und Token sind darin durch `**REDACTED**` ersetzt.
 
 Weitere Antworten stehen im [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
@@ -151,7 +151,7 @@ Weitere Antworten stehen im [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/4
 
 ## 📚 Dokumentation
 
-Das [Wiki](https://github.com/solarssk/ztm_warsaw/wiki) ist das Benutzerhandbuch: [Konfiguration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (Gehzeit, eine Linie entfernen), [Konzepte](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (der Betriebstag, was jede Entität zeigt), [Beispiele](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (Karten und Automationen zum Kopieren) und [Fehlerbehebung](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). Es ist auf Englisch; die Quelle liegt in [`docs/wiki/`](docs/wiki).
+Das Benutzerhandbuch steht im [Wiki](https://github.com/solarssk/ztm_warsaw/wiki): [Konfiguration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) beschreibt die Gehzeit und das Entfernen einer Linie, [Konzepte](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) erklären den Betriebstag und was jede Entität anzeigt, [Beispiele](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) enthalten Karten und Automationen zum Kopieren, und [Fehlerbehebung](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) beantwortet häufige Fragen. Das Wiki ist auf Englisch geschrieben, die Quelldateien liegen in [`docs/wiki/`](docs/wiki).
 
 ---
 

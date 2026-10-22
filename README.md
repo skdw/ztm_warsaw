@@ -59,20 +59,20 @@
 
 </details>
 
-Shows **when the next bus, tram or train leaves your stop**: one sensor for a line at a stop pole, for your dashboard and for automations such as "tell me when to leave". It reads the City of Warsaw's open data and needs no extra hardware.
+The integration displays in Home Assistant **when the next bus, tram or train leaves your stop**. For every line at the stop pole you choose, it creates one sensor that you can put on a dashboard or use in an automation, for example to get a notification when it is time to leave home. It uses the City of Warsaw's open data, so you need no extra hardware.
 
-It shows **scheduled** departures: no delays or disruption alerts, no day other than today's service day, and no journey planning (use [wtp.waw.pl](https://wtp.waw.pl) for that). The vehicle of the next departure can be shown on the map (optional, token required).
+The integration reads timetables, so it displays **scheduled** departures. It does not show delays or disruptions, it has no timetables for days other than the current service day, and it does not plan journeys (use [wtp.waw.pl](https://wtp.waw.pl) for that). With a token you can also see on the map the vehicle that will make the next departure.
 
 ---
 
 ## 🔧 Features
 
-- ✅ Buses, trams, metro and urban rail (SKM), including night, express and local lines.
-- ✅ The next departure is the state of the sensor; the three after it, and the first and the last departure of the day, are attributes.
-- ✅ A *Status* sensor says in plain words what is going on ("The last departure of the day has gone").
-- ✅ Setup by searching for the stop's name, then picking the pole and the line: no numbers to look up.
-- ✅ Several lines and stops, an optional walking time, an optional calendar and an optional pin for the vehicle on the map.
-- ✅ Eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. The six newer ones are machine-translated; corrections are welcome as pull requests.
+- ✅ The integration supports buses, trams, the metro and urban rail (SKM), including night, express and local lines.
+- ✅ The state of the sensor is the time of the next departure. You find the three after it, and the first and the last departure of the day, in the attributes.
+- ✅ A separate *Status* sensor explains in plain words what is going on, for example "The last departure of the day has gone".
+- ✅ You add a stop by typing part of its name, then pick the pole and the line from a list, so you never look up a number.
+- ✅ You can add several lines and stops, set a walking time to the stop, turn on a calendar of departures and see the vehicle on the map. The calendar and the vehicle are off by default.
+- ✅ The interface is in eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. A program translated the six newer ones, so corrections as pull requests are welcome.
 
 ---
 
@@ -103,9 +103,9 @@ It shows **scheduled** departures: no delays or disruption alerts, no day other 
 
 ## 🧭 Getting a key or token
 
-Get a free token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): enter a nickname, accept the terms and download it. It is a long text in three parts separated by dots.
+You get a free token at [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api): enter any nickname, accept the terms and download the token. A token is a long text made of three parts separated by dots.
 
-An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl](https://api.um.warszawa.pl)) still works, but that server stops answering at times, the City has given no end date and the vehicle on the map needs a token. To switch, open the notice in **Repairs**, or choose **Configure** on the line, and paste the token. Your settings stay.
+An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl](https://api.um.warszawa.pl)) still works, but the server behind it sometimes stops answering. The City has also given no date for switching it off, and the vehicle on the map works only with a token. To switch to a token, open the notice in **Repairs**, or choose **Configure** on the line, and paste the token. The settings of the line stay.
 
 ---
 
@@ -133,17 +133,17 @@ An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl
 3. Paste your token and type a part of the stop's name (for example `Marcelin`) or its ID.
 4. Pick the pole (its number is on the stop sign, one per direction) and the line. Only lines that stop there today are listed.
 
-The sensor is named like `sensor.line_151_from_7009_01`. Add another stop of the line with **Add stop**. If you already know the numbers, tick **I know the numbers** on the first screen. The walking time, the calendar, the vehicle pin and removing a line are in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
+The integration names the sensor, for example `sensor.line_151_from_7009_01`. You add another stop of the line with **Add stop**. If you know the numbers, tick **I know the numbers: let me enter them myself** on the first screen. The [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) explains the walking time, the calendar, the vehicle on the map and how to remove a line.
 
 ---
 
 ## 🩺 Troubleshooting
 
-- **The sensor is `unknown` and says "No service".** The line does not run today, or its last departure has gone. That is expected. The *Status* sensor says which; the timetable is at [wtp.waw.pl](https://wtp.waw.pl), or call 19115.
-- **The sensor is `unavailable`.** The City did not return a valid timetable: a rejected token, or a stop, pole or line it does not know. The Home Assistant log has the reason (keys and tokens are never logged).
-- **Network errors, and you use an old key.** The City's old server stops answering at times. The sensors keep the timetable they have and ask again later; switching to a token fixes it.
-- **Home Assistant asks for a new key.** The City rejected the key three times in a row. Enter a new key or token in the form; your settings stay.
-- **Reporting a problem.** Choose *Download diagnostics* on the entry and attach the file to your issue. The key or token is replaced with `**REDACTED**`.
+- **The sensor has the state `unknown` and the attribute "No service".** The line does not run today, or its last departure has gone. This is not an error. The *Status* sensor tells you which of the two it is. You can check the timetable at [wtp.waw.pl](https://wtp.waw.pl) or by calling 19115.
+- **The sensor has the state `unavailable`.** The City did not return a valid timetable, because it rejected the token or does not know the stop, the pole or the line. You find the reason in the Home Assistant log. Keys and tokens never appear in it.
+- **The log shows network errors and you use an old key.** The City's old server sometimes stops answering. The sensors then keep the last timetable and ask again later. The problem disappears when you switch to a token.
+- **Home Assistant asks for a new key.** The City rejected the key three times in a row. Enter a new key or token in the form. Your settings stay.
+- **You want to report a problem.** Choose *Download diagnostics* on the entry and attach the file to your issue. The key and the token are replaced in it with `**REDACTED**`.
 
 More answers are in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
@@ -151,7 +151,7 @@ More answers are in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Tr
 
 ## 📚 Documentation
 
-The [wiki](https://github.com/solarssk/ztm_warsaw/wiki) is the user manual: [Configuration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (walking time, removing a line), [Concepts](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (the service day, what each entity shows), [Examples](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (cards and automations to copy) and [Troubleshooting](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). It is in English; the source is in [`docs/wiki/`](docs/wiki).
+The user manual is in the [wiki](https://github.com/solarssk/ztm_warsaw/wiki): [Configuration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) describes the walking time and removing a line, [Concepts](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) explains the service day and what each entity displays, [Examples](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) has cards and automations to copy, and [Troubleshooting](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) answers common questions. The wiki is in English and its source files are in [`docs/wiki/`](docs/wiki).
 
 ---
 

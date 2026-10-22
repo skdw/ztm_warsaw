@@ -59,20 +59,20 @@
 
 </details>
 
-Affiche **l’heure du prochain bus, tramway ou train à votre arrêt** : un capteur pour une ligne à un point d’arrêt, pour votre tableau de bord et pour des automatisations comme « dis-moi quand partir ». Il utilise les données ouvertes de la ville de Varsovie et n’a besoin d’aucun matériel supplémentaire.
+L’intégration affiche dans Home Assistant **l’heure du prochain bus, tramway ou train à votre arrêt**. Pour chaque ligne au point d’arrêt choisi, elle crée un capteur que vous pouvez placer sur un tableau de bord ou utiliser dans une automatisation, par exemple pour recevoir une notification quand il est temps de partir. Elle utilise les données ouvertes de la ville de Varsovie : aucun matériel supplémentaire n’est nécessaire.
 
-Il affiche des départs **prévus** : pas de retards ni d’alertes de perturbation, seulement la journée de service en cours, et pas de calcul d’itinéraire (pour cela, voir [wtp.waw.pl](https://wtp.waw.pl)). Le véhicule du prochain départ peut s’afficher sur la carte (facultatif, il faut un jeton).
+L’intégration lit les horaires, elle affiche donc des départs **prévus**. Elle ne montre ni retards ni perturbations, ne connaît pas les horaires des autres jours que la journée de service en cours et ne calcule pas d’itinéraire (pour cela, voir [wtp.waw.pl](https://wtp.waw.pl)). Avec un jeton, vous pouvez aussi voir sur la carte le véhicule qui assurera le prochain départ.
 
 ---
 
 ## 🔧 Fonctionnalités
 
-- ✅ Bus, tramways, métro et trains urbains (SKM), y compris les lignes de nuit, express et locales.
-- ✅ Le prochain départ est l’état du capteur ; les trois suivants, ainsi que le premier et le dernier départ de la journée, sont des attributs.
-- ✅ Un capteur *État* dit en mots simples ce qui se passe (« Le dernier départ de la journée est passé »).
-- ✅ Configuration en cherchant le nom de l’arrêt, puis en choisissant le point d’arrêt et la ligne : aucun numéro à chercher.
-- ✅ Plusieurs lignes et arrêts, un temps de marche facultatif, un calendrier facultatif et un repère facultatif du véhicule sur la carte.
-- ✅ Huit langues : anglais, polonais, ukrainien, russe, allemand, espagnol, français et italien. Les six plus récentes sont traduites automatiquement ; les corrections sont les bienvenues sous forme de pull request.
+- ✅ L’intégration prend en charge les bus, les tramways, le métro et les trains urbains (SKM), y compris les lignes de nuit, express et locales.
+- ✅ L’état du capteur est l’heure du prochain départ. Vous trouvez les trois suivants, ainsi que le premier et le dernier départ de la journée, dans les attributs.
+- ✅ Un capteur *État* distinct explique en mots simples ce qui se passe, par exemple « Le dernier départ de la journée est passé ».
+- ✅ Vous ajoutez un arrêt en tapant une partie de son nom. Vous choisissez ensuite le point d’arrêt et la ligne dans une liste : inutile de chercher un numéro.
+- ✅ Vous pouvez ajouter plusieurs lignes et arrêts, régler un temps de marche jusqu’à l’arrêt, activer un calendrier des départs et voir le véhicule sur la carte. Le calendrier et le véhicule sont désactivés par défaut.
+- ✅ L’interface existe en huit langues : anglais, polonais, ukrainien, russe, allemand, espagnol, français et italien. Un programme a traduit les six plus récentes ; les corrections sous forme de pull request sont les bienvenues.
 
 ---
 
@@ -103,9 +103,9 @@ Il affiche des départs **prévus** : pas de retards ni d’alertes de perturbat
 
 ## 🧭 Obtenir une clé ou un jeton
 
-Obtenez un jeton gratuit sur [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) : saisissez un pseudo, acceptez les conditions et téléchargez-le. C’est un long texte en trois parties séparées par des points.
+Vous obtenez un jeton gratuit sur [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api) : saisissez un pseudo quelconque, acceptez les conditions et téléchargez le jeton. Un jeton est un long texte composé de trois parties séparées par des points.
 
-Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) fonctionne encore, mais ce serveur ne répond parfois plus, la ville n’a annoncé aucune date d’arrêt et le véhicule sur la carte demande un jeton. Pour changer, ouvrez l’avis dans **Corrections** ou choisissez **Configurer** sur la ligne, puis collez le jeton. Vos réglages sont conservés.
+Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warszawa.pl](https://api.um.warszawa.pl)) fonctionne encore, mais le serveur qui la gère ne répond parfois plus. La ville n’a pas non plus annoncé de date d’arrêt, et le véhicule sur la carte ne fonctionne qu’avec un jeton. Pour passer à un jeton, ouvrez l’avis dans **Corrections** ou choisissez **Configurer** sur la ligne, puis collez le jeton. Les réglages de la ligne sont conservés.
 
 ---
 
@@ -133,17 +133,17 @@ Une ancienne clé API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, de [api.um.warsza
 3. Collez votre jeton et saisissez une partie du nom de l’arrêt (par exemple `Marcelin`) ou son ID.
 4. Choisissez le point d’arrêt (son numéro figure sur le panneau, un par sens) et la ligne. Seules les lignes qui s’y arrêtent aujourd’hui sont proposées.
 
-Le capteur s’appelle par exemple `sensor.line_151_from_7009_01`. Ajoutez un autre arrêt de la ligne avec **Ajouter un arrêt**. Si vous connaissez déjà les numéros, cochez **Je connais les numéros** sur le premier écran. Le temps de marche, le calendrier, le repère du véhicule et la suppression d’une ligne sont décrits dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
+L’intégration nomme le capteur par exemple `sensor.line_151_from_7009_01`. Vous ajoutez un autre arrêt de la ligne avec **Ajouter un arrêt**. Si vous connaissez les numéros, cochez **Je connais les numéros : je les saisis moi-même** sur le premier écran. Le temps de marche, le calendrier, le véhicule sur la carte et la suppression d’une ligne sont expliqués dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 
 ---
 
 ## 🩺 Dépannage
 
-- **Le capteur est à `unknown` et affiche « No service ».** La ligne ne circule pas aujourd’hui, ou son dernier départ est passé. C’est normal. Le capteur *État* dit lequel des deux ; l’horaire est sur [wtp.waw.pl](https://wtp.waw.pl), ou appelez le 19115.
-- **Le capteur est à `unavailable`.** La ville n’a pas renvoyé d’horaire valide : un jeton refusé, ou un arrêt, un point d’arrêt ou une ligne qu’elle ne connaît pas. La raison est dans le journal de Home Assistant (les clés et les jetons n’y figurent jamais).
-- **Erreurs réseau, avec une ancienne clé.** L’ancien serveur de la ville ne répond parfois plus. Les capteurs gardent l’horaire qu’ils ont et redemandent plus tard ; passer à un jeton règle le problème.
-- **Home Assistant demande une nouvelle clé.** La ville a refusé la clé trois fois de suite. Saisissez une nouvelle clé ou un nouveau jeton dans le formulaire ; vos réglages sont conservés.
-- **Signaler un problème.** Choisissez *Télécharger les diagnostics* sur l’entrée et joignez le fichier à votre ticket. La clé ou le jeton y est remplacé par `**REDACTED**`.
+- **Le capteur est à `unknown` et porte l’attribut « No service ».** La ligne ne circule pas aujourd’hui, ou son dernier départ est passé. Ce n’est pas une erreur. Le capteur *État* indique de quel cas il s’agit. Vous pouvez vérifier l’horaire sur [wtp.waw.pl](https://wtp.waw.pl) ou en appelant le 19115.
+- **Le capteur est à `unavailable`.** La ville n’a pas renvoyé d’horaire valide, parce qu’elle a refusé le jeton ou qu’elle ne connaît pas l’arrêt, le point d’arrêt ou la ligne. La raison figure dans le journal de Home Assistant. Les clés et les jetons n’y apparaissent jamais.
+- **Le journal contient des erreurs réseau et vous utilisez une ancienne clé.** L’ancien serveur de la ville ne répond parfois plus. Les capteurs gardent alors le dernier horaire et redemandent plus tard. Le problème disparaît avec un jeton.
+- **Home Assistant demande une nouvelle clé.** La ville a refusé la clé trois fois de suite. Saisissez une nouvelle clé ou un nouveau jeton dans le formulaire. Les réglages sont conservés.
+- **Vous voulez signaler un problème.** Choisissez *Télécharger les diagnostics* sur l’entrée et joignez le fichier à votre ticket. La clé et le jeton y sont remplacés par `**REDACTED**`.
 
 D’autres réponses se trouvent dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting).
 
@@ -151,7 +151,7 @@ D’autres réponses se trouvent dans le [wiki](https://github.com/solarssk/ztm_
 
 ## 📚 Documentation
 
-Le [wiki](https://github.com/solarssk/ztm_warsaw/wiki) est le manuel d’utilisation : [Configuration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) (temps de marche, supprimer une ligne), [Concepts](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) (la journée de service, ce que montre chaque entité), [Exemples](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) (cartes et automatisations à copier) et [Dépannage](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting). Il est en anglais ; les sources sont dans [`docs/wiki/`](docs/wiki).
+Le manuel d’utilisation se trouve dans le [wiki](https://github.com/solarssk/ztm_warsaw/wiki) : [Configuration](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) décrit le temps de marche et la suppression d’une ligne, [Concepts](https://github.com/solarssk/ztm_warsaw/wiki/2.-Concepts) explique la journée de service et ce qu’affiche chaque entité, [Exemples](https://github.com/solarssk/ztm_warsaw/wiki/3.-Examples) propose des cartes et des automatisations à copier, et [Dépannage](https://github.com/solarssk/ztm_warsaw/wiki/4.-Troubleshooting) répond aux questions courantes. Le wiki est rédigé en anglais et ses sources sont dans [`docs/wiki/`](docs/wiki).
 
 ---
 
