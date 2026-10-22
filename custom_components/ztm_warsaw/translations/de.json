@@ -3,11 +3,18 @@
   "config": {
     "step": {
       "user": {
-        "description": "Gib deinen API-Schlüssel oder dein Token und einen Teil des Haltestellennamens (oder die ID) ein. Danach wählst du den Mast und die Linie.",
+        "description": "Gib deinen API-Schlüssel oder dein Token und einen Teil des Haltestellennamens (oder die ID) ein. Danach wählst du die Linie und die Richtung, in die du fährst.",
         "data": {
           "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
           "stop": "Haltestellenname oder ID (z. B. Marcelin oder 3044)",
           "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
+        }
+      },
+      "stop": {
+        "title": "Welche Haltestelle?",
+        "description": "Diese Haltestellen passen zu „{query}“.",
+        "data": {
+          "stop": "Haltestelle"
         }
       },
       "reauth_confirm": {
@@ -42,8 +49,8 @@
         }
       },
       "pole": {
-        "title": "Welcher Mast?",
-        "description": "Treffer für „{query}“. Eine Haltestelle hat für jede Richtung einen Mast; die Nummer steht auf dem Schild.",
+        "title": "In welche Richtung?",
+        "description": "Die Linie {line} hält an der Haltestelle {stop} an mehr als einem Mast. Bei jedem Mast steht die Richtung, in die die Linie dort abfährt; die Nummer steht auch auf dem Schild.",
         "data": {
           "pole": "Mast"
         }
@@ -326,10 +333,17 @@
           }
         },
         "pole": {
-          "title": "Welcher Mast?",
-          "description": "Treffer für „{query}“. Eine Haltestelle hat für jede Richtung einen Mast; die Nummer steht auf dem Schild.",
+          "title": "In welche Richtung?",
+          "description": "Die Linie {line} hält an der Haltestelle {stop} an mehr als einem Mast. Bei jedem Mast steht die Richtung, in die die Linie dort abfährt; die Nummer steht auch auf dem Schild.",
           "data": {
             "pole": "Mast"
+          }
+        },
+        "stop": {
+          "title": "Welche Haltestelle?",
+          "description": "Diese Haltestellen passen zu „{query}“.",
+          "data": {
+            "stop": "Haltestelle"
           }
         }
       },

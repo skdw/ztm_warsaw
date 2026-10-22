@@ -89,8 +89,11 @@ async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_by_name_then_the_p
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
     assert (form["type"], form["step_id"]) == ("form", "user")
     assert [str(k) for k in form["data_schema"].schema] == ["stop", "manual"]
-    poles = await manager.async_configure(form["flow_id"], {"stop": stop_name_for("7009")[:12]})
+    stops = await manager.async_configure(form["flow_id"], {"stop": stop_name_for("7009")[:12]})
+    assert (stops["type"], stops["step_id"]) == ("form", "stop"), "the name fits more than one stop: which one is asked first"
+    poles = await manager.async_configure(stops["flow_id"], {"stop": "7009"})
     assert (poles["type"], poles["step_id"]) == ("form", "pole")
+    assert {o["value"] for o in poles["data_schema"].schema["pole"].config["options"]} == {"7009/01", "7009/02"}
     done = await manager.async_configure(poles["flow_id"], {"pole": "7009/02"})
     await env.settle()
     assert done["type"] == "create_entry", done

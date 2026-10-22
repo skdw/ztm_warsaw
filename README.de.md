@@ -70,7 +70,7 @@ Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. 
 - ✅ Die Integration unterstützt Busse, Straßenbahnen, die U-Bahn und die S-Bahn (SKM), auch Nacht-, Express- und Lokallinien.
 - ✅ Der Zustand des Sensors ist die Zeit der nächsten Abfahrt. Die drei folgenden Abfahrten sowie die erste und die letzte Abfahrt des Tages findest du in den Attributen.
 - ✅ Ein eigener *Status*-Sensor erklärt in einfachen Worten, was gerade los ist, zum Beispiel „Die letzte Abfahrt des Tages ist vorbei“.
-- ✅ Eine Haltestelle fügst du hinzu, indem du einen Teil ihres Namens tippst. Danach wählst du Halteposition und Linie aus einer Liste, du musst also keine Nummern nachschlagen.
+- ✅ Eine Haltestelle fügst du hinzu, indem du einen Teil ihres Namens tippst. Danach wählst du die Linie und, wenn die Linie mehr als eine Halteposition bedient, die Richtung, in die du fährst, du musst also keine Nummern nachschlagen.
 - ✅ Du kannst mehrere Linien und Haltestellen hinzufügen, eine Gehzeit zur Haltestelle festlegen, einen Abfahrtskalender einschalten und das Fahrzeug auf der Karte sehen. Kalender und Fahrzeug sind standardmäßig ausgeschaltet.
 - ✅ Die Oberfläche gibt es in acht Sprachen: Englisch, Polnisch, Ukrainisch, Russisch, Deutsch, Spanisch, Französisch und Italienisch. Die sechs neueren hat ein Programm übersetzt, Korrekturen als Pull Request sind daher willkommen.
 
@@ -131,7 +131,7 @@ Ein alter API-Schlüssel (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, von [api.um.wa
 1. Öffne **Einstellungen → Geräte & Dienste**.
 2. Klicke auf **+ Integration hinzufügen** und suche nach **Öffentlicher Nahverkehr Warschau**.
 3. Füge dein Token ein und gib einen Teil des Haltestellennamens (zum Beispiel `Marcelin`) oder die ID ein.
-4. Wähle die Halteposition (die Nummer steht auf dem Haltestellenschild, jede Richtung hat eine eigene) und die Linie. Aufgelistet sind nur Linien, die dort heute halten.
+4. Passt der Name zu mehreren Haltestellen, wähle die Haltestelle. Wähle dann die Linie: Aufgelistet sind nur Linien, die dort heute halten. Bedient die Linie mehr als eine Halteposition, listet die Integration die Haltepositionen mit der Richtung auf, in die die Linie dort abfährt, und du wählst deine (die Nummer steht auf dem Haltestellenschild).
 
 Die Integration benennt den Sensor zum Beispiel `sensor.line_151_from_7009_01`. Eine weitere Haltestelle der Linie fügst du mit **Haltestelle hinzufügen** hinzu. Kennst du die Nummern, setze auf dem ersten Bildschirm den Haken bei **Ich kenne die Nummern: Ich gebe sie selbst ein**. Gehzeit, Kalender, Fahrzeug auf der Karte und das Entfernen einer Linie erklärt das [Wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration).
 

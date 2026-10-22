@@ -298,17 +298,18 @@ class Env:
             form = await manager.async_configure(form["flow_id"], {"stop": "7009", "manual": True})
         return form
 
-    async def submit_wizard(self, *, query: str, pole: str, line: str, api_key: str = DEFAULT_KEY) -> dict:
-        """Run the three screens of the setup dialog (key and search, pole, line) and return the raw result of the last one."""
+    async def submit_wizard(self, *, query: str, line: str, stop: str | None = None, pole: str | None = None, api_key: str = DEFAULT_KEY) -> dict:
+        """Run the screens of the setup dialog (key and search, the stop when the name fits more than one, the line, the pole when the
+        line serves more than one) and return the raw result of the last one."""
         flow = self.hass.config_entries.flow
         result = await flow.async_init(DOMAIN, context={"source": "user"})
         result = await flow.async_configure(result["flow_id"], {"api_key": api_key, "stop": query})
-        if result["type"] != "form" or result["step_id"] != "pole":
-            return result
-        result = await flow.async_configure(result["flow_id"], {"pole": pole})
-        if result["type"] != "form" or result["step_id"] != "line":
-            return result
-        result = await flow.async_configure(result["flow_id"], {"line": line})
+        answers = {"stop": {"stop": stop}, "line": {"line": line}, "pole": {"pole": pole}}
+        while result["type"] == "form" and result["step_id"] in answers:
+            answer = answers[result["step_id"]]
+            if None in answer.values():
+                return result
+            result = await flow.async_configure(result["flow_id"], answer)
         await self.settle()
         return result
 
