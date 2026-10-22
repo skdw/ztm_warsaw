@@ -256,6 +256,14 @@ class Env:
             await self.settle()
 
     # -- entries ----------------------------------------------------------------------
+    async def _open_setup(self) -> dict:
+        """Open the setup dialog; when a line is set up with a token already, the first screen is a menu and the key is pasted from it."""
+        flow = self.hass.config_entries.flow
+        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        if result["type"] == "menu":
+            result = await flow.async_configure(result["flow_id"], {"next_step_id": "paste_token"})
+        return result
+
     async def submit_flow(
         self,
         *,
@@ -266,7 +274,7 @@ class Env:
     ) -> dict:
         """Run the user step of the real config flow once and return the raw flow result."""
         flow = self.hass.config_entries.flow
-        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        result = await self._open_setup()
         if result["type"] != "form":
             raise HarnessError(f"the config flow did not open a form: {result}")
         result = await flow.async_configure(  # "I know the numbers": the form of the numbers, as the setup dialog of 1.1.x was
@@ -288,7 +296,7 @@ class Env:
     async def manual_form(self, *, api_key: str = DEFAULT_KEY) -> dict:
         """The form of the numbers of the setup dialog ("I know the numbers" ticked on the first screen)."""
         flow = self.hass.config_entries.flow
-        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        result = await self._open_setup()
         return await flow.async_configure(result["flow_id"], {"api_key": api_key, "manual": True})
 
     async def add_stop_form(self, entry: ConfigEntry, *, manual: bool = True) -> dict:
@@ -305,7 +313,7 @@ class Env:
         """Run the screens of the setup dialog (the key, what to search for, the stop when the name fits several, the pole when the stop has
         more than one with lines, the line) and return the raw result of the last one; ``extra`` goes to the line screen."""
         flow = self.hass.config_entries.flow
-        result = await flow.async_init(DOMAIN, context={"source": "user"})
+        result = await self._open_setup()
         result = await flow.async_configure(result["flow_id"], {"api_key": api_key})
         answers = {"stop": {"query": query}, "pick": {"stop": stop}, "pole": {"pole": pole}, "line": {"line": line, **extra}}
         while result["type"] == "form" and result["step_id"] in answers:

@@ -1,8 +1,8 @@
 """How far the vehicle of the next departure is from the stop, in metres: a sensor, for automations ("the bus is 500 m away").
 
 A departure in the timetable names its brigade, and the City reports where every vehicle of a line and brigade is, so the
-vehicle that will make the next departure can be found (``vehicles.py``). The sensor is off by default; it asks the City
-for positions only once it is switched on and only while the next departure is near. It has no coordinates on purpose: the pins of
+vehicle that will make the next departure can be found (``vehicles.py``). The sensor exists only for a line that shows its vehicles (the option of the line, with a token); it asks the City
+for positions only while the next departure is near. It has no coordinates on purpose: the pins of
 the vehicles on the map are the business of the line (``geo_location.py``), and a position here would put the same vehicle on the
 map once more for every stop of the line. When there is no vehicle to measure (it has not started yet, the City does not report it,
 or its position is old) the sensor has no value and its ``Status`` says why.
@@ -35,7 +35,6 @@ NO_TIMETABLE = "no_timetable"
 class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
     """The distance in metres between the stop and the vehicle that will make the next departure of its line."""
 
-    _attr_entity_registry_enabled_default = False  # it asks the City for positions: for those who want them
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.METERS
     _attr_state_class = SensorStateClass.MEASUREMENT

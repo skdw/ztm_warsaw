@@ -57,6 +57,8 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Configure fits your key**: an entry with an old key is nudged to a token with the steps to get one, while an entry that already has a token is just asked for the new one.
 - **Set up a line by stop, direction and line**: you type a part of the stop's name, pick the direction you travel in and then a line that stops there today, a token you already use is offered again instead of being pasted twice, and the City's abbreviations are understood ("Dworzec Centralny" finds "Dw. Centralny").
 - **Vehicles on the map from the setup**: with a token, the line screen has a checkbox to show the line's vehicles on the map right away.
+- **A token you already use, in a menu**: when a line has a token, the first screen of the setup asks whether to use it or paste another, instead of two competing fields.
+- **Distance to the vehicle only where you want it**: the vehicle distance sensors of a line exist while its vehicles are shown on the map, are on from the start and carry the stop's name.
 - **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have are grouped for you.
 - **The stop's name where you look for it**: entries are titled "Line 176 from Rondo Daszyńskiego 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
 
@@ -64,6 +66,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 - **One request per line**: a line with an old key shows a single notice asking for a token once for the whole line, named "Line 151" rather than by its stops.
 - **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
+- **A link that stays in one piece**: the address of the token portal in the dialogs no longer breaks in the middle.
 - **You can ignore the old-key notice**: its window now asks whether to paste a token or keep the old key and ignore the notice, because a notice that can be fixed had no Ignore button; an ignored one stays ignored after a restart.
 - **An empty stop ID field**: the stop ID in the setup and in *Add stop* starts empty instead of with 0, and anything that is not a number is refused with a clear message.
 - **Night lines and midnight**: times after midnight follow the City's own timetable day, so no more "No service" gaps or yesterday's times.

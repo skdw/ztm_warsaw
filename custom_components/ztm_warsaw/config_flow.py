@@ -452,8 +452,8 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         self._key = ""
         self._line = ""
         self._query = ""
-        self._token = ""  # the number of the token picked from those in use
         self._tokens: list[tuple[str, list[str]]] = []
+        self._offered: list[str] = []  # the tokens the choice screen showed, in that order
         self._found: list[dict[str, Any]] = []  # the poles the search found
         self._stop_poles: list[dict[str, Any]] = []  # the poles of the stop picked that have lines today, each with where it goes
         self._pole_lines: list[str] = []  # the lines of the pole picked
@@ -462,36 +462,27 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         self._show_vehicles = False
 
     def _user_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The first step: the key, or "I know the numbers". When a line is set up with a token already, that token can be picked
-        instead of pasting one again."""
-        if not self._tokens:
-            schema = _form({vol.Required(CONF_API_KEY, default=self._key): str, vol.Optional(CONF_MANUAL, default=False): bool})
-            return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
-        choices = [SelectOptionDict(value=n, label=label) for n, label in token_choices(self._tokens).items()]
-        pasted = self._key if self._key and self._key not in dict(self._tokens) else ""
-        schema = _form(
-            {
-                vol.Required(CONF_TOKEN, default=self._token or choices[0]["value"]): SelectSelector(
-                    SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST)
-                ),
-                vol.Optional(CONF_API_KEY, default=pasted): str,
-                vol.Optional(CONF_MANUAL, default=False): bool,
-            }
+        """The form that asks for the key (pasted), or "I know the numbers"."""
+        schema = _form({vol.Required(CONF_API_KEY, default=self._key): str, vol.Optional(CONF_MANUAL, default=False): bool})
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
+
+    def _token_menu(self) -> ConfigFlowResult:
+        """The first screen when a line is set up with a token already: use that token, or paste another. The tokens it stands for are
+        remembered, so that a choice made later cannot mean a token that took their place."""
+        self._offered = [key for key, _lines in self._tokens]
+        return self.async_show_menu(
+            step_id="user_existing",
+            menu_options=["use_token", "paste_token"],
+            description_placeholders={"tokens": "; ".join(token_choices(self._tokens).values())},
         )
-        return self.async_show_form(step_id="user_existing", data_schema=schema, errors=errors or {})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The first screen: the key. The stop is asked next, from the City's list of stops; "I know the numbers" leads to the form of the
-        numbers."""
+        """The first screen: the key (or, when a token is in use already, the choice to use it or paste another). The stop is asked
+        next; "I know the numbers" leads to the form of the numbers."""
         self._tokens = tokens_in_use(self.hass)
         if user_input is None:
-            return self._user_form()
-        self._token = str(user_input.get(CONF_TOKEN, ""))
-        pasted = str(user_input.get(CONF_API_KEY, "")).strip()
-        if pasted or not self._tokens:
-            self._key = pasted
-        else:  # no new key typed: the token picked from those already in use
-            self._key = self._tokens[int(self._token)][0]  # the form only lets a number of the list through
+            return self._token_menu() if self._tokens else self._user_form()
+        self._key = str(user_input.get(CONF_API_KEY, "")).strip()
         if key_kind(self._key) is None:
             return self._user_form({"base": "invalid_api_key"})
         if key_kind(self._key) == "legacy" and legacy_api_retired():
@@ -501,8 +492,32 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         return self._stop_form()
 
     async def async_step_user_existing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """The first screen of an installation that has a token already: handled like ``user``."""
-        return await self.async_step_user(user_input)
+        """The menu: use a token that is in use, or paste another."""
+        return self._token_menu()
+
+    async def async_step_paste_token(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The menu's second choice: the form of the key (which is handled by the step ``user``)."""
+        return self._user_form()
+
+    async def async_step_use_token(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The menu's first choice: the token that is in use (when more than one is, which of them is asked first). What was offered
+        is remembered, so that a token removed meanwhile cannot make the choice mean another one."""
+        self._tokens = tokens_in_use(self.hass)
+        if not self._tokens:  # the token was removed while the menu was open
+            return self._user_form()
+        if len(self._tokens) > 1 and user_input is None:
+            self._offered = [key for key, _lines in self._tokens]
+            choices = [SelectOptionDict(value=n, label=label) for n, label in token_choices(self._tokens).items()]
+            schema = _form(
+                {vol.Required(CONF_TOKEN, default=choices[0]["value"]): SelectSelector(SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST))}
+            )
+            return self.async_show_form(step_id="use_token", data_schema=schema)
+        offered = self._offered or [key for key, _lines in self._tokens]
+        number = int(user_input[CONF_TOKEN]) if user_input else 0
+        if number >= len(offered) or offered[number] not in dict(self._tokens):  # that token is gone: ask again what is left
+            return self._token_menu()
+        self._key = offered[number]
+        return self._stop_form()
 
     def _asks_for_vehicles(self) -> bool:
         """Whether the line screen offers the map's vehicle pins: only with a token (the positions are its service)."""
@@ -510,14 +525,15 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
 
     def _stop_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
         """The second step: part of the stop's name (or its ID)."""
-        return self.async_show_form(
-            step_id="stop", data_schema=_form({vol.Required(CONF_QUERY, default=self._query): str}), errors=errors or {}
-        )
+        schema = _form({vol.Required(CONF_QUERY, default=self._query): str, vol.Optional(CONF_MANUAL, default=False): bool})
+        return self.async_show_form(step_id="stop", data_schema=schema, errors=errors or {})
 
     async def async_step_stop(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The catalogue of stops is searched for what was typed; the stops found are offered next (one found is not asked about)."""
         if user_input is None:
             return self._stop_form()
+        if user_input.get(CONF_MANUAL):  # also with a token picked from those in use: its numbers can be typed too
+            return await self.async_step_manual()
         self._query = user_input[CONF_QUERY].strip()
         readable, poles = await search_poles(self.hass, self._key, self._query)
         if readable is not True:  # the list of stops could not be read: the numbers can still be typed
