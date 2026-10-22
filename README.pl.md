@@ -1,7 +1,7 @@
-<h1 align="center">🚍 ZTM Warszawa w Home Assistancie</h1>
+<h1 align="center">🚍 ZTM Warszawa w Home Assistant</h1>
 
 <p align="center">
-  <strong>Rozkłady jazdy warszawskiej komunikacji miejskiej w Home Assistancie.<br>Najbliższe odjazdy na pulpicie i w automatyzacjach. Konfiguracja bez YAML-a.</strong>
+  <strong>Rozkłady jazdy warszawskiej komunikacji miejskiej w Home Assistant.<br>Najbliższe odjazdy na pulpicie i w automatyzacjach. Konfiguracja bez YAML-a.</strong>
 </p>
 
 <p align="center">
@@ -59,7 +59,7 @@
 
 </details>
 
-Integracja wyświetla w Home Assistancie, **kiedy z Twojego przystanku odjedzie najbliższy autobus, tramwaj albo pociąg**. Dla każdej linii na wybranym słupku tworzy jeden sensor, który możesz umieścić na pulpicie albo wykorzystać w automatyzacji, na przykład żeby dostać powiadomienie, kiedy trzeba wyjść z domu. Dane bierze z otwartych danych m.st. Warszawy, więc nie potrzebujesz żadnego dodatkowego sprzętu.
+Integracja wyświetla w Home Assistant, **kiedy z Twojego przystanku odjedzie najbliższy autobus, tramwaj albo pociąg**. Dla każdej linii na wybranym słupku tworzy jeden sensor, który możesz umieścić na pulpicie albo wykorzystać w automatyzacji, na przykład żeby dostać powiadomienie, kiedy trzeba wyjść z domu. Dane bierze z otwartych danych m.st. Warszawy, więc nie potrzebujesz żadnego dodatkowego sprzętu.
 
 Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. Nie pokazuje opóźnień ani utrudnień, nie zna rozkładów na inne dni niż bieżąca doba rozkładowa i nie planuje podróży (do tego służy [wtp.waw.pl](https://wtp.waw.pl)). Jeśli masz token, możesz dodatkowo zobaczyć na mapie pojazd, który obsłuży najbliższy odjazd.
 
@@ -113,16 +113,16 @@ Stary klucz API (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, ze strony [api.um.warsz
 
 ### Przez HACS
 
-1. W Home Assistancie otwórz **HACS → Integracje**.
+1. W Home Assistant otwórz **HACS → Integracje**.
 2. Wyszukaj **Warszawski Transport Publiczny**.
 3. Kliknij **Pobierz** i potwierdź.
-4. Uruchom ponownie Home Assistanta.
+4. Uruchom ponownie Home Assistant.
 
 ### Ręcznie
 
 1. Pobierz najnowszą wersję z [GitHub Releases](https://github.com/solarssk/ztm_warsaw/releases).
 2. Skopiuj folder `ztm_warsaw` do `/config/custom_components/`.
-3. Uruchom ponownie Home Assistanta.
+3. Uruchom ponownie Home Assistant.
 
 ---
 
@@ -140,7 +140,7 @@ Integracja nazwie sensor na przykład `sensor.line_151_from_7009_01`. Kolejny pr
 ## 🩺 Rozwiązywanie problemów
 
 - **Sensor ma stan `unknown` i atrybut „No service”.** Linia dziś nie kursuje albo jej ostatni odjazd już był. To nie jest błąd. Którą z tych dwóch sytuacji mamy, powie sensor *Status*. Rozkład sprawdzisz na [wtp.waw.pl](https://wtp.waw.pl) albo pod numerem 19115.
-- **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu, bo odrzuciło token albo nie zna przystanku, słupka lub linii. Przyczynę znajdziesz w logu Home Assistanta. Klucze i tokeny nigdy się w nim nie pojawiają.
+- **Sensor ma stan `unavailable`.** Miasto nie zwróciło poprawnego rozkładu, bo odrzuciło token albo nie zna przystanku, słupka lub linii. Przyczynę znajdziesz w logu Home Assistant. Klucze i tokeny nigdy się w nim nie pojawiają.
 - **W logu są błędy sieci, a masz stary klucz.** Stary serwer miasta czasem przestaje odpowiadać. Sensory zachowują wtedy ostatni rozkład i po jakimś czasie pytają ponownie. Problem znika po przejściu na token.
 - **Home Assistant prosi o nowy klucz.** Miasto odrzuciło klucz trzy razy z rzędu. Wpisz w formularzu nowy klucz albo token. Ustawienia zostaną zachowane.
 - **Chcesz zgłosić problem.** Wybierz przy wpisie *Pobierz diagnostykę* i dołącz plik do zgłoszenia. Klucz i token są w nim zastąpione napisem `**REDACTED**`.
