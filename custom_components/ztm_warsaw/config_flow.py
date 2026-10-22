@@ -396,6 +396,8 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
                 self.hass.config_entries.async_add_subentry(existing, _subentry(stop))
             except HomeAssistantError:  # another flow added the same stop while the City was being asked
                 return self.async_abort(reason="already_configured")
+            if self._show_vehicles and key_kind(entry_api_key(existing) or "") == "token":  # ticked for a line that is set up: honoured
+                self.hass.config_entries.async_update_entry(existing, options={**existing.options, CONF_SHOW_VEHICLES: True})
             return self.async_abort(reason="stop_added")
         # The number of departures is no longer asked (3 are always listed); the key stays in the data as it was.
         return self.async_create_entry(
