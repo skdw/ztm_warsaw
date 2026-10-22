@@ -84,7 +84,7 @@ async def test_e2e_47_a_token_works_as_before(env, retired):
 async def test_e2e_47_a_new_line_with_an_old_key_is_refused_with_the_reason(env, retired):
     result = await env.hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     done = await env.hass.config_entries.flow.async_configure(
-        result["flow_id"], {"api_key": DEFAULT_KEY, "stop": "Testowa", "manual": False}
+        result["flow_id"], {"api_key": DEFAULT_KEY, "manual": False}
     )
     assert done["type"] == "form"
     assert done["errors"] == {"base": "old_api_retired"}

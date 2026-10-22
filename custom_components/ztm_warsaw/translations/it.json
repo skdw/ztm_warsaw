@@ -3,18 +3,33 @@
   "config": {
     "step": {
       "user": {
-        "description": "Inserisci la tua chiave API o token e parte del nome della fermata (o il suo ID). Poi sceglierai la linea e la direzione in cui viaggi.",
+        "description": "Inserisci la tua chiave API o token. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
-          "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
+          "manual": "Conosco i numeri: li inserisco io"
+        }
+      },
+      "user_existing": {
+        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
+        "data": {
+          "token": "Token già in uso",
+          "api_key": "Oppure incolla un’altra chiave API o token (viene usato al posto di quello scelto sopra)",
           "manual": "Conosco i numeri: li inserisco io"
         }
       },
       "stop": {
         "title": "Quale fermata?",
-        "description": "Queste fermate corrispondono a «{query}».",
+        "description": "Scegli una fermata; scrivi una parte del nome per restringere l’elenco.",
         "data": {
           "stop": "Fermata"
+        }
+      },
+      "line": {
+        "title": "Quale linea?",
+        "description": "Le linee che oggi fermano a {stop}.",
+        "data": {
+          "line": "Linea",
+          "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
         }
       },
       "reauth_confirm": {
@@ -53,14 +68,6 @@
         "description": "La linea {line} ferma a {stop} a più di un palo. Ogni palo mostra la direzione in cui la linea parte da lì; il numero è anche sul cartello.",
         "data": {
           "pole": "Palo"
-        }
-      },
-      "line": {
-        "title": "Quale linea?",
-        "description": "Le linee che oggi fermano a {stop}.",
-        "data": {
-          "line": "Linea",
-          "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
         }
       },
       "reauth_menu": {
@@ -105,12 +112,10 @@
       "unknown": "Si è verificato un errore sconosciuto.",
       "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
       "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
-      "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
-      "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome.",
-      "no_lines": "Oggi nessuna linea ferma a quel palo. Scegline un altro.",
       "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
-      "cannot_load_lines": "Non è stato possibile caricare le linee di quel palo. Riprova, oppure torna indietro e inserisci tu i numeri.",
-      "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave."
+      "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave.",
+      "no_lines": "Oggi nessuna linea ferma a questa fermata. Scegline un’altra.",
+      "cannot_load_lines": "Non è stato possibile caricare le linee di questa fermata. Riprova oppure torna indietro e inserisci i numeri tu."
     },
     "abort": {
       "single_instance_allowed": "È consentita una sola istanza.",
@@ -312,9 +317,9 @@
       "step": {
         "user": {
           "title": "Aggiungi una fermata della linea {line}",
-          "description": "Un’altra fermata della linea {line}. Scrivi parte del nome o l’ID.",
+          "description": "Un’altra fermata della linea {line}. Sceglila dall’elenco (scrivi una parte del nome per restringerlo) oppure seleziona «Conosco i numeri».",
           "data": {
-            "stop": "Nome o ID della fermata (es. Marcelin o 3044)",
+            "stop": "Fermata",
             "manual": "Conosco i numeri: li inserisco io"
           }
         },
@@ -339,13 +344,6 @@
           "data": {
             "pole": "Palo"
           }
-        },
-        "stop": {
-          "title": "Quale fermata?",
-          "description": "Queste fermate corrispondono a «{query}».",
-          "data": {
-            "stop": "Fermata"
-          }
         }
       },
       "error": {
@@ -359,12 +357,9 @@
         "unknown": "Si è verificato un errore sconosciuto.",
         "invalid_token_or_unavailable": "L’API della città di Varsavia non ha accettato il token oppure non è disponibile al momento. Controlla il token e riprova più tardi.",
         "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
-        "no_stop_found": "Nessuna fermata corrisponde. Prova un’altra parte del nome o l’ID della fermata.",
-        "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome.",
-        "no_lines": "Oggi nessuna linea ferma a quel palo. Scegline un altro.",
         "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
-        "cannot_load_lines": "Non è stato possibile caricare le linee di quel palo. Riprova, oppure torna indietro e inserisci tu i numeri.",
-        "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave."
+        "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave.",
+        "choose_a_stop": "Scegli una fermata oppure seleziona «Conosco i numeri»."
       },
       "abort": {
         "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",

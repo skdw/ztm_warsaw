@@ -3,18 +3,33 @@
   "config": {
     "step": {
       "user": {
-        "description": "Enter your API key or token and part of the name of your stop (or its ID). Next you pick the line and the direction you travel in.",
+        "description": "Enter your API key or token. Next you pick the stop, then the line, then the direction you travel in.",
         "data": {
           "api_key": "API key or token from the City of Warsaw open data portal",
-          "stop": "Stop name or ID (e.g. Marcelin or 3044)",
+          "manual": "I know the numbers: let me enter them myself"
+        }
+      },
+      "user_existing": {
+        "description": "A line is already set up with a token. Pick that token, or paste another below. Next you pick the stop, then the line, then the direction you travel in.",
+        "data": {
+          "token": "Token already in use",
+          "api_key": "Or paste another API key or token (it is used instead of the one above)",
           "manual": "I know the numbers: let me enter them myself"
         }
       },
       "stop": {
         "title": "Which stop?",
-        "description": "These stops match “{query}”.",
+        "description": "Pick a stop, and type a part of its name to narrow the list.",
         "data": {
           "stop": "Stop"
+        }
+      },
+      "line": {
+        "title": "Which line?",
+        "description": "The lines that stop at {stop} today.",
+        "data": {
+          "line": "Line",
+          "show_vehicles": "Show the vehicles of this line on the map"
         }
       },
       "reauth_confirm": {
@@ -53,14 +68,6 @@
         "description": "Line {line} stops at {stop} at more than one pole. Each pole is shown with the direction the line takes from it; its number is also on the sign.",
         "data": {
           "pole": "Pole"
-        }
-      },
-      "line": {
-        "title": "Which line?",
-        "description": "The lines that stop at {stop} today.",
-        "data": {
-          "line": "Line",
-          "show_vehicles": "Show the vehicles of this line on the map"
         }
       },
       "reauth_menu": {
@@ -105,12 +112,10 @@
       "unknown": "An unknown error occurred.",
       "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
       "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”).",
-      "no_stop_found": "No stop matches that. Try another part of the name, or the stop ID.",
-      "too_many_matches": "Too many stops match that. Type a bit more of the name.",
-      "no_lines": "No line stops at that pole today. Pick another pole.",
       "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
-      "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself.",
-      "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
+      "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key.",
+      "no_lines": "No line stops at that stop today. Pick another stop.",
+      "cannot_load_lines": "The lines at that stop could not be loaded. Try again, or go back and enter the numbers yourself."
     },
     "abort": {
       "single_instance_allowed": "Only one instance is allowed.",
@@ -312,9 +317,9 @@
       "step": {
         "user": {
           "title": "Add a stop for line {line}",
-          "description": "Another stop of line {line}. Type part of its name or its ID.",
+          "description": "Another stop of line {line}. Pick it from the list (type part of its name to narrow it), or tick “I know the numbers”.",
           "data": {
-            "stop": "Stop name or ID (e.g. Marcelin or 3044)",
+            "stop": "Stop",
             "manual": "I know the numbers: let me enter them myself"
           }
         },
@@ -339,13 +344,6 @@
           "data": {
             "pole": "Pole"
           }
-        },
-        "stop": {
-          "title": "Which stop?",
-          "description": "These stops match “{query}”.",
-          "data": {
-            "stop": "Stop"
-          }
         }
       },
       "error": {
@@ -359,12 +357,9 @@
         "unknown": "An unknown error occurred.",
         "invalid_token_or_unavailable": "The City of Warsaw API did not accept the token, or it is not available right now. Please check the token and try again later.",
         "invalid_stop_id": "The stop ID must contain only digits (e.g. “3044”).",
-        "no_stop_found": "No stop matches that. Try another part of the name, or the stop ID.",
-        "too_many_matches": "Too many stops match that. Type a bit more of the name.",
-        "no_lines": "No line stops at that pole today. Pick another pole.",
         "cannot_load_stops": "The list of stops could not be loaded, so please enter the numbers yourself (and check your key or token if it keeps failing).",
-        "cannot_load_lines": "The lines at that pole could not be loaded. Try again, or go back and enter the numbers yourself.",
-        "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key."
+        "old_api_retired": "The City of Warsaw's old API no longer works. Get a token at dane.um.warszawa.pl/pl/key-api and enter it instead of the old key.",
+        "choose_a_stop": "Pick a stop, or tick “I know the numbers”."
       },
       "abort": {
         "already_configured": "The selected line is already configured for this stop point.",
