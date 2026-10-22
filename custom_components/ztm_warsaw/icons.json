@@ -30,6 +30,11 @@
       "timetable": {
         "default": "mdi:calendar-clock"
       }
+    },
+    "device_tracker": {
+      "vehicle": {
+        "default": "mdi:bus-marker"
+      }
     }
   }
 }

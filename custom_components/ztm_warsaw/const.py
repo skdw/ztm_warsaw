@@ -17,4 +17,4 @@ CONF_ATTRIBUTION = "Data provided by Miasto Stołeczne Warszawa and Zarząd Tran
 
 # Platforms exposed by this integration
 KEY_PORTAL_URL = "https://dane.um.warszawa.pl/pl/key-api"  # where the City gives a token of the new API
-PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
+PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.DEVICE_TRACKER]
