@@ -299,18 +299,20 @@ class Env:
             form = await manager.async_configure(form["flow_id"], {"manual": True})
         return form
 
-    async def submit_wizard(self, *, stop: str, line: str, pole: str | None = None, api_key: str = DEFAULT_KEY, **extra: Any) -> dict:
-        """Run the screens of the setup dialog (the key, the stop, the line, the pole when the line serves more than one at the stop) and
-        return the raw result of the last one; ``extra`` goes to the line screen (the vehicles checkbox)."""
+    async def submit_wizard(
+        self, *, query: str, line: str, stop: str | None = None, pole: str | None = None, api_key: str = DEFAULT_KEY, **extra: Any
+    ) -> dict:
+        """Run the screens of the setup dialog (the key, what to search for, the stop when the name fits several, the pole when the stop has
+        more than one with lines, the line) and return the raw result of the last one; ``extra`` goes to the line screen."""
         flow = self.hass.config_entries.flow
         result = await flow.async_init(DOMAIN, context={"source": "user"})
         result = await flow.async_configure(result["flow_id"], {"api_key": api_key})
-        if result["type"] == "form" and result["step_id"] == "stop":
-            result = await flow.async_configure(result["flow_id"], {"stop": stop})
-        if result["type"] == "form" and result["step_id"] == "line":
-            result = await flow.async_configure(result["flow_id"], {"line": line, **extra})
-        if result["type"] == "form" and result["step_id"] == "pole" and pole is not None:
-            result = await flow.async_configure(result["flow_id"], {"pole": pole})
+        answers = {"stop": {"query": query}, "pick": {"stop": stop}, "pole": {"pole": pole}, "line": {"line": line, **extra}}
+        while result["type"] == "form" and result["step_id"] in answers:
+            answer = answers[result["step_id"]]
+            if None in answer.values():
+                return result
+            result = await flow.async_configure(result["flow_id"], answer)
         await self.settle()
         return result
 

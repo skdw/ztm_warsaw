@@ -83,13 +83,15 @@ async def test_e2e_32_adding_a_stop_reloads_the_entry_once(env):
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_02") is not None
 
 
-async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_then_the_pole(env):
+async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_by_name_then_the_pole(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
     assert (form["type"], form["step_id"]) == ("form", "user")
-    assert [str(k) for k in form["data_schema"].schema] == ["stop", "manual"]
-    poles = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert [str(k) for k in form["data_schema"].schema] == ["query", "manual"]
+    stops = await manager.async_configure(form["flow_id"], {"query": stop_name_for("7009")[:12]})
+    assert (stops["type"], stops["step_id"]) == ("form", "pick"), "the name fits more than one stop: which one is asked first"
+    poles = await manager.async_configure(stops["flow_id"], {"stop": "7009"})
     assert (poles["type"], poles["step_id"]) == ("form", "pole")
     assert {o["value"] for o in poles["data_schema"].schema["pole"].config["options"]} == {"7009/01", "7009/02"}
     done = await manager.async_configure(poles["flow_id"], {"pole": "7009/02"})

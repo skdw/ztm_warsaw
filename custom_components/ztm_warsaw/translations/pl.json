@@ -3,14 +3,14 @@
   "config": {
     "step": {
       "user": {
-        "description": "Podaj klucz API lub token. W następnych krokach wybierzesz przystanek, potem linię, a potem kierunek, w którym jedziesz.",
+        "description": "Podaj klucz API lub token. W następnych krokach wybierzesz przystanek, kierunek, w którym jedziesz, i linię.",
         "data": {
           "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
           "manual": "Znam numery: wpiszę je sam"
         }
       },
       "user_existing": {
-        "description": "Jakaś linia jest już skonfigurowana z tokenem. Wybierz ten token albo wklej poniżej inny. W następnych krokach wybierzesz przystanek, potem linię, a potem kierunek, w którym jedziesz.",
+        "description": "Jakaś linia jest już skonfigurowana z tokenem. Wybierz ten token albo wklej poniżej inny. W następnych krokach wybierzesz przystanek, kierunek, w którym jedziesz, i linię.",
         "data": {
           "token": "Token, który już jest używany",
           "api_key": "Albo wklej inny klucz API lub token (zostanie użyty zamiast wybranego wyżej)",
@@ -19,9 +19,23 @@
       },
       "stop": {
         "title": "Który przystanek?",
-        "description": "Wybierz przystanek, a żeby zawęzić listę, wpisz fragment jego nazwy.",
+        "description": "Wpisz fragment nazwy przystanku (albo jego ID).",
+        "data": {
+          "query": "Nazwa lub ID przystanku (np. Marcelin albo 3044)"
+        }
+      },
+      "pick": {
+        "title": "Który przystanek?",
+        "description": "Te przystanki pasują do „{query}”.",
         "data": {
           "stop": "Przystanek"
+        }
+      },
+      "pole": {
+        "title": "W którą stronę?",
+        "description": "Przystanek {stop} ma więcej niż jeden słupek z liniami. Przy każdym widać, dokąd jadą z niego autobusy, a jego numer jest też na tabliczce.",
+        "data": {
+          "pole": "Słupek"
         }
       },
       "line": {
@@ -61,13 +75,6 @@
           "busstop_id": "Numer zespołu przystankowego (np. 3044)",
           "busstop_nr": "Numer słupka (np. 02)",
           "line": "Numer linii (np. N31)"
-        }
-      },
-      "pole": {
-        "title": "W którą stronę?",
-        "description": "Linia {line} zatrzymuje się na przystanku {stop} przy więcej niż jednym słupku. Przy każdym słupku widać kierunek, w którym linia z niego odjeżdża, a jego numer jest też na tabliczce.",
-        "data": {
-          "pole": "Słupek"
         }
       },
       "reauth_menu": {
@@ -115,7 +122,9 @@
       "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
       "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza.",
       "no_lines": "Dziś żadna linia nie zatrzymuje się na tym przystanku. Wybierz inny.",
-      "cannot_load_lines": "Nie udało się pobrać linii dla tego przystanku. Spróbuj ponownie albo wróć i wpisz numery sam."
+      "cannot_load_lines": "Nie udało się pobrać linii dla tego przystanku. Spróbuj ponownie albo wróć i wpisz numery sam.",
+      "no_stop_found": "Nic nie pasuje. Spróbuj innego fragmentu nazwy albo ID przystanku.",
+      "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jedną instancję tej integracji.",
@@ -317,9 +326,9 @@
       "step": {
         "user": {
           "title": "Dodaj przystanek dla linii {line}",
-          "description": "Kolejny przystanek linii {line}. Wybierz go z listy (wpisz fragment nazwy, żeby zawęzić listę) albo zaznacz „Znam numery”.",
+          "description": "Kolejny przystanek linii {line}. Wpisz fragment jego nazwy albo ID.",
           "data": {
-            "stop": "Przystanek",
+            "stop": "Nazwa lub ID przystanku (np. Marcelin albo 3044)",
             "manual": "Znam numery: wpiszę je sam"
           }
         },
@@ -344,6 +353,13 @@
           "data": {
             "pole": "Słupek"
           }
+        },
+        "pick": {
+          "title": "Który przystanek?",
+          "description": "Te przystanki pasują do „{query}”.",
+          "data": {
+            "stop": "Przystanek"
+          }
         }
       },
       "error": {
@@ -359,7 +375,9 @@
         "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”).",
         "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
         "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza.",
-        "choose_a_stop": "Wybierz przystanek albo zaznacz „Znam numery”."
+        "choose_a_stop": "Wybierz przystanek albo zaznacz „Znam numery”.",
+        "no_stop_found": "Nic nie pasuje. Spróbuj innego fragmentu nazwy albo ID przystanku.",
+        "too_many_matches": "Pasuje zbyt wiele przystanków. Wpisz trochę więcej z nazwy."
       },
       "abort": {
         "already_configured": "Wybrana linia jest już skonfigurowana dla tego słupka przystankowego.",
