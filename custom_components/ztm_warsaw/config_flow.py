@@ -954,9 +954,7 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="unknown")
         line, api_key = known
         stop_nr = user_input[CONF_POLE].split("/")[1]
-        pole = next((p for p in self._line_poles if p["stop_nr"] == stop_nr), None)
-        if pole is None:
-            return self.async_abort(reason="unknown")
+        pole = next(p for p in self._line_poles if p["stop_nr"] == stop_nr)  # the form only lets a pole of the list through
         return await self._add(line, api_key, pole)
 
     async def _add(self, line: str, api_key: str, pole: dict[str, Any]) -> SubentryFlowResult:

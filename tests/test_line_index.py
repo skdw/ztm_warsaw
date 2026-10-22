@@ -20,7 +20,8 @@ SCRIPT = ROOT / "scripts" / "build_line_index.py"
 def builder():
     """The generator script as a module (it is a script, not a package)."""
     spec = importlib.util.spec_from_file_location("build_line_index", SCRIPT)
-    assert spec is not None and spec.loader is not None
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
