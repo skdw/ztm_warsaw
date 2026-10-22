@@ -69,7 +69,7 @@ def test_the_script_reads_a_record_and_the_lines_of_a_pole(builder, monkeypatch)
     monkeypatch.setattr(builder, "call", lambda token, action, body=None: [{"values": [{"key": "linia", "value": "151"}]}, {"values": []}])
     assert builder.lines_at("t", ("7009", "01")) == ["151"]
     monkeypatch.setattr(builder, "call", lambda token, action, body=None: None)
-    assert builder.lines_at("t", ("7009", "01")) == []
+    assert builder.lines_at("t", ("7009", "01")) == [], "an HTTP 500 is the City saying there are none"
 
 
 def test_the_script_lists_the_poles_of_the_catalogue_or_stops(builder, monkeypatch):
@@ -77,6 +77,14 @@ def test_the_script_lists_the_poles_of_the_catalogue_or_stops(builder, monkeypat
     monkeypatch.setattr(builder, "call", lambda token, action, body=None: rows)
     assert builder.poles_of("t") == [("7009", "01"), ("7009", "02")]
     monkeypatch.setattr(builder, "call", lambda token, action, body=None: None)
+    with pytest.raises(SystemExit):
+        builder.poles_of("t")
+
+    def unreachable(token, action, body=None):
+        """A City that cannot be reached."""
+        raise builder.Inconclusive
+
+    monkeypatch.setattr(builder, "call", unreachable)
     with pytest.raises(SystemExit):
         builder.poles_of("t")
 
@@ -120,7 +128,22 @@ def test_a_request_that_fails_is_retried_and_never_reports_the_token(builder, mo
 
     monkeypatch.setattr(builder, "urlopen", refuse)
     monkeypatch.setattr(builder.time, "sleep", lambda seconds: None)
-    assert builder.call("synthetic-token", "x") is None
+    with pytest.raises(builder.Inconclusive):
+        builder.call("synthetic-token", "x")
     assert len(calls) == builder.ATTEMPTS
     monkeypatch.setattr(builder, "urlopen", lambda request, timeout: (_ for _ in ()).throw(HTTPError("u", 500, "no lines", {}, None)))
-    assert builder.call("synthetic-token", "x") is None
+    assert builder.call("synthetic-token", "x") is None, "a 500 is conclusive: the pole has no public lines"
+
+
+def test_a_build_with_a_pole_the_city_did_not_answer_for_is_refused_and_no_file_is_written(builder, monkeypatch, tmp_path, capsys):
+    def fails(token, pole):
+        """One pole the City cannot answer for."""
+        raise builder.Inconclusive
+
+    monkeypatch.setattr(builder, "TARGET", tmp_path / "out.json")
+    monkeypatch.setenv("ZTM_LIVE_API_KEY", "synthetic-token")
+    monkeypatch.setattr(builder, "poles_of", lambda token: [("1", "01")])
+    monkeypatch.setattr(builder, "lines_at", fails)
+    assert builder.main() == 1
+    assert not (tmp_path / "out.json").exists()
+    assert "Run the script again" in capsys.readouterr().err

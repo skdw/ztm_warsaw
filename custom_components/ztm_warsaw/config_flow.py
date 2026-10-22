@@ -141,10 +141,13 @@ async def direction_of(hass: HomeAssistant, key: str, pole: dict[str, Any], line
     return heading or str(pole.get("direction") or "")
 
 
-async def poles_for_line(hass: HomeAssistant, key: str, poles: list[dict[str, Any]], line: str) -> list[dict[str, Any]]:
-    """Which of the poles of a stop the line serves, each with the direction it goes from there (the step that picks the pole).
+async def poles_for_line(hass: HomeAssistant, key: str, poles: list[dict[str, Any]], line: str) -> list[dict[str, Any]] | None:
+    """Which of the poles of a stop the line serves, each with the direction it goes from there (the step that picks the pole);
+    None when the City did not say what stops at any of them (an outage is not "the line does not serve this stop").
     A rejected key is raised as ``ZTMAuthError``."""
     lines = await lines_by_pole(hass, key, poles)
+    if poles and all(known is None for known in lines.values()):
+        return None
     serving = [p for p in poles if line in (lines[p["stop_nr"]] or [])]
     headings = await asyncio.gather(*(direction_of(hass, key, p, line) for p in serving))
     return [{**p, "direction": heading} for p, heading in zip(serving, headings, strict=True)]
@@ -521,9 +524,12 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         self._show_vehicles = bool(user_input.get(CONF_SHOW_VEHICLES, False)) and self._asks_for_vehicles()
         poles = await poles_of_stop(self.hass, self._key, user_input[CONF_STOP])
         try:
-            self._line_poles = await poles_for_line(self.hass, self._key, poles, self._line)
+            found = await poles_for_line(self.hass, self._key, poles, self._line)
         except ZTMAuthError:
             return self._user_form({"base": "invalid_api_key"})
+        if found is None:
+            return self._stop_form({"base": "api_connection_error"})
+        self._line_poles = found
         if not self._line_poles:
             return self._stop_form({"base": "line_not_found"})
         if len(self._line_poles) == 1:
@@ -574,9 +580,10 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
 
     def _manual_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
         """The form of the numbers: the key, the stop ID, the pole and the line typed."""
+        reused = self._key in dict(self._tokens)  # a token picked from those in use is kept out of the form: it is not shown whole anywhere
         schema = _form(
             {
-                vol.Required(CONF_API_KEY, default=self._key): str,
+                (vol.Optional(CONF_API_KEY, default="") if reused else vol.Required(CONF_API_KEY, default=self._key)): str,
                 vol.Required(CONF_BUSSTOP_ID): vol.Coerce(str),  # a text, so the form starts empty; stored as the number it is
                 vol.Required(CONF_BUSSTOP_NR): str,
                 vol.Required(CONF_LINE, default=self._line): str,
@@ -590,7 +597,8 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         if user_input is None:
             return self._manual_form()
         user_input = {k: v.strip() if isinstance(v, str) else v for k, v in user_input.items()}
-        self._key = user_input[CONF_API_KEY]
+        self._key = user_input.get(CONF_API_KEY) or self._key  # empty: the token picked on the first screen stays
+        user_input[CONF_API_KEY] = self._key
         stop_id = _stop_id_of(user_input[CONF_BUSSTOP_ID])
         if stop_id is None:
             return self._manual_form({"base": "invalid_stop_id"})
@@ -938,9 +946,12 @@ class ZtmStopSubentryFlow(ConfigSubentryFlow):
             return self._user_form(line, {"base": "choose_a_stop"})
         poles = await poles_of_stop(self.hass, api_key, user_input[CONF_STOP])
         try:
-            self._line_poles = await poles_for_line(self.hass, api_key, poles, line)
+            found = await poles_for_line(self.hass, api_key, poles, line)
         except ZTMAuthError:
             return self._user_form(line, {"base": "invalid_api_key"})
+        if found is None:
+            return self._user_form(line, {"base": "api_connection_error"})
+        self._line_poles = found
         if not self._line_poles:
             return self._user_form(line, {"base": "line_not_found"})
         if len(self._line_poles) > 1:

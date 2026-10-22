@@ -32,9 +32,14 @@ WORKERS = 5  # the City answered about 100 requests a second at this rate withou
 ATTEMPTS = 3
 
 
+class Inconclusive(Exception):
+    """The City could not be asked or did not answer in a readable way: not the same as "there is nothing"."""
+
+
 def call(token: str, action: str, body: dict[str, str] | None = None) -> list[dict[str, list[dict[str, str]]]] | None:
-    """One request to the City's new host: the answer's list, or None when it refuses (an HTTP 500 is also what a pole without
-    public lines gets) or cannot be reached after ``ATTEMPTS`` tries. Nothing of the request, the token included, is reported."""
+    """One request to the City's new host: the answer's list, or None when the City refuses (an HTTP 500 is also what a pole
+    without public lines gets, and is a conclusive answer). ``Inconclusive`` after ``ATTEMPTS`` tries when it cannot be reached or
+    answers with something else. Nothing of the request, the token included, is reported."""
     request = Request(API + action, data=json.dumps(body or {}).encode(), method="POST")
     request.add_header("Authorization", token)
     request.add_header("Content-Type", "application/json")
@@ -42,14 +47,15 @@ def call(token: str, action: str, body: dict[str, str] | None = None) -> list[di
         try:
             with urlopen(request, timeout=40) as response:
                 answer = json.loads(response.read())
-            return answer if isinstance(answer, list) else None
+            if isinstance(answer, list):
+                return answer
         except HTTPError as error:
             if error.code == 500:
                 return None
         except (URLError, TimeoutError, ValueError):
             pass
         time.sleep(1 + attempt)
-    return None
+    raise Inconclusive
 
 
 def values_of(row: dict[str, list[dict[str, str]]]) -> dict[str, str]:
@@ -59,7 +65,10 @@ def values_of(row: dict[str, list[dict[str, str]]]) -> dict[str, str]:
 
 def poles_of(token: str) -> list[tuple[str, str]]:
     """Every ``(stop ID, pole number)`` of the City's catalogue (SystemExit when it cannot be read: nothing can be built)."""
-    rows = call(token, STOPS)
+    try:
+        rows = call(token, STOPS)
+    except Inconclusive:
+        rows = None
     if not rows:
         raise SystemExit("The City's list of stops could not be read (is the token valid?).")
     found = [values_of(row) for row in rows]
@@ -81,13 +90,14 @@ def render(lines: dict[str, list[str]], today: date) -> str:
 
 
 def lines_at(token: str, pole: tuple[str, str]) -> list[str]:
-    """The lines that stop at one pole today (empty when the City has none or does not answer)."""
+    """The lines that stop at one pole today (empty when the City says there are none; ``Inconclusive`` when it did not answer)."""
     rows = call(token, LINES_AT, {"busstopId": pole[0], "busstopNr": pole[1]}) or []
     return [v["linia"] for v in (values_of(row) for row in rows) if "linia" in v]
 
 
 def build(token: str, poles: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
-    """Ask the City for the lines at every pole and turn the answers around."""
+    """Ask the City for the lines at every pole and turn the answers around. ``Inconclusive`` when any pole could not be answered:
+    an index with a hole in it is worse than the old one."""
     poles = list(poles)
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         answers = list(pool.map(lambda pole: lines_at(token, pole), poles))
@@ -102,7 +112,11 @@ def main() -> int:
         return 2
     poles = poles_of(token)
     print(f"{len(poles)} poles; asking for their lines...")
-    lines = build(token, poles)
+    try:
+        lines = build(token, poles)
+    except Inconclusive:
+        print("The City did not answer for some poles: not writing the file. Run the script again.", file=sys.stderr)
+        return 1
     if len(lines) < 100:  # the network has about 330 lines: far fewer means the City did not answer
         print(f"Only {len(lines)} lines came back: not writing the file.", file=sys.stderr)
         return 1

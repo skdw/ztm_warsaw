@@ -336,3 +336,26 @@ async def test_e2e_43_an_old_key_in_use_is_not_offered_as_a_token(env):
     await env.add_entry_via_flow()  # an old key
     form = await _first(env)
     assert (form["step_id"], [str(k) for k in form["data_schema"].schema]) == ("user", ["api_key", "line", "manual"])
+
+
+async def test_e2e_43_a_city_that_does_not_say_what_stops_at_the_poles_is_a_connection_error_not_a_missing_line(env):
+    with patch.object(config_flow, "lines_at", AsyncMock(return_value=None)):
+        result = await _stop(env)
+    assert (result["step_id"], result["errors"]) == ("stop", {"base": "api_connection_error"})
+    entry = await env.add_entry_via_flow(line=LINE)
+    manager = env.hass.config_entries.subentries
+    form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
+    with patch.object(config_flow, "lines_at", AsyncMock(return_value=None)):
+        added = await manager.async_configure(form["flow_id"], {"stop": "7009"})
+    assert (added["step_id"], added["errors"]) == ("user", {"base": "api_connection_error"})
+
+
+async def test_e2e_43_a_token_picked_from_those_in_use_is_not_put_in_the_form_of_the_numbers(env):
+    await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    form = await _first(env)
+    manual = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"token": "0", "line": LINE, "manual": True})
+    assert manual["step_id"] == "manual"
+    key_field = next(k for k in manual["data_schema"].schema if str(k) == "api_key")
+    assert key_field.default() == "", "the whole token is not sent to the browser"
+    done = await env.hass.config_entries.flow.async_configure(manual["flow_id"], {"busstop_id": 7009, "busstop_nr": "02", "line": LINE})
+    assert (done["type"], done["reason"]) == ("abort", "stop_added")
