@@ -37,6 +37,7 @@ def store_key(entry_id: str) -> str:
 
 _EPOCH = datetime.min.replace(tzinfo=timezone.utc)
 RETRY_AFTER = 300  # seconds to wait before asking again after a failed refresh was covered by the cached timetable
+MAX_RETRY_AFTER = 3600  # the wait doubles with every failure in a row, up to the hourly refresh
 
 
 def _reason(err: BaseException) -> str:
@@ -71,6 +72,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub: CALLBACK_TYPE | None = None
         self._retry_unsub: CALLBACK_TYPE | None = None
+        self._failures = 0  # refreshes in a row that the cached timetable had to cover (the log says it once, the wait grows)
         self._refreshing = asyncio.Lock()
         self._rejections = 0  # consecutive answers of the City that reject the key
         self._started = False  # the first refresh is over: from then on a refresh may also ask for the stop's name
@@ -210,7 +212,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         """A refresh failed and the cached timetable was served instead: ask again in a few minutes, not only at the hourly tick
         (a City that was unreachable for a moment, for example right after Home Assistant started, would otherwise be left alone for an hour)."""
         if self._retry_unsub is None and not self._ztm_shutdown_done:
-            self._retry_unsub = async_call_later(self.hass, RETRY_AFTER, self._retry_now)
+            self._retry_unsub = async_call_later(self.hass, min(RETRY_AFTER * 2**self._failures, MAX_RETRY_AFTER), self._retry_now)
+            self._failures += 1  # an outage of hours is asked less and less often, not every five minutes
 
     @callback
     def _retry_now(self, _now: datetime) -> None:
@@ -268,6 +271,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self.data = new_data
         self._api_error = False
         self._rejections = 0
+        self._failures = 0
         self._save()
         self.last_update_success_time = dt_util.utcnow()
         # Track last success date in local time (Europe/Warsaw)
@@ -334,7 +338,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
             if new_data is None:
                 self._outage()
                 if self.data is not None and not self._api_error:
-                    _LOGGER.warning(
+                    _LOGGER.log(  # said once when it starts, not again at every try of a long outage
+                        logging.WARNING if self._failures == 0 else logging.DEBUG,
                         "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data",
                         self.name,
                     )

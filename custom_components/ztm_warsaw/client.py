@@ -13,7 +13,7 @@ import time
 import logging
 from typing import Any, Optional
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import re
 import unicodedata
 
@@ -203,6 +203,23 @@ def _checked_result(json_response: Any) -> list[Any]:
     return result
 
 
+def _readings(result: list[Any], service_date: date) -> list[ZTMDepartureDataReading]:
+    """The departures of a timetable answer that can be read (all of them, without time filtering); the others are skipped and logged."""
+    departures: list[ZTMDepartureDataReading] = []
+    for reading in result:
+        if not isinstance(reading, list):
+            _LOGGER.warning("Unexpected entry format in result: %s", reading)
+            continue
+        data = {entry["key"]: entry["value"] for entry in reading if isinstance(entry, dict) and "key" in entry and "value" in entry}
+        try:
+            parsed = ZTMDepartureDataReading.from_dict(data, service_date)
+            if parsed.dt:
+                departures.append(parsed)
+        except Exception:
+            _LOGGER.debug("Invalid reading skipped: %s", data)
+    return departures
+
+
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Return a shallow copy with API key masked for safe logging."""
     if not isinstance(params, dict):
@@ -306,6 +323,8 @@ class ZTMStopClient:
             "line": line,
         }
         self._stop_name: dict[str, Any] | None = None
+        self._outage_said = False  # a failed request is in the log: the next ones are not, until the City answers again
+        self._no_response_said = False  # the same for "no response" of the timetable
 
     async def _call(self, kind: str) -> Any:
         """One request for the ``timetable``, the ``lines`` at the stop or the ``stops`` of this client, on the host
@@ -396,14 +415,29 @@ class ZTMStopClient:
                 reason = f"network error ({type(err).__name__})"
             else:
                 if result is not _RETRY:
+                    self._say_answered(result)
                     return result
             if reason is not None:
-                if attempt >= self._max_retries:
-                    _LOGGER.error("Request to %s failed: %s", url, reason)
+                final = attempt >= self._max_retries
+                self._say_failed(url, reason, attempt, final)
+                if final:
                     return None
-                _LOGGER.warning("Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
             attempt += 1
             await asyncio.sleep(self._retry_backoff * attempt)
+
+    def _say_failed(self, url: str, reason: str, attempt: int, final: bool) -> None:
+        """Log a failed request: loudly when an outage starts, at debug level while it goes on (it is said once, not at every try)."""
+        if final:
+            _LOGGER.log(logging.DEBUG if self._outage_said else logging.ERROR, "Request to %s failed: %s", url, reason)
+            self._outage_said = True
+        else:
+            _LOGGER.log(logging.DEBUG if self._outage_said else logging.WARNING, "Request to %s failed: %s; retrying (%s/%s)", url, reason, attempt + 1, self._max_retries)
+
+    def _say_answered(self, result: Any) -> None:
+        """An answer after an outage that was said: say that the City is back (once)."""
+        if result is not None and self._outage_said:
+            _LOGGER.info("The City of Warsaw answers again")
+            self._outage_said = False
 
     async def _attempt(self, url: str, params: dict[str, Any] | None, expect_json: bool, method: str, json_body: dict[str, Any] | None,
                        headers: dict[str, str] | None, wrap: bool, attempt: int, limit: int) -> Any:
@@ -426,10 +460,10 @@ class ZTMStopClient:
                 chunks.append(chunk)
             text = b"".join(chunks).decode(resp.charset or "utf-8", errors="replace")
             if 500 <= resp.status <= 599 and attempt < self._max_retries:
-                _LOGGER.warning("HTTP %s from %s; retrying (%s/%s)", resp.status, url, attempt + 1, self._max_retries)
+                self._say_failed(url, f"HTTP {resp.status}", attempt, final=False)
                 return _RETRY
             if resp.status != 200:
-                _LOGGER.error("HTTP %s from %s", resp.status, url)
+                self._say_failed(url, f"HTTP {resp.status}", attempt, final=True)
                 return None
             if not expect_json:
                 return text
@@ -439,6 +473,15 @@ class ZTMStopClient:
                 _LOGGER.error("Invalid JSON from %s", url)
                 return None
             return {"result": value} if wrap else value
+
+    def _say_no_response(self) -> None:
+        """Log that the timetable could not be fetched, once for a run of failures (then at debug level)."""
+        _LOGGER.log(
+            logging.DEBUG if self._no_response_said else logging.WARNING,
+            "Timetable fetch failed (no response) for %s",
+            _ctxp(self._params),
+        )
+        self._no_response_said = True
 
     async def get_stop_name(self) -> Optional[dict[str, Any]]:
         """The stop's metadata (name, street, position), fetched once and cached. A failure is retried after a back-off
@@ -505,30 +548,13 @@ class ZTMStopClient:
                 await self.get_stop_name()
             json_response = await self._call("timetable")
             if json_response is None:
-                _LOGGER.warning(
-                    "Timetable fetch failed (no response) for %s",
-                    _ctxp(self._params),
-                )
+                self._say_no_response()
                 return None
+            self._no_response_said = False
             result = _checked_result(json_response)
             service_date = service_date_at(dt_util.utcnow())
 
-            # Parse each departure from the API response
-            _departures = []
-
-            for reading in result:
-                if not isinstance(reading, list):
-                    _LOGGER.warning("Unexpected entry format in result: %s", reading)
-                    continue
-
-                _data = {entry["key"]: entry["value"] for entry in reading if isinstance(entry, dict) and "key" in entry and "value" in entry}
-                try:
-                    parsed = ZTMDepartureDataReading.from_dict(_data, service_date)
-                    # Load all departures, without time filtering
-                    if parsed.dt:
-                        _departures.append(parsed)
-                except Exception:
-                    _LOGGER.debug("Invalid reading skipped: %s", _data)
+            _departures = _readings(result, service_date)
 
             if result and not _departures:
                 raise ZTMApiError("The City of Warsaw API sent readings that cannot be read")
