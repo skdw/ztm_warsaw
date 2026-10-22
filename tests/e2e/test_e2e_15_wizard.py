@@ -278,3 +278,10 @@ async def test_e2e_43_add_stop_says_so_when_the_line_serves_no_pole_of_the_stop_
     with patch.object(config_flow, "poles_for_line", AsyncMock(side_effect=ZTMAuthError("rejected"))):
         rejected = await manager.async_configure(none["flow_id"], {"stop": "7009"})
     assert (rejected["step_id"], rejected["errors"]) == ("user", {"base": "invalid_api_key"})
+
+
+async def test_e2e_43_a_key_the_city_rejects_when_the_poles_of_the_line_are_looked_up_goes_back_to_the_first_screen(env):
+    lines = await _search(env, "7009")
+    with patch.object(config_flow, "poles_for_line", AsyncMock(side_effect=ZTMAuthError("rejected"))):
+        result = await env.hass.config_entries.flow.async_configure(lines["flow_id"], {"line": LINE})
+    assert (result["step_id"], result["errors"]) == ("user", {"base": "invalid_api_key"})
