@@ -263,15 +263,25 @@ def _other_entries(hass: HomeAssistant, entry: ConfigEntry) -> list[ConfigEntry]
     return [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id and entry_api_key(e)]
 
 
-def tokens_of_others(hass: HomeAssistant, entry: ConfigEntry) -> list[tuple[str, list[str]]]:
-    """The different tokens the other entries of the integration have, each with the lines that use it, in the order they are met
+def _tokens_of(entries: list[ConfigEntry]) -> list[tuple[str, list[str]]]:
+    """The different tokens these entries have, each with the lines that use it, in the order they are met
     (a token is the account's: one serves every line, but there may be more than one account's)."""
     found: dict[str, list[str]] = {}
-    for other in _other_entries(hass, entry):
+    for other in entries:
         key = entry_api_key(other) or ""
         if key_kind(key) == "token":
             found.setdefault(key, []).append(line_label(other))
     return [(key, list(dict.fromkeys(line for line in lines if line))) for key, lines in found.items()]
+
+
+def tokens_of_others(hass: HomeAssistant, entry: ConfigEntry) -> list[tuple[str, list[str]]]:
+    """The different tokens the other entries of the integration have, each with the lines that use it."""
+    return _tokens_of(_other_entries(hass, entry))
+
+
+def tokens_in_use(hass: HomeAssistant) -> list[tuple[str, list[str]]]:
+    """The different tokens the lines already set up have, each with the lines that use it."""
+    return _tokens_of([e for e in hass.config_entries.async_entries(DOMAIN) if entry_api_key(e)])
 
 
 def legacy_others(hass: HomeAssistant, entry: ConfigEntry) -> list[ConfigEntry]:
@@ -415,24 +425,42 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         """What the steps of the dialog hand on to each other: the key, the line, the stops of the line and the poles of the one picked."""
         self._key = ""
         self._line = ""
+        self._token = ""  # the number of the token picked from those in use
+        self._tokens: list[tuple[str, list[str]]] = []
         self._index: dict[str, list[str]] = {}
         self._stops: list[SelectOptionDict] = []
         self._show_vehicles = False
         self._line_poles: list[dict[str, Any]] = []  # the poles of the stop picked that the line serves
 
     def _user_form(self, errors: dict[str, str] | None = None) -> ConfigFlowResult:
-        """The first step: the key and the line (a list to pick from, or a number typed), or "I know the numbers"."""
+        """The first step: the key and the line (a list to pick from, or a number typed), or "I know the numbers". When a line
+        is set up with a token already, that token can be picked instead of pasting one again."""
         lines = sorted(self._index, key=line_order)
+        line_field = SelectSelector(
+            SelectSelectorConfig(options=[SelectOptionDict(value=line, label=line) for line in lines], mode=SelectSelectorMode.DROPDOWN, custom_value=True)
+        )
+        if not self._tokens:
+            schema = _form(
+                {
+                    vol.Required(CONF_API_KEY, default=self._key): str,
+                    vol.Required(CONF_LINE, default=self._line): line_field,
+                    vol.Optional(CONF_MANUAL, default=False): bool,
+                }
+            )
+            return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
+        choices = [SelectOptionDict(value=n, label=label) for n, label in token_choices(self._tokens).items()]
+        pasted = self._key if self._key and self._key not in dict(self._tokens) else ""
         schema = _form(
             {
-                vol.Required(CONF_API_KEY, default=self._key): str,
-                vol.Required(CONF_LINE, default=self._line): SelectSelector(
-                    SelectSelectorConfig(options=[SelectOptionDict(value=line, label=line) for line in lines], mode=SelectSelectorMode.DROPDOWN, custom_value=True)
+                vol.Required(CONF_TOKEN, default=self._token or choices[0]["value"]): SelectSelector(
+                    SelectSelectorConfig(options=choices, mode=SelectSelectorMode.LIST)
                 ),
+                vol.Optional(CONF_API_KEY, default=pasted): str,
+                vol.Required(CONF_LINE, default=self._line): line_field,
                 vol.Optional(CONF_MANUAL, default=False): bool,
             }
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors or {})
+        return self.async_show_form(step_id="user_existing", data_schema=schema, errors=errors or {})
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The first screen: the key and the line. The stops the line serves are offered next; "I know the numbers" (or a list of
@@ -441,9 +469,16 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         if index is None:
             return self._manual_form({"base": "cannot_load_stops"})
         self._index = index
+        self._tokens = tokens_in_use(self.hass)
         if user_input is None:
             return self._user_form()
-        self._key, self._line = user_input[CONF_API_KEY].strip(), user_input[CONF_LINE].strip().upper()
+        self._line = user_input[CONF_LINE].strip().upper()
+        self._token = str(user_input.get(CONF_TOKEN, ""))
+        pasted = str(user_input.get(CONF_API_KEY, "")).strip()
+        if pasted or not self._tokens:
+            self._key = pasted
+        else:  # no new key typed: the token picked from those already in use
+            self._key = self._tokens[int(self._token)][0]  # the form only lets a number of the list through
         if key_kind(self._key) is None:
             return self._user_form({"base": "invalid_api_key"})
         if key_kind(self._key) == "legacy" and legacy_api_retired():
@@ -453,6 +488,10 @@ class ZtmWarsawConfigFlow(KeyChoice, config_entries.ConfigFlow, domain=DOMAIN): 
         if self._line not in index:
             return self._user_form({"base": "unknown_line"})
         return await self.async_step_stop()
+
+    async def async_step_user_existing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The first screen of an installation that has a token already: handled like ``user``."""
+        return await self.async_step_user(user_input)
 
     def _asks_for_vehicles(self) -> bool:
         """Whether the stop screen offers the map's vehicle pins: only with a token (the positions are its service)."""

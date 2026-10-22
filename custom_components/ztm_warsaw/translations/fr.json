@@ -10,6 +10,15 @@
           "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
+      "user_existing": {
+        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous, puis choisissez la ligne souhaitée. Vous choisirez ensuite son arrêt et la direction dans laquelle vous voyagez.",
+        "data": {
+          "token": "Jeton déjà utilisé",
+          "api_key": "Ou collez une autre clé API ou un autre jeton (il remplace celui choisi ci-dessus)",
+          "line": "Ligne (p. ex. 151 ou N31)",
+          "manual": "Je connais les numéros : je les saisis moi-même"
+        }
+      },
       "stop": {
         "title": "Quel arrêt ?",
         "description": "Les arrêts que dessert la ligne {line}.",

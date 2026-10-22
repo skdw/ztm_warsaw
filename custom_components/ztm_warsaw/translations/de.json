@@ -10,6 +10,15 @@
           "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
+      "user_existing": {
+        "description": "Eine Linie ist bereits mit einem Token eingerichtet. Wähle dieses Token oder füge unten ein anderes ein und wähle dann die gewünschte Linie. Danach wählst du ihre Haltestelle und die Richtung, in die du fährst.",
+        "data": {
+          "token": "Bereits verwendetes Token",
+          "api_key": "Oder füge unten einen anderen API-Schlüssel oder ein anderes Token ein (er wird statt des oben gewählten verwendet)",
+          "line": "Linie (z. B. 151 oder N31)",
+          "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
+        }
+      },
       "stop": {
         "title": "Welche Haltestelle?",
         "description": "Die Haltestellen, die die Linie {line} bedient.",

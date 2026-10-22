@@ -10,6 +10,15 @@
           "manual": "Conozco los números: los introduciré yo"
         }
       },
+      "user_existing": {
+        "description": "Ya hay una línea configurada con un token. Elige ese token o pega otro más abajo, y elige la línea que quieres. Después elegirás su parada y la dirección en la que viajas.",
+        "data": {
+          "token": "Token que ya se usa",
+          "api_key": "O pega otra clave API o token (se usa en lugar del elegido arriba)",
+          "line": "Línea (p. ej. 151 o N31)",
+          "manual": "Conozco los números: los introduciré yo"
+        }
+      },
       "stop": {
         "title": "¿Qué parada?",
         "description": "Las paradas que sirve la línea {line}.",

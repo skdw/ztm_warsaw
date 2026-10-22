@@ -10,6 +10,15 @@
           "manual": "Conosco i numeri: li inserisco io"
         }
       },
+      "user_existing": {
+        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto, poi scegli la linea che ti interessa. Poi sceglierai la sua fermata e la direzione in cui viaggi.",
+        "data": {
+          "token": "Token già in uso",
+          "api_key": "Oppure incolla un’altra chiave API o token (viene usato al posto di quello scelto sopra)",
+          "line": "Linea (es. 151 o N31)",
+          "manual": "Conosco i numeri: li inserisco io"
+        }
+      },
       "stop": {
         "title": "Quale fermata?",
         "description": "Le fermate servite dalla linea {line}.",

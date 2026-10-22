@@ -10,6 +10,15 @@
           "manual": "I know the numbers: let me enter them myself"
         }
       },
+      "user_existing": {
+        "description": "A line is already set up with a token. Pick that token, or paste another below, and choose the line you want. Next you pick its stop and the direction you travel in.",
+        "data": {
+          "token": "Token already in use",
+          "api_key": "Or paste another API key or token (it is used instead of the one above)",
+          "line": "Line (e.g. 151 or N31)",
+          "manual": "I know the numbers: let me enter them myself"
+        }
+      },
       "stop": {
         "title": "Which stop?",
         "description": "The stops that line {line} serves.",

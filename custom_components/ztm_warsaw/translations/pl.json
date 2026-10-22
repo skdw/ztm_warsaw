@@ -10,6 +10,15 @@
           "manual": "Znam numery: wpiszę je sam"
         }
       },
+      "user_existing": {
+        "description": "Jakaś linia jest już skonfigurowana z tokenem. Wybierz ten token albo wklej poniżej inny, a potem wybierz linię, która cię interesuje. W następnych krokach wybierzesz jej przystanek i kierunek, w którym jedziesz.",
+        "data": {
+          "token": "Token, który już jest używany",
+          "api_key": "Albo wklej inny klucz API lub token (zostanie użyty zamiast wybranego wyżej)",
+          "line": "Linia (np. 151 albo N31)",
+          "manual": "Znam numery: wpiszę je sam"
+        }
+      },
       "stop": {
         "title": "Który przystanek?",
         "description": "Przystanki, które obsługuje linia {line}.",

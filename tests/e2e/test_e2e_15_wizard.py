@@ -304,3 +304,35 @@ async def test_e2e_43_a_direction_the_timetable_cannot_give_falls_back_to_the_ca
         assert await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE) == "Catalogue direction"
     with patch.object(ZTMStopClient, "get", AsyncMock(side_effect=ZTMAuthError("rejected"))), pytest.raises(ZTMAuthError):
         await config_flow.direction_of(env.hass, DEFAULT_KEY, pole, LINE)
+
+
+async def test_e2e_43_a_token_already_in_use_can_be_picked_instead_of_pasted_again(env):
+    first = await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    form = await _first(env)
+    assert (form["type"], form["step_id"]) == ("form", "user_existing")
+    assert [str(k) for k in form["data_schema"].schema] == ["token", "api_key", "line", "manual"]
+    (choice,) = form["data_schema"].schema["token"].config["options"]
+    assert choice["label"] == f"…{DEFAULT_TOKEN[-4:]}  ·  {LINE}", "told by its last four characters and its lines, never whole"
+    stops = await env.hass.config_entries.flow.async_configure(form["flow_id"], {"token": choice["value"], "line": "N25"})
+    assert (stops["type"], stops["step_id"]) == ("form", "stop"), "no token was pasted"
+    poles = await env.hass.config_entries.flow.async_configure(stops["flow_id"], {"stop": "7009"})
+    done = await env.hass.config_entries.flow.async_configure(poles["flow_id"], {"pole": "7009/01"})
+    assert done["type"] == "create_entry", done
+    assert done["result"].data["api_key"] == first.data["api_key"]
+
+
+async def test_e2e_43_a_token_pasted_below_wins_over_the_one_in_use_and_a_bad_paste_is_refused(env):
+    await env.add_entry_via_flow(api_key=DEFAULT_TOKEN)
+    refused = await _line(env, api_key="not a key", token="0")
+    assert (refused["step_id"], refused["errors"]) == ("user_existing", {"base": "invalid_api_key"})
+    again = await env.hass.config_entries.flow.async_configure(refused["flow_id"], {"token": "0", "api_key": DEFAULT_KEY, "line": "N25"})
+    assert again["step_id"] == "stop", "an old key pasted is a key: it is checked like one"
+    assert [str(k) for k in again["data_schema"].schema] == ["stop"], "it has no vehicles to show"
+    key_field = next(k for k in refused["data_schema"].schema if str(k) == "api_key")
+    assert key_field.default() == "not a key"
+
+
+async def test_e2e_43_an_old_key_in_use_is_not_offered_as_a_token(env):
+    await env.add_entry_via_flow()  # an old key
+    form = await _first(env)
+    assert (form["step_id"], [str(k) for k in form["data_schema"].schema]) == ("user", ["api_key", "line", "manual"])
