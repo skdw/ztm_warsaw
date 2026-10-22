@@ -29,7 +29,7 @@ STOPS = [
     ("1085", "01", "Rondo Daszyńskiego", "Dworzec Centralny"),
     ("1085", "02", "Rondo Daszyńskiego", "Okęcie"),
     ("7009", "01", "Łazienki Królewskie", "Centrum"),
-    ("7009", "02", "Łazienki Królewskie", "Wilanów"),
+    ("7009", "02", "Łazienki Królewskie", "Bemowo"),
     ("3044", "01", "Żerań FSO", "Dworzec"),
 ]
 
@@ -43,7 +43,7 @@ def test_folding_ignores_case_diacritics_and_the_polish_l():
     assert fold("Łazienki Żerań ĄĘ") == fold("lazienki zeran ae")
 
 
-@pytest.mark.parametrize("query", ["marc", "MARCELIN", "  rondo daszyńskiego "])
+@pytest.mark.parametrize("query", ["rond", "RONDO DASZYŃSKIEGO", "  rondo daszyńskiego "])
 async def test_a_name_is_found_by_any_part_of_it_whatever_the_case(query):
     readable, poles = await _search(query)
     assert readable is True
@@ -61,7 +61,7 @@ async def test_a_stop_id_or_an_id_and_pole_finds_that_stop_or_pole():
     _, whole = await _search("7009")
     assert [p["stop_nr"] for p in whole] == ["01", "02"]
     _, one = await _search("7009/02")
-    assert [(p["stop_id"], p["stop_nr"], p["direction"]) for p in one] == [("7009", "02", "Wilanów")]
+    assert [(p["stop_id"], p["stop_nr"], p["direction"]) for p in one] == [("7009", "02", "Bemowo")]
 
 
 async def test_nothing_matches_gives_an_empty_list_and_an_empty_query_matches_nothing():
