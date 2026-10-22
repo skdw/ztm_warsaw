@@ -58,7 +58,7 @@ async def test_e2e_33_an_entry_of_one_stop_becomes_a_line_with_that_stop(env):
 
     assert env.hass.config_entries.async_entries(DOMAIN) == [old]  # the same entry, converted
     assert old.version == 2
-    assert old.title == f"Line 151 · {stop_name_for('7009')} 01"
+    assert old.title == "Line 151"
     assert dict(old.data) == {"api_key": DEFAULT_KEY, "line": "151", "departures": 3}
     (stop,) = old.subentries.values()
     assert (stop.subentry_type, stop.unique_id, dict(stop.data)) == (
