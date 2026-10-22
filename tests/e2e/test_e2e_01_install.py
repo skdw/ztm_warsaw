@@ -73,13 +73,13 @@ async def test_e2e_01_fresh_install_through_the_real_config_flow(env):
     entry = await env.add_entry_via_flow(line="151")
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.title == f"Line 151 · {stop_name_for('7009')} 01"  # an entry is a line, titled with its stops ...
+    assert entry.title == "Line 151"  # an entry is a line, titled with the line only (its stops are listed under it) ...
     assert entry.data == {
         "api_key": DEFAULT_KEY,
         "line": "151",
         "departures": 3,  # no longer asked (3 are always listed); the key stays
     }
-    assert set(entry.options) <= {"generated_title"}  # nothing is asked for in options; only the title this integration made is remembered
+    assert not entry.options  # nothing is asked for in options
     (stop,) = entry.subentries.values()  # ... and its stops are subentries
     assert stop.subentry_type == "stop"
     assert stop.title == f"{stop_name_for('7009')} 01"  # the stop's name, not its number
@@ -444,7 +444,7 @@ async def test_e2e_05_a_new_key_replaces_the_old_one_and_reloads_the_entry_once(
     assert entry.data["api_key"] == NEW_KEY
     (stop,) = entry.subentries.values()
     assert (stop.data["busstop_id"], stop.data["busstop_nr"], entry.data["line"]) == (7009, "01", "151")
-    assert set(entry.options) <= {"generated_title"}  # nothing is asked for in options; only the title this integration made is remembered
+    assert not entry.options  # nothing is asked for in options
     assert reload.call_count == 1
     assert entry.state is ConfigEntryState.LOADED
     assert env.hass.states.get("sensor.line_151_from_7009_01") is not None
