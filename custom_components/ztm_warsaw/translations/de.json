@@ -3,27 +3,32 @@
   "config": {
     "step": {
       "user": {
-        "description": "Gib deinen API-Schlüssel oder dein Token und die gewünschte Linie ein. Danach wählst du ihre Haltestelle und die Richtung, in die du fährst.",
+        "description": "Gib deinen API-Schlüssel oder dein Token ein. Danach wählst du die Haltestelle, dann die Linie und dann die Richtung, in die du fährst.",
         "data": {
           "api_key": "API-Schlüssel oder Token vom Open-Data-Portal der Stadt Warschau",
-          "line": "Linie (z. B. 151 oder N31)",
           "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
       "user_existing": {
-        "description": "Eine Linie ist bereits mit einem Token eingerichtet. Wähle dieses Token oder füge unten ein anderes ein und wähle dann die gewünschte Linie. Danach wählst du ihre Haltestelle und die Richtung, in die du fährst.",
+        "description": "Eine Linie ist bereits mit einem Token eingerichtet. Wähle dieses Token oder füge unten ein anderes ein. Danach wählst du die Haltestelle, dann die Linie und dann die Richtung, in die du fährst.",
         "data": {
           "token": "Bereits verwendetes Token",
           "api_key": "Oder füge unten einen anderen API-Schlüssel oder ein anderes Token ein (er wird statt des oben gewählten verwendet)",
-          "line": "Linie (z. B. 151 oder N31)",
           "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"
         }
       },
       "stop": {
         "title": "Welche Haltestelle?",
-        "description": "Die Haltestellen, die die Linie {line} bedient.",
+        "description": "Wähle eine Haltestelle; tippe einen Teil ihres Namens, um die Liste einzugrenzen.",
         "data": {
-          "stop": "Haltestelle",
+          "stop": "Haltestelle"
+        }
+      },
+      "line": {
+        "title": "Welche Linie?",
+        "description": "Die Linien, die heute an {stop} halten.",
+        "data": {
+          "line": "Linie",
           "show_vehicles": "Fahrzeuge dieser Linie auf der Karte anzeigen"
         }
       },
@@ -109,7 +114,8 @@
       "invalid_stop_id": "Die Haltestellen-ID darf nur Ziffern enthalten (z. B. „3044“).",
       "cannot_load_stops": "Die Liste der Haltestellen konnte nicht geladen werden, bitte gib die Nummern selbst ein (und prüfe Schlüssel oder Token, wenn es weiter scheitert).",
       "old_api_retired": "Die alte API der Stadt Warschau funktioniert nicht mehr. Hole dir ein Token unter dane.um.warszawa.pl/pl/key-api und gib es statt des alten Schlüssels ein.",
-      "unknown_line": "Diese Linie steht nicht in der Liste. Wähle eine Linie aus der Liste oder setze den Haken bei „Ich kenne die Nummern“, um sie selbst einzugeben."
+      "no_lines": "Heute hält an dieser Haltestelle keine Linie. Wähle eine andere.",
+      "cannot_load_lines": "Die Linien dieser Haltestelle konnten nicht geladen werden. Versuche es erneut oder geh zurück und gib die Nummern selbst ein."
     },
     "abort": {
       "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
@@ -311,7 +317,7 @@
       "step": {
         "user": {
           "title": "Haltestelle der Linie {line} hinzufügen",
-          "description": "Eine weitere Haltestelle der Linie {line}. Wähle sie aus der Liste oder setze den Haken bei „Ich kenne die Nummern“.",
+          "description": "Eine weitere Haltestelle der Linie {line}. Wähle sie aus der Liste (tippe einen Teil des Namens, um sie einzugrenzen) oder setze den Haken bei „Ich kenne die Nummern“.",
           "data": {
             "stop": "Haltestelle",
             "manual": "Ich kenne die Nummern: Ich gebe sie selbst ein"

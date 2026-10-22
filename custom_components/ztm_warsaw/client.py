@@ -9,7 +9,6 @@ Errors are raised as ``ZTMApiError`` or, for a rejected key, ``ZTMAuthError``; n
 """
 
 import asyncio
-from collections.abc import Iterable
 import time
 import logging
 from typing import Any, Optional
@@ -139,13 +138,13 @@ class StopCatalogue:
         info = poles[stop_nr] if stop_nr in poles else next(iter(poles.values()))
         return True, dict(info)
 
-    async def stop_names(self, client: "ZTMStopClient", stop_ids: Iterable[str]) -> tuple[bool | None, dict[str, str]]:
-        """``(readable, {stop ID: name})`` for the stops asked for (those the catalogue does not know are left out): the names the
-        setup shows next to a stop's ID. ``readable`` is as in ``find``."""
+    async def all_stops(self, client: "ZTMStopClient") -> tuple[bool | None, dict[str, str]]:
+        """``(readable, {stop ID: name})`` for every stop of the catalogue, in the catalogue's order: the list the setup lets the user
+        pick a stop from. ``readable`` is as in ``find``."""
         readable, index = await self._load(client)
         if index is None:
             return readable, {}
-        return True, {i: str(next(iter(index[i].values())).get("nazwa_zespolu") or "") for i in stop_ids if index.get(i)}
+        return True, {stop_id: str(next(iter(poles.values())).get("nazwa_zespolu") or "") for stop_id, poles in index.items() if poles}
 
     async def poles_of(self, client: "ZTMStopClient", stop_id: str) -> tuple[bool | None, list[dict[str, Any]]]:
         """``(readable, poles)`` of one stop, each ``{"stop_id", "stop_nr", "name", "direction"}`` in the catalogue's order (the

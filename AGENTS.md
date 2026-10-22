@@ -163,7 +163,7 @@ finds, or style changes that ruff does not enforce.
 ## Releasing
 
 The header of `.github/workflows/release.yml` is the procedure: set the version in
-`manifest.json`, move the notes under their heading in `CHANGELOG.md`, rebuild `line_stops.json` with `scripts/build_line_index.py` (the City changes its lines a few times a year), merge, tag the merge commit,
+`manifest.json`, move the notes under their heading in `CHANGELOG.md`, merge, tag the merge commit,
 and publish the draft Release that the workflow prepares. A version that needs something from
 users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 
@@ -177,7 +177,6 @@ users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 | `scripts/` | `check_mypy_baseline.py`, `release_check.py`, `release_preflight.py` and `check_pr_docs_impact.py`, tested under `tests/` |
 | `.github/workflows/` | `ci.yml`, `docs-impact.yml`, `publish-wiki.yml`, `release.yml`, `scorecard.yml`, `verify-standard.yml` (the playbook's `verify-tier`, report only). A job's `name:` is its status-check name: branch protection and `REQUIRED` in `scripts/release_preflight.py` list the jobs by it |
 | `custom_components/ztm_warsaw/vehicles.py`, `vehicle_sensor.py`, `geo_location.py` | The shared feed of the City's vehicle positions (one poll per token), the optional `Vehicle distance` sensor of a stop, and the map layer: one `geo_location` pin per stop pole (hosted by one of the lines that stop there) and one per vehicle of a line that shows its vehicles |
-| `custom_components/ztm_warsaw/line_stops.json`, `line_index.py`, `scripts/build_line_index.py` | The stops of every line, which the City's open data does not list and the setup starts from: the script builds the file from the lines at every pole (`ZTM_LIVE_API_KEY=<token> python scripts/build_line_index.py`, about three minutes) and the loader reads it once |
 | `custom_components/ztm_warsaw/runtime.py` | The typed `runtime_data` of a loaded entry (`StopRuntime`, `LineRuntime`) and `ZtmConfigEntry`, the config entry with it |
 | `custom_components/ztm_warsaw/quality_scale.yaml` | Where the integration stands on Home Assistant's Integration Quality Scale, rule by rule (`done`, `exempt` with the reason, `todo`); change a status in the pull request that changes the code. `tests/test_quality_scale.py` checks every rule is there |
 | `scripts/check_docstrings.py` | Fails when a module, class or function has no docstring (also run by pytest; see Docstrings above) |

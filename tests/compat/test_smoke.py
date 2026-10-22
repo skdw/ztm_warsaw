@@ -38,7 +38,7 @@ async def test_the_config_flow_creates_an_entry_that_loads(hass, enable_custom_i
     flow = hass.config_entries.flow
     result = await flow.async_init(DOMAIN, context={"source": "user"})
     assert result["type"] == "form"
-    result = await flow.async_configure(result["flow_id"], {"api_key": ENTRY_DATA["api_key"], "line": "151", "manual": True})
+    result = await flow.async_configure(result["flow_id"], {"api_key": ENTRY_DATA["api_key"], "manual": True})
     result = await flow.async_configure(result["flow_id"], {k: v for k, v in ENTRY_DATA.items() if k != "departures"})
     await hass.async_block_till_done()
     assert result["type"] == "create_entry", result.get("errors")

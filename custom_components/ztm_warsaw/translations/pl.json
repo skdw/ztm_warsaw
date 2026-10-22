@@ -3,27 +3,32 @@
   "config": {
     "step": {
       "user": {
-        "description": "Podaj klucz API lub token i linię, która cię interesuje. W następnych krokach wybierzesz jej przystanek i kierunek, w którym jedziesz.",
+        "description": "Podaj klucz API lub token. W następnych krokach wybierzesz przystanek, potem linię, a potem kierunek, w którym jedziesz.",
         "data": {
           "api_key": "Klucz API lub token z portalu otwartych danych m.st. Warszawy",
-          "line": "Linia (np. 151 albo N31)",
           "manual": "Znam numery: wpiszę je sam"
         }
       },
       "user_existing": {
-        "description": "Jakaś linia jest już skonfigurowana z tokenem. Wybierz ten token albo wklej poniżej inny, a potem wybierz linię, która cię interesuje. W następnych krokach wybierzesz jej przystanek i kierunek, w którym jedziesz.",
+        "description": "Jakaś linia jest już skonfigurowana z tokenem. Wybierz ten token albo wklej poniżej inny. W następnych krokach wybierzesz przystanek, potem linię, a potem kierunek, w którym jedziesz.",
         "data": {
           "token": "Token, który już jest używany",
           "api_key": "Albo wklej inny klucz API lub token (zostanie użyty zamiast wybranego wyżej)",
-          "line": "Linia (np. 151 albo N31)",
           "manual": "Znam numery: wpiszę je sam"
         }
       },
       "stop": {
         "title": "Który przystanek?",
-        "description": "Przystanki, które obsługuje linia {line}.",
+        "description": "Wybierz przystanek, a żeby zawęzić listę, wpisz fragment jego nazwy.",
         "data": {
-          "stop": "Przystanek",
+          "stop": "Przystanek"
+        }
+      },
+      "line": {
+        "title": "Która linia?",
+        "description": "Linie, które dziś zatrzymują się na {stop}.",
+        "data": {
+          "line": "Linia",
           "show_vehicles": "Pokaż pojazdy tej linii na mapie"
         }
       },
@@ -109,7 +114,8 @@
       "invalid_stop_id": "Numer zespołu przystankowego musi składać się z cyfr (np. „3044”).",
       "cannot_load_stops": "Nie udało się pobrać listy przystanków, więc wpisz numery sam (a jeśli to się powtarza, sprawdź klucz lub token).",
       "old_api_retired": "Stare API m.st. Warszawy już nie działa. Pobierz token na stronie dane.um.warszawa.pl/pl/key-api i wpisz go zamiast starego klucza.",
-      "unknown_line": "Tej linii nie ma na liście. Wybierz linię z listy albo zaznacz „Znam numery”, żeby wpisać dane samodzielnie."
+      "no_lines": "Dziś żadna linia nie zatrzymuje się na tym przystanku. Wybierz inny.",
+      "cannot_load_lines": "Nie udało się pobrać linii dla tego przystanku. Spróbuj ponownie albo wróć i wpisz numery sam."
     },
     "abort": {
       "single_instance_allowed": "Można skonfigurować tylko jedną instancję tej integracji.",
@@ -311,7 +317,7 @@
       "step": {
         "user": {
           "title": "Dodaj przystanek dla linii {line}",
-          "description": "Kolejny przystanek linii {line}. Wybierz go z listy albo zaznacz „Znam numery”.",
+          "description": "Kolejny przystanek linii {line}. Wybierz go z listy (wpisz fragment nazwy, żeby zawęzić listę) albo zaznacz „Znam numery”.",
           "data": {
             "stop": "Przystanek",
             "manual": "Znam numery: wpiszę je sam"

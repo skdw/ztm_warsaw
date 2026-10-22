@@ -70,7 +70,7 @@ The integration reads timetables, so it displays **scheduled** departures. It do
 - ✅ The integration supports buses, trams, the metro and urban rail (SKM), including night, express and local lines.
 - ✅ The state of the sensor is the time of the next departure. You find the three after it, and the first and the last departure of the day, in the attributes.
 - ✅ A separate *Status* sensor explains in plain words what is going on, for example "The last departure of the day has gone".
-- ✅ You add a line by picking it from a list, then one of its stops by name and, where the line serves more than one pole, the direction you travel in, so you never type a stop's name or look up a number.
+- ✅ You add a stop by picking it from the City's list (type a part of its name to narrow it), then a line that stops there today and, where the line serves more than one pole, the direction you travel in, so you never look up a number.
 - ✅ You can add several lines and stops, set a walking time to the stop, turn on a calendar of departures and see the vehicle on the map. The calendar and the vehicle are off by default.
 - ✅ The interface is in eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. A program translated the six newer ones, so corrections as pull requests are welcome.
 
@@ -130,8 +130,8 @@ An old API key (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, from [api.um.warszawa.pl
 
 1. Go to **Settings → Devices & services**.
 2. Click **+ Add Integration** and search for **Warsaw Public Transport**.
-3. Paste your token and pick the line from the list (or type its number, for example `151`).
-4. Pick one of the line's stops: they are listed by name. Where the line serves more than one pole of the stop, the integration lists the poles with the direction the line takes from each, and you pick yours (its number is on the stop sign).
+3. Paste your token, then pick the stop from the list (type a part of its name, for example `Marcelin`, to narrow it).
+4. Pick the line: only lines that stop there today are listed. Where the line serves more than one pole of the stop, the integration lists the poles with the direction the line takes from each, and you pick yours (its number is on the stop sign).
 
 The integration names the sensor, for example `sensor.line_151_from_7009_01`. You add another stop of the line with **Add stop**. If you know the numbers, tick **I know the numbers: let me enter them myself** on the first screen. The [wiki](https://github.com/solarssk/ztm_warsaw/wiki/1.-Configuration) explains the walking time, the calendar, the vehicle on the map and how to remove a line.
 

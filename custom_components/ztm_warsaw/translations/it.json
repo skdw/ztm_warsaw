@@ -3,27 +3,32 @@
   "config": {
     "step": {
       "user": {
-        "description": "Inserisci la tua chiave API o token e la linea che ti interessa. Poi sceglierai la sua fermata e la direzione in cui viaggi.",
+        "description": "Inserisci la tua chiave API o token. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
         "data": {
           "api_key": "Chiave API o token del portale dei dati aperti della città di Varsavia",
-          "line": "Linea (es. 151 o N31)",
           "manual": "Conosco i numeri: li inserisco io"
         }
       },
       "user_existing": {
-        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto, poi scegli la linea che ti interessa. Poi sceglierai la sua fermata e la direzione in cui viaggi.",
+        "description": "Una linea è già configurata con un token. Scegli quel token oppure incollane un altro qui sotto. Poi sceglierai la fermata, poi la linea e poi la direzione in cui viaggi.",
         "data": {
           "token": "Token già in uso",
           "api_key": "Oppure incolla un’altra chiave API o token (viene usato al posto di quello scelto sopra)",
-          "line": "Linea (es. 151 o N31)",
           "manual": "Conosco i numeri: li inserisco io"
         }
       },
       "stop": {
         "title": "Quale fermata?",
-        "description": "Le fermate servite dalla linea {line}.",
+        "description": "Scegli una fermata; scrivi una parte del nome per restringere l’elenco.",
         "data": {
-          "stop": "Fermata",
+          "stop": "Fermata"
+        }
+      },
+      "line": {
+        "title": "Quale linea?",
+        "description": "Le linee che oggi fermano a {stop}.",
+        "data": {
+          "line": "Linea",
           "show_vehicles": "Mostra sulla mappa i veicoli di questa linea"
         }
       },
@@ -109,7 +114,8 @@
       "invalid_stop_id": "L’ID della fermata deve contenere solo cifre (es. «3044»).",
       "cannot_load_stops": "Non è stato possibile caricare l’elenco delle fermate, quindi inserisci tu i numeri (e controlla la chiave o il token se continua a fallire).",
       "old_api_retired": "La vecchia API della città di Varsavia non funziona più. Ottieni un token su dane.um.warszawa.pl/pl/key-api e inseriscilo al posto della vecchia chiave.",
-      "unknown_line": "Questa linea non è nell’elenco. Scegline una dall’elenco oppure seleziona «Conosco i numeri» per inserirla tu."
+      "no_lines": "Oggi nessuna linea ferma a questa fermata. Scegline un’altra.",
+      "cannot_load_lines": "Non è stato possibile caricare le linee di questa fermata. Riprova oppure torna indietro e inserisci i numeri tu."
     },
     "abort": {
       "single_instance_allowed": "È consentita una sola istanza.",
@@ -311,7 +317,7 @@
       "step": {
         "user": {
           "title": "Aggiungi una fermata della linea {line}",
-          "description": "Un’altra fermata della linea {line}. Sceglila dall’elenco oppure seleziona «Conosco i numeri».",
+          "description": "Un’altra fermata della linea {line}. Sceglila dall’elenco (scrivi una parte del nome per restringerlo) oppure seleziona «Conosco i numeri».",
           "data": {
             "stop": "Fermata",
             "manual": "Conosco i numeri: li inserisco io"

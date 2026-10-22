@@ -3,27 +3,32 @@
   "config": {
     "step": {
       "user": {
-        "description": "Saisissez votre clé API ou jeton et la ligne souhaitée. Vous choisirez ensuite son arrêt et la direction dans laquelle vous voyagez.",
+        "description": "Saisissez votre clé API ou jeton. Vous choisirez ensuite l’arrêt, puis la ligne, puis la direction dans laquelle vous voyagez.",
         "data": {
           "api_key": "Clé API ou jeton du portail de données ouvertes de la ville de Varsovie",
-          "line": "Ligne (p. ex. 151 ou N31)",
           "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "user_existing": {
-        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous, puis choisissez la ligne souhaitée. Vous choisirez ensuite son arrêt et la direction dans laquelle vous voyagez.",
+        "description": "Une ligne est déjà configurée avec un jeton. Choisissez ce jeton ou collez-en un autre ci-dessous. Vous choisirez ensuite l’arrêt, puis la ligne, puis la direction dans laquelle vous voyagez.",
         "data": {
           "token": "Jeton déjà utilisé",
           "api_key": "Ou collez une autre clé API ou un autre jeton (il remplace celui choisi ci-dessus)",
-          "line": "Ligne (p. ex. 151 ou N31)",
           "manual": "Je connais les numéros : je les saisis moi-même"
         }
       },
       "stop": {
         "title": "Quel arrêt ?",
-        "description": "Les arrêts que dessert la ligne {line}.",
+        "description": "Choisissez un arrêt ; saisissez une partie de son nom pour réduire la liste.",
         "data": {
-          "stop": "Arrêt",
+          "stop": "Arrêt"
+        }
+      },
+      "line": {
+        "title": "Quelle ligne ?",
+        "description": "Les lignes qui s’arrêtent aujourd’hui à {stop}.",
+        "data": {
+          "line": "Ligne",
           "show_vehicles": "Afficher les véhicules de cette ligne sur la carte"
         }
       },
@@ -109,7 +114,8 @@
       "invalid_stop_id": "L’identifiant de l’arrêt ne doit contenir que des chiffres (p. ex. « 3044 »).",
       "cannot_load_stops": "La liste des arrêts n’a pas pu être chargée, saisissez donc les numéros vous-même (et vérifiez votre clé ou jeton si cela persiste).",
       "old_api_retired": "L’ancienne API de la ville de Varsovie ne fonctionne plus. Obtenez un jeton sur dane.um.warszawa.pl/pl/key-api et saisissez-le à la place de l’ancienne clé.",
-      "unknown_line": "Cette ligne n’est pas dans la liste. Choisissez-en une dans la liste ou cochez « Je connais les numéros » pour la saisir vous-même."
+      "no_lines": "Aucune ligne ne s’arrête aujourd’hui à cet arrêt. Choisissez-en un autre.",
+      "cannot_load_lines": "Les lignes de cet arrêt n’ont pas pu être chargées. Réessayez ou revenez en arrière et saisissez les numéros vous-même."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance est autorisée.",
@@ -311,7 +317,7 @@
       "step": {
         "user": {
           "title": "Ajouter un arrêt de la ligne {line}",
-          "description": "Un autre arrêt de la ligne {line}. Choisissez-le dans la liste ou cochez « Je connais les numéros ».",
+          "description": "Un autre arrêt de la ligne {line}. Choisissez-le dans la liste (saisissez une partie du nom pour la réduire) ou cochez « Je connais les numéros ».",
           "data": {
             "stop": "Arrêt",
             "manual": "Je connais les numéros : je les saisis moi-même"

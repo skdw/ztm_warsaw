@@ -83,7 +83,7 @@ async def test_e2e_32_adding_a_stop_reloads_the_entry_once(env):
     assert env.hass.states.get(f"sensor.line_{LINE.lower()}_from_7009_02") is not None
 
 
-async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_of_the_line_then_the_pole(env):
+async def test_e2e_32_add_stop_on_the_entry_asks_for_the_stop_then_the_pole(env):
     entry = await env.add_entry_via_flow(line=LINE)
     manager = env.hass.config_entries.subentries
     form = await manager.async_init((entry.entry_id, "stop"), context={"source": "user"})
