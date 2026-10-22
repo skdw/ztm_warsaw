@@ -112,7 +112,7 @@ Les données proviennent des horaires publiés. L’intégration présente les l
 L’intégration prend en charge les identifiants d’accès aux deux API de la ville de Varsovie :
 
 - **Jeton pour la nouvelle API (recommandé) :** sur [dane.um.warszawa.pl/pl/key-api](https://dane.um.warszawa.pl/pl/key-api), saisissez un pseudonyme, acceptez les conditions et téléchargez votre jeton. Il s’agit d’une longue chaîne de caractères composée de trois parties séparées par des points.
-- **Clé pour l’ancienne API :** une clé de [api.um.warszawa.pl](https://api.um.warszawa.pl) a le format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. L’ancienne API fonctionne toujours, mais la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API.
+- **Clé pour l’ancienne API :** une clé de [api.um.warszawa.pl](https://api.um.warszawa.pl) a le format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. L’ancienne API ne répond parfois plus, et la ville n’a pas annoncé de date d’arrêt du service. Nous recommandons de passer à la nouvelle API.
 
 L’intégration reconnaît le type d’identifiant et l’envoie uniquement à l’API correspondante. Pour remplacer une ancienne clé par un jeton, choisissez **Configurer** pour la ligne et collez le jeton. Les réglages de la ligne et des arrêts seront conservés. Il est inutile d’ajouter à nouveau l’intégration : l’assistant refuse les configurations en double pour une même ligne au même point d’arrêt.
 
