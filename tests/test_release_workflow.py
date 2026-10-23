@@ -54,3 +54,10 @@ def test_a_version_that_has_a_tag_is_skipped():
     """Every later push to main finds the tag of the version and does nothing."""
     job = _load("release.yml")["jobs"]["release"]
     assert job["if"] == "needs.plan.outputs.skip != 'true'"
+
+
+def test_every_push_to_main_has_a_ci_run_of_its_own_so_no_version_commit_is_skipped():
+    """A concurrency group keeps one pending run: with one group for main, a run of a commit that bumped the version could be cancelled."""
+    group = _load("ci.yml")["concurrency"]["group"]
+    assert "github.sha" in group
+    assert "!= 'refs/heads/main'" in _load("ci.yml")["concurrency"]["cancel-in-progress"]  # nothing on main is cancelled

@@ -291,7 +291,7 @@ def test_release_runs_never_cancel_each_other_and_do_not_share_one_pending_slot(
     text = RELEASE.read_text(encoding="utf-8")
     block = re.search(r"^concurrency:\n((?:  .+\n)+)", text, re.MULTILINE)
     assert block is not None
-    assert "group: release-${{ github.ref }}" in block.group(1)
+    assert "group: release-${{ github.ref }}-${{ github.sha }}" in block.group(1)
     assert "cancel-in-progress: false" in block.group(1)
 
 

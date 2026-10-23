@@ -40,7 +40,7 @@ on:
 # ref, with a name of its own: a called workflow's github.workflow is the caller's, and a group
 # shared with ci.yml would cancel or block it. Runs of different tags are independent.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
