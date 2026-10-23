@@ -212,3 +212,24 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
     pins.stop()
     pins.stop()
     assert feed.left == 1
+
+
+async def test_e2e_48_a_vehicle_pin_says_where_it_heads_from_the_timetable_of_its_brigade(env):
+    env.city.vehicles = []
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    departure = next(d for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    env.city.vehicles = [_row(line="151", brigade=departure.brygada, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Direction"] == departure.kierunek
+    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}", "the place under the pin says where the vehicle goes"
+
+
+async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_direction(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4712")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Direction" not in pin.attributes
+    assert pin.attributes["friendly_name"] == "Line 151 · 4712"
+    assert entry is not None

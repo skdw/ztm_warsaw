@@ -17,11 +17,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.geo_location import GeolocationEvent
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_SHOW_VEHICLES, DOMAIN
 from .coordinator import ZTMStopCoordinator
@@ -29,7 +31,7 @@ from .entity import stop_info_of, stop_place
 from .entries import runtimes
 from .runtime import ZtmConfigEntry
 from .utils import get_line_badge, get_stop_badge
-from .vehicles import Vehicle, VehicleFeed, feed_for
+from .vehicles import Vehicle, VehicleFeed, brigade_key, feed_for
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,6 +43,26 @@ LAYERS_KEY = f"{DOMAIN}_map"  # in hass.data: the MapLayers of the instance
 def _line_order(line: str) -> tuple[int, int, str]:
     """The order lines are listed in: numbers first (126 before 176), then the others (N64, S3)."""
     return (0, int(line), line) if line.isdigit() else (1, 0, line)
+
+
+HEADING_WITHIN = timedelta(minutes=40)  # how far from now a departure of the brigade may be to say where its vehicle is heading
+
+
+def heading_of(entry: ZtmConfigEntry, brigade: str) -> str | None:
+    """Where the vehicle of this brigade is heading, as the timetable of the line's stops says: the destination ("kierunek") of the
+    departure of the brigade nearest to now, within ``HEADING_WITHIN``. The City's positions do not say it, but the timetable of
+    every stop names the brigade and the destination of each departure. None when no stop of the line has such a departure."""
+    now = dt_util.utcnow()
+    best: tuple[timedelta, str] | None = None
+    for runtime in runtimes(entry).values():
+        data = runtime["coordinator"].data
+        for reading in getattr(data, "departures", None) or []:
+            if reading.dt is None or reading.brygada is None or brigade_key(reading.brygada) != brigade:
+                continue
+            gap = abs(reading.dt - now)
+            if gap <= HEADING_WITHIN and reading.kierunek not in ("", "unknown") and (best is None or gap < best[0]):
+                best = (gap, reading.kierunek)
+    return best[1] if best else None
 
 
 class _Pin(GeolocationEvent):
@@ -89,25 +111,28 @@ class PoleMarker(_Pin):
 class VehiclePin(_Pin):
     """The pin of one vehicle: the badge of its line, named after the line and the vehicle's number."""
 
-    def __init__(self, hass: HomeAssistant, line: str, vehicle: Vehicle) -> None:
-        """A pin for a vehicle of ``line`` at the place the City last reported it."""
+    def __init__(self, hass: HomeAssistant, line: str, vehicle: Vehicle, heading: str | None = None) -> None:
+        """A pin for a vehicle of ``line`` at the place the City last reported it, heading where the timetable says (when it does)."""
         self.hass = hass
         self._line = line
         self._attr_entity_picture = get_line_badge(line)
-        self._attr_name = f"Line {line} · {vehicle.number}"
-        self.move(vehicle)
+        self.move(vehicle, heading)
 
-    def move(self, vehicle: Vehicle) -> None:
-        """Put the pin where the vehicle is now."""
+    def move(self, vehicle: Vehicle, heading: str | None = None) -> None:
+        """Put the pin where the vehicle is now, with the name that tells where it goes: "Line 126 → Rechniewskiego", or the
+        vehicle's number while the timetable does not say."""
         self._vehicle = vehicle
+        self._heading = heading
+        self._attr_name = f"Line {self._line} → {heading}" if heading else f"Line {self._line} · {vehicle.number}"
         self._set_place(vehicle.latitude, vehicle.longitude)
         self._publish()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """The line, the brigade, the vehicle's number and when the City saw it there."""
+        """The line, where it is heading (when the timetable says), the brigade, the vehicle's number and when the City saw it there."""
         return {
             "Line": self._line,
+            **({"Direction": self._heading} if self._heading else {}),
             "Brigade": self._vehicle.brigade,
             "Vehicle number": self._vehicle.number,
             "Position time": self._vehicle.moment.isoformat(),
@@ -178,9 +203,13 @@ class LineVehicles:
     """The vehicles of one line on the map (a line with ``show_vehicles`` on): a pin for each, added when it appears, moved when the City
     reports it again, and taken away when it is not reported any more or its position is too old."""
 
-    def __init__(self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback) -> None:
-        """Follow ``feed`` for the vehicles of ``line``; the pins are added through ``adder``."""
+    def __init__(
+        self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback, heading: Callable[[str], str | None] | None = None
+    ) -> None:
+        """Follow ``feed`` for the vehicles of ``line``; the pins are added through ``adder``, each with where the vehicle heads (``heading``
+        gives it for a brigade)."""
         self._hass, self._line, self._feed, self._adder = hass, line, feed, adder
+        self._heading = heading or (lambda _brigade: None)
         self._pins: dict[str, VehiclePin] = {}
         self._unsub: Callable[[], None] | None = None
 
@@ -204,10 +233,11 @@ class LineVehicles:
             self._hass.async_create_task(self._pins.pop(number).async_remove())
         fresh = []
         for number, vehicle in now.items():
+            heading = self._heading(vehicle.brigade)
             if number in self._pins:
-                self._pins[number].move(vehicle)
+                self._pins[number].move(vehicle, heading)
             else:
-                pin = self._pins[number] = VehiclePin(self._hass, self._line, vehicle)
+                pin = self._pins[number] = VehiclePin(self._hass, self._line, vehicle, heading)
                 fresh.append(pin)
         if fresh:
             self._adder(fresh)
@@ -227,6 +257,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
     stops = [r for r in runtimes(config_entry).values() if r["client"].uses_token]
     if not shows_vehicles(config_entry) or not stops:
         return  # the vehicles are off, or need a token
-    pins = LineVehicles(hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities)
+    pins = LineVehicles(
+        hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities, lambda brigade: heading_of(config_entry, brigade)
+    )
     pins.start()
     config_entry.async_on_unload(pins.stop)
