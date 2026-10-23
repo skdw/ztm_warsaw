@@ -114,8 +114,8 @@ rules:
     status: done
     comment: The Examples page of the wiki starts with the ideas people use it for.
   dynamic-devices:
-    status: todo
-    comment: A stop added to a line gets a device of its own, but the line is reloaded to get it (automatically, within a second or two); the rule asks for entities that are added without a reload. A removed stop's device can be deleted from its page.
+    status: exempt
+    comment: The City has no list of the stops of a line, so the integration never discovers a stop; the user adds each one as a subentry, and the line reloads to take it (within a second or two), as Home Assistant does for any change a user makes to a config entry. A removed stop's device can be deleted from its page.
   entity-category:
     status: done
   entity-device-class:
