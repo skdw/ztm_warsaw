@@ -69,6 +69,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Fixed
 
+- **Vehicles tell themselves apart**: in a list of a line's vehicles each one now names its brigade, then where it is going (or, when that is not known, "no direction" and its number in brackets), and the distance from home says its unit.
 - **Year of production without a comma**: a vehicle's year on the map showed as "2,021"; it now reads "2021".
 - **One request per line**: a line with an old key shows a single notice asking for a token once for the whole line, named "Line 151" rather than by its stops.
 - **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
