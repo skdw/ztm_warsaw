@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import base64
+from unittest.mock import patch
 from datetime import timedelta
 
 import pytest
+from homeassistant.helpers import device_registry as dr
 from homeassistant.util import dt as dt_util
 
-from custom_components.ztm_warsaw.geo_location import LAYERS_KEY
 from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES
 from custom_components.ztm_warsaw.utils import get_line_badge, get_stop_badge
 
@@ -207,6 +208,18 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
             """No vehicle."""
             return []
 
+        def details_of(self, number):
+            """Nothing is known about a vehicle."""
+            return {}
+
+        def has_polled(self, line):
+            """No poll has worked."""
+            return False
+
+        async def ensure_fleet(self):
+            """The fleet is not read."""
+            return False
+
     feed = _Feed()
     pins = LineVehicles(env.hass, "151", feed, lambda entities: None)  # type: ignore[arg-type]
     pins.start()
@@ -215,10 +228,209 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
     assert feed.left == 1
 
 
-async def test_e2e_48_a_host_that_is_dropped_while_its_platform_is_still_loaded_leaves_no_second_pin_for_its_pole(env):
-    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
-    await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
-    env.hass.data[LAYERS_KEY].drop_entry(first.entry_id)  # what the unload does, with Home Assistant not taking the pin away itself
+async def test_e2e_48_a_vehicle_pin_says_where_it_heads_from_the_timetable_of_its_brigade(env):
+    env.city.vehicles = []
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    departure = next(d for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    env.city.vehicles = [_row(line="151", brigade=departure.brygada, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Direction"] == departure.kierunek
+    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}", "the place under the pin says where the vehicle goes"
+
+
+async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_direction(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4712")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Direction" not in pin.attributes
+    assert pin.attributes["friendly_name"] == "Line 151 · 4712"
+    assert entry is not None
+
+
+async def test_e2e_48_a_vehicle_pin_is_a_registered_entity_on_a_device_of_its_line_and_a_pole_pin_is_not(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
+    await env.advance(seconds=31)
+    (pole_state,) = _poles(env)
+    (vehicle_state,) = _vehicles(env)
+    assert env.entity_registry.async_get(pole_state.entity_id) is None, "a pole is shared by lines: it has no registry entry"
+    vehicle = env.entity_registry.async_get(vehicle_state.entity_id)
+    assert (vehicle.unique_id, vehicle.config_entry_id) == ("vehicle_151_4711", entry.entry_id)
+    assert env.device_registry.async_get(vehicle.device_id).identifiers == {("ztm_warsaw", "vehicles_151")}
+
+
+async def test_e2e_48_the_id_of_a_vehicle_does_not_carry_where_it_heads_because_the_timetable_changes(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    departure = next(d for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    env.city.vehicles = [_row(line="151", brigade=departure.brygada, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.entity_id == "geo_location.line_151_4711"
+    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}"
+
+
+async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registry_and_its_device_too(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
+    await env.advance(seconds=31)
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is not None
+    env.city.vehicles = []
+    await env.advance(seconds=31)
     await env.settle()
-    (pole,) = _poles(env)
-    assert pole.attributes["Lines"] == "523", "the pole is one pin again, hosted by the line that is left"
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is None
+    assert not [d for d in dr.async_entries_for_config_entry(env.device_registry, entry.entry_id) if ("ztm_warsaw", "vehicles_151") in d.identifiers]
+
+
+async def test_e2e_48_after_a_restart_the_entries_of_vehicles_the_city_no_longer_reports_go_and_those_still_reported_keep_their_settings(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True}, setup=False)
+    registry = env.entity_registry
+    gone = registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_9999", config_entry=entry, suggested_object_id="line_151_9999")
+    kept = registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_4711", config_entry=entry, suggested_object_id="line_151_4711")
+    registry.async_update_entity(kept.entity_id, name="My bus")
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    await env.advance(seconds=31)
+    assert registry.async_get(gone.entity_id) is None
+    assert registry.async_get(kept.entity_id).name == "My bus", "the vehicle is still there: its settings are as they were"
+    (pin,) = _vehicles(env)
+    assert pin.entity_id == kept.entity_id
+
+
+async def test_e2e_48_switching_the_vehicles_off_takes_their_entries_and_their_device_out_of_the_registry(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
+    env.hass.config_entries.async_update_entry(entry, options={"show_vehicles": False})
+    await env.settle()
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is None
+    assert not [d for d in dr.async_entries_for_config_entry(env.device_registry, entry.entry_id) if ("ztm_warsaw", "vehicles_151") in d.identifiers]
+
+
+async def test_e2e_48_a_vehicle_still_running_yesterdays_late_departure_has_its_destination_from_the_previous_answer(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    coordinator = entry.runtime_data["coordinator"]
+    reading = next(d for d in coordinator.data.departures if d.brygada)
+    late = type(reading)(kierunek="Nocna Pętla", czas=reading.czas, trasa="TX-N", brygada="77", dt=dt_util.utcnow())
+    with patch.object(type(coordinator), "known", lambda self: [late, *[d for d in self.data.departures if d.dt]]):
+        env.city.vehicles = [_row(line="151", brigade="77", number="4712")]
+        await env.advance(seconds=31)
+        (pin,) = _vehicles(env)
+    assert pin.attributes["Direction"] == "Nocna Pętla"
+
+
+
+def _record(number="4711", **more):
+    """A record of the City's fleet as the City sends it."""
+    return {"numerTaborowy": number, "nazwaOperatora": "Miejskie Zakłady Autobusowe", "nazwaZajezdni": "Woronicza", "numerRejestracyjny": "WZ 1234A",
+            "rokProdukcji": 2019, "trakcja": "Bus", "kolorPojazdu": "RAL 1003", **more}
+
+
+async def test_e2e_48_a_vehicle_pin_has_what_the_fleet_and_the_timetable_say_about_the_vehicle(env):
+    env.city.fleet = [_record("4711")]
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    brigade = next(d.brygada for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    departure = min((d for d in entry.runtime_data["coordinator"].data.departures if d.brygada == brigade), key=lambda d: abs(d.dt - dt_util.utcnow()))
+    env.city.vehicles = [_row(line="151", brigade=brigade, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    attrs = pin.attributes
+    assert (attrs["Operator"], attrs["Depot"], attrs["Registration"], attrs["Year of production"], attrs["Vehicle type"]) == (
+        "Miejskie Zakłady Autobusowe", "Woronicza", "WZ 1234A", 2019, "Bus")
+    assert "kolorPojazdu" not in attrs, "only the facts that are shown"
+    assert attrs["Route"] == departure.trasa
+    assert attrs["Scheduled at"] == f"{stop_name_for('7009')} 01"
+    assert attrs["Scheduled departure"].startswith(str(dt_util.as_local(departure.dt).date()))
+
+
+async def test_e2e_48_the_fleet_is_read_once_and_a_failing_fleet_does_not_touch_the_pins(env):
+    env.city.fleet = []  # the City answers with no vehicles: nothing to show
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Operator" not in pin.attributes
+    assert env.city.count("fleet") == 1, "asked once, then not again for an hour"
+
+
+async def test_e2e_48_the_speed_and_the_course_are_worked_out_from_the_last_two_positions_and_not_from_noise(env):
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2000, lon=21.0000, seconds_ago=40)]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Speed, km/h" not in pin.attributes, "one position says nothing about speed"
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2030, lon=21.0000, seconds_ago=10)]  # about 330 m north in the 61 s between the two reports
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Course, degrees"] == 0
+    assert 18 <= pin.attributes["Speed, km/h"] <= 22
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2030, lon=21.00001, seconds_ago=5)]  # a metre: noise
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Course, degrees"] == 0, "a vehicle that has hardly moved keeps its course"
+
+
+async def test_e2e_48_a_jump_of_the_position_is_not_a_speed(env):
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2000, lon=21.0000, seconds_ago=40)]
+    await env.advance(seconds=31)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.3000, lon=21.0000, seconds_ago=10)]  # 11 km in 30 s
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Speed, km/h" not in pin.attributes
+
+
+async def test_e2e_48_the_fleet_is_asked_again_every_hour_and_read_again_after_a_day_or_after_a_failure(env):
+    env.city.fleet = []  # the first read finds nothing
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert env.city.count("fleet") == 1
+    env.city.fleet = [_record("4711")]
+    await env.advance(seconds=3500)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]  # the vehicle is still reported (a position is only good for a few minutes)
+    await env.advance(seconds=130)  # an hour after the failed read it is asked again
+    (pin,) = _vehicles(env)
+    assert env.city.count("fleet") == 2
+    assert pin.attributes["Operator"] == "Miejskie Zakłady Autobusowe"
+
+
+async def test_e2e_48_a_line_that_reloads_while_another_keeps_the_feed_is_not_reconciled_against_the_other_lines_poll(env):
+    from custom_components.ztm_warsaw.geo_location import LAYERS_KEY  # noqa: F401 - the module is imported for its side effects only
+
+    a = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    await env.add_entry(line="523", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711"), _row(line="523", brigade="y", number="5000")]
+    await env.advance(seconds=31)
+    pin = env.entity_registry.async_get("geo_location.line_151_4711")
+    env.entity_registry.async_update_entity(pin.entity_id, name="My bus")
+    assert await env.hass.config_entries.async_unload(a.entry_id)
+    await env.advance(seconds=31)  # a poll with only the other line wanted
+    assert await env.hass.config_entries.async_setup(a.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get("geo_location.line_151_4711").name == "My bus", "nothing is deleted before the line has been polled again"
+
+
+async def test_e2e_48_a_failed_daily_refresh_of_the_fleet_is_retried_after_an_hour_and_keeps_what_was_read(env):
+    env.city.fleet = [_record("4711")]
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert env.city.count("fleet") == 1
+    env.city.fleet = []  # the City stops answering with vehicles
+    for _ in range(7):  # a day and a bit, the positions kept fresh
+        await env.advance(seconds=3600 * 4)
+        env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+        await env.advance(seconds=31)
+    failed_at = env.city.count("fleet")
+    assert failed_at >= 2, "the daily refresh was tried"
+    env.city.fleet = [_record("4711", nazwaZajezdni="Redutowa")]
+    await env.advance(seconds=3500)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=130)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Depot"] == "Redutowa", "an hour after the failed refresh it was asked again, not a day after"
