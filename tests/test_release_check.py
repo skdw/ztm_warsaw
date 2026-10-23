@@ -255,3 +255,21 @@ def test_the_dots_of_the_version_are_literal_in_the_heading_match(release_check:
     repo = make_repo(tmp_path, "1.2.0", "# Changelog\n\n## [1x2y0]\n\n- Not this release.\n")
     with pytest.raises(release_check.ReleaseCheckError, match="real content"):
         release_check.check(repo, None)
+
+
+def test_a_message_of_the_release_comes_first_and_the_changelog_follows(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0")
+    (repo / "docs" / "releases").mkdir(parents=True)
+    (repo / "docs" / "releases" / "1.2.0.md").write_text("# Hello\n\nA friendly message.\n", encoding="utf-8")
+    notes = release_check.check(repo, "v1.2.0")
+    assert notes.startswith("# Hello")
+    assert notes.index("A friendly message.") < notes.index("## Full list of changes") < notes.index("Support for tokens")
+
+
+def test_an_empty_message_or_none_leaves_the_changelog_notes_alone(release_check: ModuleType, tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, "1.2.0")
+    plain = release_check.check(repo, "v1.2.0")
+    (repo / "docs" / "releases").mkdir(parents=True)
+    (repo / "docs" / "releases" / "1.2.0.md").write_text("\n", encoding="utf-8")
+    assert release_check.check(repo, "v1.2.0") == plain
+    assert "Full list of changes" not in plain
