@@ -49,6 +49,8 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Changed
 
+- **Entity names in your language**: the names of the sensors and the calendar are translated into all eight languages, and their IDs stay the same, so nothing you built on them breaks.
+
 - **Clearer instructions in every language**: the README and setup messages now explain configuration, API keys and errors more naturally across all eight languages.
 
 - **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
