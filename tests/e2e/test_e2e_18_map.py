@@ -8,6 +8,7 @@ from datetime import timedelta
 import pytest
 from homeassistant.util import dt as dt_util
 
+from custom_components.ztm_warsaw.geo_location import LAYERS_KEY
 from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES
 from custom_components.ztm_warsaw.utils import get_line_badge, get_stop_badge
 
@@ -289,3 +290,12 @@ async def test_e2e_48_a_pole_that_changes_host_keeps_one_pin_and_its_unique_id(e
     assert pole.attributes["Lines"] == "523"
     entity = env.entity_registry.async_get(pole.entity_id)
     assert (entity.unique_id, entity.config_entry_id) == ("pole_7009_01", second.entry_id)
+
+
+async def test_e2e_48_a_host_that_is_dropped_while_its_platform_is_still_loaded_leaves_no_second_pin_for_its_pole(env):
+    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
+    await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
+    env.hass.data[LAYERS_KEY].drop_entry(first.entry_id)  # what the unload does, with Home Assistant not taking the pin away itself
+    await env.settle()
+    (pole,) = _poles(env)
+    assert pole.attributes["Lines"] == "523", "the pole is one pin again, hosted by the line that is left"

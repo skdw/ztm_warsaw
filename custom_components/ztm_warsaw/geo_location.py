@@ -201,13 +201,15 @@ class MapLayers:
         self.refresh()
 
     def drop_entry(self, entry_id: str) -> None:
-        """A line is unloaded: Home Assistant takes the pins it hosted away with it; the poles another line also serves move to that line."""
+        """A line is unloaded: its pins are taken away (also here, so that none is left on the map whatever the platform did); the poles another line also serves move to that line."""
         for unsub in self._unsubs.pop(entry_id, []):
             unsub()
         self._entries.pop(entry_id, None)
         self._adders.pop(entry_id, None)
         for pole in [p for p, (host, _pin) in self._markers.items() if host == entry_id]:
-            del self._markers[pole]
+            _host, pin = self._markers.pop(pole)
+            if pin.hass is not None:  # Home Assistant takes it away with the platform; this makes sure, so that no pin is left behind
+                self._hass.async_create_task(pin.async_remove())  # when a new one is made for the pole by the refresh below
         self.refresh()
 
     @callback
