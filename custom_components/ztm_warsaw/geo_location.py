@@ -193,12 +193,8 @@ class VehiclePin(_Pin):
         before, self._vehicle = self._vehicle, vehicle
         self._planned, self._details = planned, details or {}
         brigade = f" Brigade {vehicle.brigade}" if vehicle.brigade else ""  # a list of the line's vehicles tells them apart
-        if planned:
-            self._full_name = f"Line {self._line}{brigade} → {planned.direction}"
-        elif brigade:
-            self._full_name = f"Line {self._line}{brigade} ({vehicle.number})"  # where it goes is not known: its number, in brackets
-        else:
-            self._full_name = f"Line {self._line} Vehicle {vehicle.number}"
+        where = planned.direction if planned else f"no direction ({vehicle.number})"  # not known: say so, with the number to find it by
+        self._full_name = f"Line {self._line}{brigade} → {where}"
         if before is not None and before.moment != vehicle.moment:
             self._take_motion(before, vehicle)
         if self.entity_id:

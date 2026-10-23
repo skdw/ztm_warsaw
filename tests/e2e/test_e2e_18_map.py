@@ -246,7 +246,7 @@ async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_d
     await env.advance(seconds=31)
     (pin,) = _vehicles(env)
     assert "Direction" not in pin.attributes
-    assert pin.attributes["friendly_name"] == "Line 151 Brigade no-such-brigade (4712)"  # where it goes is not known: its number, in brackets
+    assert pin.attributes["friendly_name"] == "Line 151 Brigade no-such-brigade → no direction (4712)"  # not known: said so, with the number
     assert entry is not None
 
 
