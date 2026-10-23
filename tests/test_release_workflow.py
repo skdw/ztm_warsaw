@@ -61,3 +61,11 @@ def test_every_push_to_main_has_a_ci_run_of_its_own_so_no_version_commit_is_skip
     group = _load("ci.yml")["concurrency"]["group"]
     assert "github.sha" in group
     assert "!= 'refs/heads/main'" in _load("ci.yml")["concurrency"]["cancel-in-progress"]  # nothing on main is cancelled
+
+
+def test_a_version_waiting_as_a_draft_is_skipped_too():
+    """A draft has no tag until it is published, so the plan also looks in the list of Releases (and can read drafts)."""
+    plan = _load("release.yml")["jobs"]["plan"]
+    assert plan["permissions"]["contents"] == "write"
+    script = "\n".join(step.get("run", "") for step in plan["steps"])
+    assert "gh release list" in script
