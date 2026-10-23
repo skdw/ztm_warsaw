@@ -170,8 +170,9 @@ finds, or style changes that ruff does not enforce.
 ## Releasing
 
 The header of `.github/workflows/release.yml` is the procedure: set the version in
-`manifest.json`, move the notes under their heading in `CHANGELOG.md`, merge, tag the merge commit,
-and publish the draft Release that the workflow prepares. A version that needs something from
+`manifest.json`, move the notes under their heading in `CHANGELOG.md`, merge. When CI is green on `main`, the workflow
+tags the merge commit and creates the Release by itself: a beta is published as a pre-release, a stable version stays a
+draft for the maintainer to publish. A version that needs something from
 users has an `### Adopter action` list at the top of its `CHANGELOG.md` section.
 
 ## Map of this repository

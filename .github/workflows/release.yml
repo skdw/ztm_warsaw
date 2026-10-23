@@ -1,68 +1,105 @@
 name: Release
 
-# Pushing a version tag prepares a DRAFT GitHub Release; publishing it is a
-# decision the maintainer takes by hand. HACS offers an update only for a
-# published Release, so nothing reaches users until then.
+# A new version reaches users without a hand-made tag. When CI succeeds on main and the
+# version in custom_components/ztm_warsaw/manifest.json has no tag yet, this workflow (called
+# from the last job of ci.yml) tags that commit and creates the GitHub Release:
+#   - a beta (X.Y.ZbN) is published at once as a pre-release;
+#   - a stable version (X.Y.Z) is only a DRAFT: publishing it is a decision the maintainer takes
+#     by hand. HACS offers an update only for a published Release.
 #
 # To release:
 #   1. In one pull request, set "version" in custom_components/ztm_warsaw/manifest.json
 #      and move the notes under a "## [X.Y.Z]" heading in CHANGELOG.md (a beta,
 #      X.Y.ZbN, takes its notes from "## [Unreleased]"). Merge it.
-#   2. Wait for CI on main to finish, then tag that merge commit vX.Y.Z (or vX.Y.ZbN)
-#      and push the tag.
-#   3. This workflow checks, and creates the draft only if all pass:
+#   2. CI runs on main; when every job has succeeded, the "Release" job of ci.yml calls this
+#      workflow, which checks, and creates the Release only if all pass:
 #        - the tag is "v" + the manifest.json version and CHANGELOG.md has real notes
 #          for it (scripts/release_check.py, which also writes the notes);
-#        - the tagged commit is in the first-parent history of main (the merge
-#          commit, not a commit of the merged branch) and the CI checks listed in
-#          scripts/release_preflight.py succeeded on it in the push run of ci.yml on
-#          main (checks of its pull request do not count), among them HACS
-#          validation, which is not required to merge.
-#      The draft carries the integration as ztm_warsaw.zip and its Sigstore signature
+#        - the commit is in the first-parent history of main (the merge commit, not a commit of
+#          the merged branch) and the CI checks listed in scripts/release_preflight.py succeeded
+#          on it in the push run of ci.yml on main (checks of its pull request do not count),
+#          among them HACS validation, which is not required to merge.
+#      The Release carries the integration as ztm_warsaw.zip and its Sigstore signature
 #      bundle ztm_warsaw.zip.sigstore.json (keyless, signed by this workflow), so a
 #      download can be verified with `cosign verify-blob`. HACS installs from the tag,
 #      not from the zip: the zip is for people who want to check what they get.
-#   4. Read the draft, then publish it (a beta is published as a pre-release).
+#   3. A stable version: read the draft, then publish it.
 #
-# If a check was still running when the tag was pushed, re-run this workflow
-# afterwards. A failed check is fixed with a new commit and a new tag; do not move
-# a tag that was already pushed.
+# A version that already has a tag is skipped, so every later push to main is a no-op. Pushing a
+# version tag by hand still works (the same checks, and the Release is created as before); a failed
+# check is fixed with a new commit and a new version; do not move a tag that was already pushed.
+
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+  workflow_call: {}
 
 # Never cancel a release mid-flight (playbook docs/ci-cookbook.md #2b). One group per
-# tag, not one for the workflow: a group keeps a single pending run and cancels any
-# older pending one, so releases of several tags pushed close together would lose
-# drafts. Runs of different tags are independent, each creates its own draft.
+# ref, with a name of its own: a called workflow's github.workflow is the caller's, and a group
+# shared with ci.yml would cancel or block it. Runs of different tags are independent.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  draft-release:
-    name: Draft release
+  plan:
+    name: Plan the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      skip: ${{ steps.tag.outputs.skip }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the tags, to see whether this version has one
+
+      - name: Work out the tag, and whether it already exists
+        id: tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            tag="$REF_NAME"
+          else
+            version="$(python3 -c 'import json; print(json.load(open("custom_components/ztm_warsaw/manifest.json"))["version"])')"
+            tag="v${version}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          if [[ "$REF_TYPE" != "tag" ]] && git rev-parse -q --verify "refs/tags/${tag}" > /dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Create the release
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write # create the draft Release
-      checks: read # read the check runs of the tagged commit
+      contents: write # create the tag and the Release
+      checks: read # read the check runs of the commit
       actions: read # and the ci.yml runs they belong to
       id-token: write # keyless signing of the zip with Sigstore (no key is stored anywhere)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0 # the history of main, to see that the tagged commit is on its first-parent line
+          fetch-depth: 0 # the history of main, to see that the commit is on its first-parent line
 
       - name: Check the tag against manifest.json and CHANGELOG.md, and write the notes
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
           NOTES_OUT: ${{ runner.temp }}/release-notes.md
         run: python3 scripts/release_check.py
 
@@ -99,13 +136,21 @@ jobs:
       - name: Create the draft Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          REF_TYPE: ${{ github.ref_type }}
           NOTES_FILE: ${{ runner.temp }}/release-notes.md
           ZIP: ${{ runner.temp }}/ztm_warsaw.zip
         run: |
           set -euo pipefail
-          if [[ "$TAG" == *b[0-9]* ]]; then
-            gh release create "$TAG" --draft --prerelease --verify-tag --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
+          # A tag pushed by hand exists already; from main the Release creates it, on the commit that was checked.
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            where=(--verify-tag)
           else
-            gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
+            where=(--target "$GITHUB_SHA")
+          fi
+          # A beta is published at once, as a pre-release; a stable version stays a draft for the maintainer to publish.
+          if [[ "$TAG" == *b[0-9]* ]]; then
+            gh release create "$TAG" "${where[@]}" --prerelease --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
+          else
+            gh release create "$TAG" "${where[@]}" --draft --title "$TAG" --notes-file "$NOTES_FILE" "$ZIP" "${ZIP}.sigstore.json"
           fi

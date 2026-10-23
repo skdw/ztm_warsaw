@@ -340,3 +340,15 @@ jobs:
       # release commit that forgets one of the two fails here, not at tag time.
       - name: manifest.json version and CHANGELOG.md agree
         run: python3 scripts/release_check.py
+
+  release:
+    name: Release (a new version on main)
+    # Only when every job above has succeeded on a push to main; release.yml skips a version that already has a tag.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [ruff, mypy, tests, hassfest, hacs, compat-min, audit, secret-scan, workflow-lint, release-bookkeeping]
+    permissions:
+      contents: write
+      checks: read
+      actions: read
+      id-token: write
+    uses: ./.github/workflows/release.yml  # zizmor: ignore[self-repository] -- the "./" form is the long-standing one
