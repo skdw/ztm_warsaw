@@ -11,6 +11,10 @@ Two callers:
   NOTES_OUT for ``gh release create --notes-file``. A RELEASE_TAG that is set but
   empty is an error, not a request to skip the tag check.
 
+A release may open with a hand-written message to its users: if ``docs/releases/<version>.md`` exists
+(a stable version, say ``docs/releases/1.2.0.md``), its text comes first and the changelog notes follow under
+"Full list of changes". A GitHub Release has one body, so a message in two languages is written in that one file.
+
 A stable version (1.2.0) takes its notes from the ``## [1.2.0]`` section. A beta
 (1.2.0b1) has no section of its own and takes them from ``## [Unreleased]``.
 
@@ -28,6 +32,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 MANIFEST = Path("custom_components/ztm_warsaw/manifest.json")
+INTRO_DIR = Path("docs/releases")  # the message that opens the notes of a release, one file per version
 CHANGELOG = Path("CHANGELOG.md")
 
 STABLE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
@@ -104,7 +109,16 @@ def check(root: Path, tag: str | None) -> str:
             "CHANGELOG.md has no section with real content for the manifest.json version "
             "(a beta uses [Unreleased]). Move the Unreleased notes under the version heading."
         )
-    return notes
+    return _with_intro(root, version, notes)
+
+
+def _with_intro(root: Path, version: str, notes: str) -> str:
+    """The notes with the release's own message in front of them, when ``docs/releases/<version>.md`` has one."""
+    try:
+        intro = (root / INTRO_DIR / f"{version}.md").read_text(encoding="utf-8").strip()
+    except OSError:
+        return notes
+    return f"{intro}\n\n---\n\n## Full list of changes\n\n{notes}" if intro else notes
 
 
 def main(env: Mapping[str, str] | None = None, root: Path | None = None) -> int:
