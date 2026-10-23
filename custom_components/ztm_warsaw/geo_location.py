@@ -9,8 +9,13 @@ Each thing on the map has exactly one owner, so nothing is drawn twice however m
 * **A vehicle** is one pin, with the badge of its line, and belongs to its line (a line is one entry, so a vehicle cannot be drawn
   by two). A line shows its vehicles when its option ``show_vehicles`` is on (*Configure* on the line; a token is needed).
 
-The pins are ``geo_location`` entities without a registry entry, which is how Home Assistant models things that come and go;
-a map card lists them with ``geo_location_sources: [ztm_warsaw]``.
+The pins of the poles are ``geo_location`` entities without a registry entry (they are shared by lines, and a registry entry belongs to
+one). The pins of the vehicles have a unique ID and sit on a device of their line, as Home Assistant's documentation allows for
+entities that come and go: they are removed, registry entry and device included, when the City stops reporting the vehicle, so they show
+on the integration's page while they exist. A map card lists them all with ``geo_location_sources: [ztm_warsaw]``. The entity ID of
+a vehicle is made from the name it has when it is first added ("Line 126 · 1722"); where it heads ("Line 126 → Rechniewskiego") goes
+into the name only, because the timetable changes while an ID must not. The device is named like the line, so Home Assistant does not
+put another name in front of the pin's.
 """
 
 from __future__ import annotations
@@ -22,6 +27,8 @@ from typing import Any
 
 from homeassistant.components.geo_location import GeolocationEvent
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -30,7 +37,7 @@ from .coordinator import ZTMStopCoordinator
 from .entity import stop_info_of, stop_place
 from .entries import runtimes
 from .runtime import ZtmConfigEntry
-from .utils import get_line_badge, get_stop_badge
+from .utils import get_line_badge, get_line_type, get_stop_badge
 from .vehicles import Vehicle, VehicleFeed, brigade_key, feed_for
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,11 +72,32 @@ def heading_of(entry: ZtmConfigEntry, brigade: str) -> str | None:
     return best[1] if best else None
 
 
+async def _retire(hass: HomeAssistant, pin: "_Pin") -> None:
+    """Take a pin away for good: out of the state machine and out of the entity registry, as the documentation asks for an entity that
+    was created with a unique ID (a registry entry left behind would show as an unavailable entity for ever)."""
+    entity_id = pin.entity_id
+    if pin.hass is not None and entity_id:
+        await pin.async_remove(force_remove=True)
+    registry = er.async_get(hass)
+    if entity_id and registry.async_get(entity_id) is not None:
+        registry.async_remove(entity_id)
+    info = pin.device_info
+    device = dr.async_get(hass).async_get_device(identifiers=info["identifiers"]) if info and "identifiers" in info else None
+    if device is not None and not er.async_entries_for_device(registry, device.id):
+        dr.async_get(hass).async_remove_device(device.id)  # a device with nothing on it is not left on the integration's page
+
+
 class _Pin(GeolocationEvent):
     """What the pins have in common: a source (what a map card lists), no polling, the distance from home as the state."""
 
     _attr_should_poll = False
     _attr_source = DOMAIN
+    _full_name: str = ""  # what the pin says about itself; the entity ID is made from the shorter name it is added with
+
+    async def async_added_to_hass(self) -> None:
+        """Once added (and its ID made from the short name), say the full name."""
+        if self._full_name:
+            self._attr_name = self._full_name
 
     def _set_place(self, latitude: float, longitude: float) -> None:
         """Move the pin and work out how far it is from the home of the Home Assistant instance, which is the state. Home Assistant gives
@@ -109,23 +137,38 @@ class PoleMarker(_Pin):
 
 
 class VehiclePin(_Pin):
-    """The pin of one vehicle: the badge of its line, named after the line and the vehicle's number."""
+    """The pin of one vehicle: the badge of its line, named after where it goes (or the line and its number while that is not known)."""
 
     def __init__(self, hass: HomeAssistant, line: str, vehicle: Vehicle, heading: str | None = None) -> None:
         """A pin for a vehicle of ``line`` at the place the City last reported it, heading where the timetable says (when it does)."""
         self.hass = hass
         self._line = line
+        self._attr_unique_id = f"vehicle_{line}_{vehicle.number}"
         self._attr_entity_picture = get_line_badge(line)
+        self._attr_name = f"Line {line} · {vehicle.number}"  # what its entity ID is made from
         self.move(vehicle, heading)
 
     def move(self, vehicle: Vehicle, heading: str | None = None) -> None:
         """Put the pin where the vehicle is now, with the name that tells where it goes: "Line 126 → Rechniewskiego", or the
-        vehicle's number while the timetable does not say."""
+        vehicle's number while the timetable does not say. The timetable can change, so this is the name, not the ID."""
         self._vehicle = vehicle
         self._heading = heading
-        self._attr_name = f"Line {self._line} → {heading}" if heading else f"Line {self._line} · {vehicle.number}"
+        self._full_name = f"Line {self._line} → {heading}" if heading else f"Line {self._line} · {vehicle.number}"
+        if self.entity_id:
+            self._attr_name = self._full_name
         self._set_place(vehicle.latitude, vehicle.longitude)
         self._publish()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """The device of the vehicles of the line, so that they are listed under it on the integration's page."""
+        return {
+            "identifiers": {(DOMAIN, f"vehicles_{self._line}")},
+            "name": f"Line {self._line}",
+            "manufacturer": "Zarząd Transportu Miejskiego",
+            "entry_type": DeviceEntryType.SERVICE,
+            "model": f"Vehicles on the map ({get_line_type(self._line)})",
+        }
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -230,7 +273,7 @@ class LineVehicles:
         """Bring the pins in line with the vehicles the feed holds for this line."""
         now = {vehicle.number: vehicle for vehicle in self._feed.vehicles_of(self._line)}
         for number in [n for n in self._pins if n not in now]:
-            self._hass.async_create_task(self._pins.pop(number).async_remove())
+            self._hass.async_create_task(_retire(self._hass, self._pins.pop(number)))
         fresh = []
         for number, vehicle in now.items():
             heading = self._heading(vehicle.brigade)
@@ -243,6 +286,14 @@ class LineVehicles:
             self._adder(fresh)
 
 
+def _forget_vehicles(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
+    """Take the registry entries of vehicle pins of this line out: a vehicle is only an entity while the City reports it."""
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if entity.platform == DOMAIN and entity.domain == "geo_location" and entity.unique_id.startswith("vehicle_"):
+            registry.async_remove(entity.entity_id)
+
+
 def shows_vehicles(entry: ZtmConfigEntry) -> bool:
     """Whether the line shows its vehicles on the map (its option; off by default)."""
     return bool(entry.options.get(CONF_SHOW_VEHICLES, False))
@@ -251,6 +302,7 @@ def shows_vehicles(entry: ZtmConfigEntry) -> bool:
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
 async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
     """Put the poles of the line on the map, and its vehicles when the line shows them and has a token."""
+    _forget_vehicles(hass, config_entry)  # after a restart these entries have no entity behind them: the pins are made again below
     layers: MapLayers = hass.data.setdefault(LAYERS_KEY, MapLayers(hass))
     layers.add_entry(config_entry, async_add_entities)
     config_entry.async_on_unload(lambda: layers.drop_entry(config_entry.entry_id))

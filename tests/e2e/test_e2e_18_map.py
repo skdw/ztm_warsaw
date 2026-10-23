@@ -233,3 +233,59 @@ async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_d
     assert "Direction" not in pin.attributes
     assert pin.attributes["friendly_name"] == "Line 151 · 4712"
     assert entry is not None
+
+
+async def test_e2e_48_the_pins_are_registered_entities_on_devices_so_they_show_on_the_integrations_page(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
+    await env.advance(seconds=31)
+    registry = env.entity_registry
+    (pole_state,) = _poles(env)
+    (vehicle_state,) = _vehicles(env)
+    pole = registry.async_get(pole_state.entity_id)
+    vehicle = registry.async_get(vehicle_state.entity_id)
+    assert (pole.unique_id, vehicle.unique_id) == ("pole_7009_01", "vehicle_151_4711")
+    assert (pole.config_entry_id, vehicle.config_entry_id) == (entry.entry_id, entry.entry_id)
+    assert env.device_registry.async_get(pole.device_id).identifiers == {("ztm_warsaw", "pole_7009_01")}
+    assert env.device_registry.async_get(vehicle.device_id).identifiers == {("ztm_warsaw", "vehicles_151")}
+
+
+async def test_e2e_48_the_id_of_a_vehicle_does_not_carry_where_it_heads_because_the_timetable_changes(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    departure = next(d for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    env.city.vehicles = [_row(line="151", brigade=departure.brygada, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.entity_id == "geo_location.line_151_4711"
+    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}"
+
+
+async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registry_and_its_device_too(env):
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
+    await env.advance(seconds=31)
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is not None
+    env.city.vehicles = []
+    await env.advance(seconds=31)
+    await env.settle()
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is None
+    assert env.device_registry.async_get_device(identifiers={("ztm_warsaw", "vehicles_151")}) is None
+
+
+async def test_e2e_48_registry_entries_of_vehicles_left_by_a_restart_are_taken_out_at_the_next_setup(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True}, setup=False)
+    env.entity_registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_9999", config_entry=entry)
+    await env.hass.config_entries.async_setup(entry.entry_id)
+    await env.settle()
+    assert [e for e in env.entity_registry.entities.values() if e.unique_id == "vehicle_151_9999"] == []
+
+
+async def test_e2e_48_a_pole_that_changes_host_keeps_one_pin_and_its_unique_id(env):
+    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
+    second = await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
+    assert await env.hass.config_entries.async_unload(first.entry_id)
+    await env.settle()
+    (pole,) = _poles(env)
+    assert pole.attributes["Lines"] == "523"
+    entity = env.entity_registry.async_get(pole.entity_id)
+    assert (entity.unique_id, entity.config_entry_id) == ("pole_7009_01", second.entry_id)
