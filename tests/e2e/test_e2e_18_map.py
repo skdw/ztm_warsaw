@@ -208,7 +208,7 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
             """No vehicle."""
             return []
 
-        def details_of(self, number):
+        def details_of(self, line, number):
             """Nothing is known about a vehicle."""
             return {}
 
@@ -330,7 +330,9 @@ def _record(number="4711", **more):
 
 
 async def test_e2e_48_a_vehicle_pin_has_what_the_fleet_and_the_timetable_say_about_the_vehicle(env):
-    env.city.fleet = [_record("4711")]
+    env.city.fleet = [_record("4711", idMarki=7)]
+    env.city.fleet_models = [{"idMarki": 7, "marka": "Solaris", "typ": "Urbino 12", "katWielkosci": "MAXI (12m)", "rodzajZasilania": "Spalinowy", "klimatyzacja": True,
+                              "podloga": "LF", "liczMiejscSiedzacychTab": 30, "liczMiejscStojacychTab": 74, "liczMiejscTab": 104, "zasilanie": "ON"}]
     entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
     brigade = next(d.brygada for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
     departure = min((d for d in entry.runtime_data["coordinator"].data.departures if d.brygada == brigade), key=lambda d: abs(d.dt - dt_util.utcnow()))
@@ -340,7 +342,9 @@ async def test_e2e_48_a_vehicle_pin_has_what_the_fleet_and_the_timetable_say_abo
     attrs = pin.attributes
     assert (attrs["Operator"], attrs["Depot"], attrs["Registration"], attrs["Year of production"], attrs["Vehicle type"]) == (
         "Miejskie Zakłady Autobusowe", "Woronicza", "WZ 1234A", 2019, "Bus")
-    assert "kolorPojazdu" not in attrs, "only the facts that are shown"
+    assert (attrs["Make"], attrs["Model"], attrs["Size class"], attrs["Powertrain"], attrs["Air conditioning"]) == ("Solaris", "Urbino 12", "MAXI (12m)", "Spalinowy", True)
+    assert (attrs["Floor"], attrs["Seats"], attrs["Standing places"], attrs["Capacity"]) == ("Low floor", 30, 74, 104)
+    assert "kolorPojazdu" not in attrs and "zasilanie" not in attrs, "only the facts that are shown"
     assert attrs["Route"] == departure.trasa
     assert attrs["Scheduled at"] == f"{stop_name_for('7009')} 01"
     assert attrs["Scheduled departure"].startswith(str(dt_util.as_local(departure.dt).date()))
@@ -434,3 +438,22 @@ async def test_e2e_48_a_failed_daily_refresh_of_the_fleet_is_retried_after_an_ho
     await env.advance(seconds=130)
     (pin,) = _vehicles(env)
     assert pin.attributes["Depot"] == "Redutowa", "an hour after the failed refresh it was asked again, not a day after"
+
+
+async def test_e2e_48_a_bus_and_a_tram_with_the_same_number_get_the_facts_of_their_own_kind(env):
+    from custom_components.ztm_warsaw.client import ZTMStopClient
+    from custom_components.ztm_warsaw.vehicles import VehicleFeed
+
+    env.city.fleet = [_record("1001", idMarki=1, trakcja="Bus")]
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
+    client: ZTMStopClient = entry.runtime_data["client"]
+
+    async def tram_too(self):
+        """The City's fleet, with a tram that has the number of a bus."""
+        return {"1/1001": {"Vehicle type": "Bus"}, "2/1001": {"Vehicle type": "Tram"}}
+
+    with patch.object(ZTMStopClient, "get_fleet", tram_too):
+        feed = VehicleFeed(env.hass, client)
+        await feed.ensure_fleet()
+    assert feed.details_of("161", "1001") == {"Vehicle type": "Bus"}
+    assert feed.details_of("28", "1001") == {"Vehicle type": "Tram"}

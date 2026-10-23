@@ -357,7 +357,7 @@ class LineVehicles:
             self._hass.async_create_task(_retire(self._hass, self._pins.pop(number)))
         fresh = []
         for number, vehicle in now.items():
-            planned, details = self._planned(vehicle.brigade), self._feed.details_of(number)
+            planned, details = self._planned(vehicle.brigade), self._feed.details_of(self._line, number)
             if number in self._pins:
                 self._pins[number].move(vehicle, planned, details)
             else:
