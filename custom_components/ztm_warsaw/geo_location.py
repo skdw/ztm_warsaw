@@ -73,18 +73,19 @@ def heading_of(entry: ZtmConfigEntry, brigade: str) -> str | None:
 
 
 async def _retire(hass: HomeAssistant, pin: "_Pin") -> None:
-    """Take a pin away for good: out of the state machine and out of the entity registry, as the documentation asks for an entity that
-    was created with a unique ID (a registry entry left behind would show as an unavailable entity for ever)."""
+    """Take a pin away for good: out of the state machine and, when it has a registry entry, out of the entity registry and, when
+    nothing else is on its device, off the integration's page too (as the documentation asks for an entity created with a unique ID: a
+    registry entry left behind would show as an unavailable entity for ever)."""
     entity_id = pin.entity_id
     if pin.hass is not None and entity_id:
         await pin.async_remove(force_remove=True)
     registry = er.async_get(hass)
-    if entity_id and registry.async_get(entity_id) is not None:
-        registry.async_remove(entity_id)
-    info = pin.device_info
-    device = dr.async_get(hass).async_get_device(identifiers=info["identifiers"]) if info and "identifiers" in info else None
-    if device is not None and not er.async_entries_for_device(registry, device.id):
-        dr.async_get(hass).async_remove_device(device.id)  # a device with nothing on it is not left on the integration's page
+    entry = registry.async_get(entity_id) if entity_id else None
+    if entry is None:
+        return
+    registry.async_remove(entity_id)
+    if entry.device_id and not er.async_entries_for_device(registry, entry.device_id):
+        dr.async_get(hass).async_remove_device(entry.device_id)
 
 
 class _Pin(GeolocationEvent):

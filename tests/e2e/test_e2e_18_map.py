@@ -6,9 +6,9 @@ import base64
 from datetime import timedelta
 
 import pytest
+from homeassistant.helpers import device_registry as dr
 from homeassistant.util import dt as dt_util
 
-from custom_components.ztm_warsaw.geo_location import LAYERS_KEY
 from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES
 from custom_components.ztm_warsaw.utils import get_line_badge, get_stop_badge
 
@@ -236,18 +236,15 @@ async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_d
     assert entry is not None
 
 
-async def test_e2e_48_the_pins_are_registered_entities_on_devices_so_they_show_on_the_integrations_page(env):
+async def test_e2e_48_a_vehicle_pin_is_a_registered_entity_on_a_device_of_its_line_and_a_pole_pin_is_not(env):
     entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
     env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
     await env.advance(seconds=31)
-    registry = env.entity_registry
     (pole_state,) = _poles(env)
     (vehicle_state,) = _vehicles(env)
-    pole = registry.async_get(pole_state.entity_id)
-    vehicle = registry.async_get(vehicle_state.entity_id)
-    assert (pole.unique_id, vehicle.unique_id) == ("pole_7009_01", "vehicle_151_4711")
-    assert (pole.config_entry_id, vehicle.config_entry_id) == (entry.entry_id, entry.entry_id)
-    assert env.device_registry.async_get(pole.device_id).identifiers == {("ztm_warsaw", "pole_7009_01")}
+    assert env.entity_registry.async_get(pole_state.entity_id) is None, "a pole is shared by lines: it has no registry entry"
+    vehicle = env.entity_registry.async_get(vehicle_state.entity_id)
+    assert (vehicle.unique_id, vehicle.config_entry_id) == ("vehicle_151_4711", entry.entry_id)
     assert env.device_registry.async_get(vehicle.device_id).identifiers == {("ztm_warsaw", "vehicles_151")}
 
 
@@ -262,7 +259,7 @@ async def test_e2e_48_the_id_of_a_vehicle_does_not_carry_where_it_heads_because_
 
 
 async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registry_and_its_device_too(env):
-    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
     env.city.vehicles = [_row(line="151", brigade="no-such-brigade", number="4711")]
     await env.advance(seconds=31)
     assert env.entity_registry.async_get("geo_location.line_151_4711") is not None
@@ -270,7 +267,7 @@ async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registr
     await env.advance(seconds=31)
     await env.settle()
     assert env.entity_registry.async_get("geo_location.line_151_4711") is None
-    assert env.device_registry.async_get_device(identifiers={("ztm_warsaw", "vehicles_151")}) is None
+    assert not [d for d in dr.async_entries_for_config_entry(env.device_registry, entry.entry_id) if ("ztm_warsaw", "vehicles_151") in d.identifiers]
 
 
 async def test_e2e_48_registry_entries_of_vehicles_left_by_a_restart_are_taken_out_at_the_next_setup(env):
@@ -279,23 +276,3 @@ async def test_e2e_48_registry_entries_of_vehicles_left_by_a_restart_are_taken_o
     await env.hass.config_entries.async_setup(entry.entry_id)
     await env.settle()
     assert [e for e in env.entity_registry.entities.values() if e.unique_id == "vehicle_151_9999"] == []
-
-
-async def test_e2e_48_a_pole_that_changes_host_keeps_one_pin_and_its_unique_id(env):
-    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
-    second = await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
-    assert await env.hass.config_entries.async_unload(first.entry_id)
-    await env.settle()
-    (pole,) = _poles(env)
-    assert pole.attributes["Lines"] == "523"
-    entity = env.entity_registry.async_get(pole.entity_id)
-    assert (entity.unique_id, entity.config_entry_id) == ("pole_7009_01", second.entry_id)
-
-
-async def test_e2e_48_a_host_that_is_dropped_while_its_platform_is_still_loaded_leaves_no_second_pin_for_its_pole(env):
-    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
-    await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
-    env.hass.data[LAYERS_KEY].drop_entry(first.entry_id)  # what the unload does, with Home Assistant not taking the pin away itself
-    await env.settle()
-    (pole,) = _poles(env)
-    assert pole.attributes["Lines"] == "523", "the pole is one pin again, hosted by the line that is left"
