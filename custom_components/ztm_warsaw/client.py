@@ -468,6 +468,8 @@ class ZTMStopClient:
         """The facts a pin shows about one vehicle: its own, then those of its model."""
         facts = {label: row[key] for key, label in self.FLEET_FACTS.items() if row.get(key) not in (None, "")}
         facts.update({label: model[key] for key, label in self.MODEL_FACTS.items() if model.get(key) not in (None, "")})
+        if "Year of production" in facts:
+            facts["Year of production"] = str(facts["Year of production"])  # text: a number would be shown as "2,021"
         if model.get("podloga") in self.FLOORS:
             facts["Floor"] = self.FLOORS[model["podloga"]]
         return facts
