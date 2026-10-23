@@ -118,7 +118,6 @@
     "error": {
       "invalid_stop_number": "Die Nummer der Halteposition muss aus zwei Ziffern bestehen (z. B. „01“).",
       "invalid_api_key": "Ungültiger API-Schlüssel oder ungültiges Token. Prüfe, ob du den Schlüssel oder das Token vollständig vom Open-Data-Portal der Stadt Warschau kopiert hast.",
-      "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
       "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
       "line_not_found": "Die angegebene Linie wurde an dieser Halteposition nicht gefunden.",
       "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
@@ -134,7 +133,6 @@
       "too_many_matches": "Zu viele Haltestellen passen. Gib etwas mehr vom Namen ein."
     },
     "abort": {
-      "single_instance_allowed": "Nur eine Instanz ist erlaubt.",
       "reauth_successful": "Die neuen Zugangsdaten wurden gespeichert und die Konfiguration neu geladen.",
       "unknown": "Ein unbekannter Fehler ist aufgetreten.",
       "already_configured": "Die gewählte Linie ist für diese Halteposition bereits eingerichtet.",
@@ -180,7 +178,6 @@
     "error": {
       "invalid_stop_number": "Die Nummer der Halteposition muss aus zwei Ziffern bestehen (z. B. „01“).",
       "invalid_api_key": "Ungültiger API-Schlüssel oder ungültiges Token. Prüfe, ob du den Schlüssel oder das Token vollständig vom Open-Data-Portal der Stadt Warschau kopiert hast.",
-      "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
       "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
       "line_not_found": "Die angegebene Linie wurde an dieser Halteposition nicht gefunden.",
       "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
@@ -253,7 +250,6 @@
         "error": {
           "invalid_stop_number": "Die Nummer der Halteposition muss aus zwei Ziffern bestehen (z. B. „01“).",
           "invalid_api_key": "Ungültiger API-Schlüssel oder ungültiges Token. Prüfe, ob du den Schlüssel oder das Token vollständig vom Open-Data-Portal der Stadt Warschau kopiert hast.",
-          "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
           "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
           "line_not_found": "Die angegebene Linie wurde an dieser Halteposition nicht gefunden.",
           "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
@@ -301,7 +297,6 @@
         "error": {
           "invalid_stop_number": "Die Nummer der Halteposition muss aus zwei Ziffern bestehen (z. B. „01“).",
           "invalid_api_key": "Ungültiger API-Schlüssel oder ungültiges Token. Prüfe, ob du den Schlüssel oder das Token vollständig vom Open-Data-Portal der Stadt Warschau kopiert hast.",
-          "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
           "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
           "line_not_found": "Die angegebene Linie wurde an dieser Halteposition nicht gefunden.",
           "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",
@@ -372,7 +367,6 @@
       "error": {
         "invalid_stop_number": "Die Nummer der Halteposition muss aus zwei Ziffern bestehen (z. B. „01“).",
         "invalid_api_key": "Ungültiger API-Schlüssel oder ungültiges Token. Prüfe, ob du den Schlüssel oder das Token vollständig vom Open-Data-Portal der Stadt Warschau kopiert hast.",
-        "api_http_error": "Die Verbindung zur API der Stadt Warschau war nicht möglich.",
         "api_connection_error": "Verbindungsfehler mit der API der Stadt Warschau.",
         "line_not_found": "Die angegebene Linie wurde an dieser Halteposition nicht gefunden.",
         "no_departures": "Für diese Linie sind an der gewählten Haltestelle heute keine Abfahrten geplant.",

@@ -118,7 +118,6 @@
     "error": {
       "invalid_stop_number": "Le numéro du point d’arrêt doit comporter deux chiffres (p. ex. « 01 »).",
       "invalid_api_key": "La clé API ou le jeton n’est pas valide. Vérifiez que vous avez copié l’intégralité de la clé ou du jeton depuis le portail de données ouvertes de la ville de Varsovie.",
-      "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
       "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
       "line_not_found": "La ligne indiquée est introuvable à ce point d’arrêt.",
       "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
@@ -134,7 +133,6 @@
       "too_many_matches": "Trop d’arrêts correspondent. Tapez un peu plus du nom."
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance est autorisée.",
       "reauth_successful": "Les nouveaux identifiants d’accès ont été enregistrés et la configuration a été rechargée.",
       "unknown": "Une erreur inconnue s’est produite.",
       "already_configured": "La ligne sélectionnée est déjà configurée pour ce point d’arrêt.",
@@ -180,7 +178,6 @@
     "error": {
       "invalid_stop_number": "Le numéro du point d’arrêt doit comporter deux chiffres (p. ex. « 01 »).",
       "invalid_api_key": "La clé API ou le jeton n’est pas valide. Vérifiez que vous avez copié l’intégralité de la clé ou du jeton depuis le portail de données ouvertes de la ville de Varsovie.",
-      "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
       "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
       "line_not_found": "La ligne indiquée est introuvable à ce point d’arrêt.",
       "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
@@ -253,7 +250,6 @@
         "error": {
           "invalid_stop_number": "Le numéro du point d’arrêt doit comporter deux chiffres (p. ex. « 01 »).",
           "invalid_api_key": "La clé API ou le jeton n’est pas valide. Vérifiez que vous avez copié l’intégralité de la clé ou du jeton depuis le portail de données ouvertes de la ville de Varsovie.",
-          "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
           "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
           "line_not_found": "La ligne indiquée est introuvable à ce point d’arrêt.",
           "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
@@ -301,7 +297,6 @@
         "error": {
           "invalid_stop_number": "Le numéro du point d’arrêt doit comporter deux chiffres (p. ex. « 01 »).",
           "invalid_api_key": "La clé API ou le jeton n’est pas valide. Vérifiez que vous avez copié l’intégralité de la clé ou du jeton depuis le portail de données ouvertes de la ville de Varsovie.",
-          "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
           "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
           "line_not_found": "La ligne indiquée est introuvable à ce point d’arrêt.",
           "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",
@@ -372,7 +367,6 @@
       "error": {
         "invalid_stop_number": "Le numéro du point d’arrêt doit comporter deux chiffres (p. ex. « 01 »).",
         "invalid_api_key": "La clé API ou le jeton n’est pas valide. Vérifiez que vous avez copié l’intégralité de la clé ou du jeton depuis le portail de données ouvertes de la ville de Varsovie.",
-        "api_http_error": "Impossible de se connecter à l’API de la ville de Varsovie.",
         "api_connection_error": "Erreur de connexion avec l’API de la ville de Varsovie.",
         "line_not_found": "La ligne indiquée est introuvable à ce point d’arrêt.",
         "no_departures": "Aucun départ n’est prévu aujourd’hui pour cette ligne à l’arrêt sélectionné.",

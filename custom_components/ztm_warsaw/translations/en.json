@@ -118,7 +118,6 @@
     "error": {
       "invalid_stop_number": "The stop point number must contain two digits (e.g. “01”).",
       "invalid_api_key": "Invalid API key or token. Check that you copied the complete key or token from the City of Warsaw open data portal.",
-      "api_http_error": "Could not connect to the City of Warsaw API.",
       "api_connection_error": "Connection error with the City of Warsaw API.",
       "line_not_found": "The selected line was not found at this stop point.",
       "no_departures": "There are no departures scheduled for this line at the selected stop today.",
@@ -134,7 +133,6 @@
       "too_many_matches": "Too many stops match that. Type a bit more of the name."
     },
     "abort": {
-      "single_instance_allowed": "Only one instance is allowed.",
       "reauth_successful": "The new credentials have been saved and the configuration reloaded.",
       "unknown": "An unknown error occurred.",
       "already_configured": "The selected line is already configured for this stop point.",
@@ -180,7 +178,6 @@
     "error": {
       "invalid_stop_number": "The stop point number must contain two digits (e.g. “01”).",
       "invalid_api_key": "Invalid API key or token. Check that you copied the complete key or token from the City of Warsaw open data portal.",
-      "api_http_error": "Could not connect to the City of Warsaw API.",
       "api_connection_error": "Connection error with the City of Warsaw API.",
       "line_not_found": "The selected line was not found at this stop point.",
       "no_departures": "There are no departures scheduled for this line at the selected stop today.",
@@ -253,7 +250,6 @@
         "error": {
           "invalid_stop_number": "The stop point number must contain two digits (e.g. “01”).",
           "invalid_api_key": "Invalid API key or token. Check that you copied the complete key or token from the City of Warsaw open data portal.",
-          "api_http_error": "Could not connect to the City of Warsaw API.",
           "api_connection_error": "Connection error with the City of Warsaw API.",
           "line_not_found": "The selected line was not found at this stop point.",
           "no_departures": "There are no departures scheduled for this line at the selected stop today.",
@@ -301,7 +297,6 @@
         "error": {
           "invalid_stop_number": "The stop point number must contain two digits (e.g. “01”).",
           "invalid_api_key": "Invalid API key or token. Check that you copied the complete key or token from the City of Warsaw open data portal.",
-          "api_http_error": "Could not connect to the City of Warsaw API.",
           "api_connection_error": "Connection error with the City of Warsaw API.",
           "line_not_found": "The selected line was not found at this stop point.",
           "no_departures": "There are no departures scheduled for this line at the selected stop today.",
@@ -372,7 +367,6 @@
       "error": {
         "invalid_stop_number": "The stop point number must contain two digits (e.g. “01”).",
         "invalid_api_key": "Invalid API key or token. Check that you copied the complete key or token from the City of Warsaw open data portal.",
-        "api_http_error": "Could not connect to the City of Warsaw API.",
         "api_connection_error": "Connection error with the City of Warsaw API.",
         "line_not_found": "The selected line was not found at this stop point.",
         "no_departures": "There are no departures scheduled for this line at the selected stop today.",
