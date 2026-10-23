@@ -8,6 +8,7 @@ from datetime import timedelta
 import pytest
 from homeassistant.util import dt as dt_util
 
+from custom_components.ztm_warsaw.geo_location import LAYERS_KEY
 from custom_components.ztm_warsaw.const import CONF_SHOW_VEHICLES
 from custom_components.ztm_warsaw.utils import get_line_badge, get_stop_badge
 
@@ -212,3 +213,12 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
     pins.stop()
     pins.stop()
     assert feed.left == 1
+
+
+async def test_e2e_48_a_host_that_is_dropped_while_its_platform_is_still_loaded_leaves_no_second_pin_for_its_pole(env):
+    first = await env.add_entry(line="151", api_key=DEFAULT_TOKEN)
+    await env.add_entry(line="523", api_key=DEFAULT_TOKEN)
+    env.hass.data[LAYERS_KEY].drop_entry(first.entry_id)  # what the unload does, with Home Assistant not taking the pin away itself
+    await env.settle()
+    (pole,) = _poles(env)
+    assert pole.attributes["Lines"] == "523", "the pole is one pin again, hosted by the line that is left"
