@@ -143,9 +143,11 @@ class VehicleFeed:
         """Whether a poll that asked for this line has worked: before that the feed knows nothing about its vehicles."""
         return line.upper() in self._polled
 
-    def details_of(self, number: str) -> dict[str, Any]:
-        """What the City's fleet says about this vehicle (empty while the fleet is not read or does not know it)."""
-        return self._fleet.get(str(number).strip(), {})
+    def details_of(self, line: str, number: str) -> dict[str, Any]:
+        """What the City's fleet says about this vehicle of this line (empty while the fleet is not read or does not know it). A bus and a
+        tram can have the same number, so the kind (by the line) is part of the key."""
+        kind = TRAM if TRAM_LINE.fullmatch(line.upper()) else BUS
+        return self._fleet.get(f"{kind}/{str(number).strip()}", {})
 
     def uses_key_of(self, client: ZTMStopClient) -> bool:
         """Whether this feed asks the City with the same key as ``client`` does."""
