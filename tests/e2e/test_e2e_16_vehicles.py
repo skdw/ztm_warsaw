@@ -269,3 +269,8 @@ async def test_e2e_45_a_customized_distance_sensor_is_only_switched_off_when_the
     await env.settle()
     back = env.entity_registry.async_get(SENSOR)
     assert (back.name, back.disabled_by) == ("Bus is near", None)
+
+
+async def test_e2e_45_the_distance_has_no_state_class_so_no_long_term_statistics_are_kept_for_it(env):
+    await _entry(env, rows=[_row()])
+    assert "state_class" not in env.hass.states.get(SENSOR).attributes

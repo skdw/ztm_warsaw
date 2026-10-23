@@ -60,6 +60,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **A token you already use, in a menu**: when a line has a token, the first screen of the setup asks whether to use it or paste another, instead of two competing fields.
 - **Distance to the vehicle only where you want it**: the vehicle distance sensors of a line exist while its vehicles are shown on the map, are on from the start and carry the stop's name.
 - **Where a vehicle goes**: a vehicle on the map is named after its destination, for example "Line 126 → Rechniewskiego", read from the timetable of its brigade.
+- **No long-term statistics for the vehicle distance**: the distance of a bus is a live value, so Home Assistant no longer keeps statistics for it or lists it under Statistics when the sensor goes.
 - **Vehicles on the integration's page**: the vehicles of a line are listed under one device of that line, with a stable entity ID made from the line and the vehicle's number, and each leaves the list when the City stops reporting it.
 - **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have are grouped for you.
 - **The stop's name where you look for it**: entries are titled "Line 176 from Rondo Daszyńskiego 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.

@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import UnitOfLength
 from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
@@ -37,7 +37,8 @@ class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
 
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.METERS
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # No state class on purpose: the distance of a bus is not something to add up over hours, and a state class would make Home Assistant
+    # keep long-term statistics for it (and list them under Statistics when the sensor is removed or excluded from the recorder).
     _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator: ZTMStopCoordinator, feed: VehicleFeed):
