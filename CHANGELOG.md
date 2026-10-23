@@ -28,7 +28,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 - **Change your key any time**: **Configure** or **Reconfigure** swaps the key or token, and a token you already use is offered again instead of being pasted twice.
 - **One notice for an old key**: Repairs and the integration page ask once for the whole line, and you can paste a token, reuse another line's (picked by its last four characters) or ignore the notice.
 - **A notice when the City stays silent**: if a line gets no answer for hours (a revoked or expired token looks exactly like that), Repairs says so and tells you what to check. It goes by itself when the City answers.
-- **A status in words**: every stop has a *Status* sensor that says what is going on (departures ahead, no more today, no service today, timetables are being updated ...) in your language.
+- **A status in words**: every stop has a *Status* sensor that says what is going on (runs today, no more today, does not run today, timetables are being updated ...) in your language.
 - **Next departures as their own entities** (off by default): switch on *Next 1*, *Next 2* or *Next 3* in the entity settings to use each following departure in a card or an automation.
 - **First and last bus of the day**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure`, so a card can still say "the last bus left at 23:41" after the last departure.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
