@@ -286,11 +286,12 @@ def test_a_fast_forwarded_release_commit_is_on_the_mainline(preflight: ModuleTyp
 
 def test_release_runs_never_cancel_each_other_and_do_not_share_one_pending_slot() -> None:
     """A concurrency group keeps one pending run and cancels older pending ones: with one group for every tag,
-    three tags pushed close together would lose a draft. The group is per ref and nothing is cancelled."""
+    three tags pushed close together would lose a release. The group is per ref and nothing is cancelled. It has a name of its
+    own: called from ci.yml, ``github.workflow`` is "CI", and a group shared with the caller would cancel or block it."""
     text = RELEASE.read_text(encoding="utf-8")
     block = re.search(r"^concurrency:\n((?:  .+\n)+)", text, re.MULTILINE)
     assert block is not None
-    assert "group: ${{ github.workflow }}-${{ github.ref }}" in block.group(1)
+    assert "group: release-${{ github.ref }}-${{ github.sha }}" in block.group(1)
     assert "cancel-in-progress: false" in block.group(1)
 
 
