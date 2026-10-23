@@ -195,10 +195,10 @@
       "status": {
         "name": "{stop} · Status",
         "state": {
-          "running": "Abfahrten folgen",
+          "running": "Fährt heute",
           "cannot_catch": "Nicht mehr zu schaffen",
           "after_last_departure": "Heute keine Abfahrten mehr",
-          "no_service_today": "Heute kein Betrieb",
+          "no_service_today": "Fährt heute nicht",
           "city_updating": "Die Fahrpläne werden aktualisiert (etwa 02:10–03:05)",
           "waiting": "Warte auf den Fahrplan",
           "city_error": "Fahrplan konnte nicht abgerufen werden",
