@@ -192,11 +192,8 @@
   },
   "entity": {
     "sensor": {
-      "ztm_warsaw": {
-        "name": "Ligne ZTM"
-      },
       "status": {
-        "name": "État",
+        "name": "{stop} · statut",
         "state": {
           "running": "En service",
           "cannot_catch": "Impossible de l’attraper",
@@ -209,7 +206,27 @@
         }
       },
       "vehicle_distance": {
-        "name": "Distance du véhicule"
+        "name": "{stop} · distance du véhicule"
+      },
+      "departures": {
+        "name": "{stop}"
+      },
+      "last_update": {
+        "name": "{stop} · dernière mise à jour"
+      },
+      "next_1": {
+        "name": "{stop} · prochain 1"
+      },
+      "next_2": {
+        "name": "{stop} · prochain 2"
+      },
+      "next_3": {
+        "name": "{stop} · prochain 3"
+      }
+    },
+    "calendar": {
+      "timetable": {
+        "name": "{stop} · horaire"
       }
     }
   },

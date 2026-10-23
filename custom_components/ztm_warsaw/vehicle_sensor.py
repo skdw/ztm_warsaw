@@ -47,25 +47,16 @@ class ZTMVehicleDistanceSensor(ZtmStopEntity, SensorEntity):
         super().__init__(coordinator, line, stop_nr)
         self._feed = feed
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_nr}_vehicle_distance"
-        self._attr_name = f"Line {line} from {stop_id}/{stop_nr} Vehicle distance"
         self._attr_translation_key = "vehicle_distance"  # its icon is in icons.json
 
     async def async_added_to_hass(self) -> None:
         """Follow the feed while the entity is on: the feed polls for it when its next departure is near."""
         await super().async_added_to_hass()
-        self._take_stop_name()  # now that the entity ID is made (from the numbers), the name may carry the stop's name
         self.async_on_remove(self._feed.subscribe(self._wanted_line, self._feed_changed))
-
-    def _take_stop_name(self) -> None:
-        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
-        name = self._name_with_stop("Vehicle distance")
-        if name:
-            self._attr_name = name
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """A new timetable (or the stop's name arriving): take the name and show the state again."""
-        self._take_stop_name()
+        """A new timetable (or the stop's name arriving): show the state again."""
         super()._handle_coordinator_update()
 
     @callback

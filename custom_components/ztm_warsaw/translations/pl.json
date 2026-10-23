@@ -192,11 +192,8 @@
   },
   "entity": {
     "sensor": {
-      "ztm_warsaw": {
-        "name": "Linia ZTM"
-      },
       "status": {
-        "name": "Status",
+        "name": "{stop} · status",
         "state": {
           "running": "Kursuje",
           "cannot_catch": "Nie zdążysz",
@@ -209,7 +206,27 @@
         }
       },
       "vehicle_distance": {
-        "name": "Odległość pojazdu"
+        "name": "{stop} · odległość pojazdu"
+      },
+      "departures": {
+        "name": "{stop}"
+      },
+      "last_update": {
+        "name": "{stop} · ostatnia aktualizacja"
+      },
+      "next_1": {
+        "name": "{stop} · następny 1"
+      },
+      "next_2": {
+        "name": "{stop} · następny 2"
+      },
+      "next_3": {
+        "name": "{stop} · następny 3"
+      }
+    },
+    "calendar": {
+      "timetable": {
+        "name": "{stop} · rozkład"
       }
     }
   },

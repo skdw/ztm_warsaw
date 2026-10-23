@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
 
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -55,9 +56,8 @@ def device_info(line: str, coordinator: ZTMStopCoordinator | None = None) -> Dev
     entries of that line; the stops of a line entry each have their own device, because a device belongs to one subentry."""
     identifier, name = f"line_{line}", f"Line {line}"
     if coordinator is not None and coordinator.device_per_stop:
-        # Named like the line's device: Home Assistant 2026.10 puts the device's name in front of an entity's name (and
-        # of its ID) unless the entity's name starts with it, and ours always start with "Line <line>". The devices of the
-        # stops are told apart by the subentry they are listed under.
+        # Named like the line's device: the entities' names ("from <stop>") follow the device's name, which gives the same
+        # names and entity IDs as before. The devices of the stops are told apart by the subentry they are listed under.
         identifier = f"line_{line}_{coordinator.stop_id}_{coordinator.stop_nr}"
     return {
         "identifiers": {(DOMAIN, identifier)},
@@ -73,11 +73,15 @@ def device_info(line: str, coordinator: ZTMStopCoordinator | None = None) -> Dev
 class ZtmStopEntity(CoordinatorEntity[ZTMStopCoordinator]):
     """An entity of one stop (a line at a pole): it knows its line and pole, sits on the stop's device and can read the stop's record."""
 
+    # The entity's name is a translation ("{stop}", "{stop} Status" ...) on the device of the line ("Line 176").
+    _attr_has_entity_name = True
+
     def __init__(self, coordinator: ZTMStopCoordinator, line: str, stop_number: str):
         """Remember the line and the pole of the stop the coordinator serves."""
         super().__init__(coordinator)
         self._line = line
         self._stop_number = stop_number
+        self._attr_translation_placeholders = self._numbers_placeholders()
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -88,7 +92,27 @@ class ZtmStopEntity(CoordinatorEntity[ZTMStopCoordinator]):
         """The stop's record from the coordinator (its name, position, street ...); an empty dict until the City has given it."""
         return stop_info_of(self.coordinator)
 
-    def _name_with_stop(self, suffix: str) -> str | None:
-        """The entity's name with the stop's name in it ("Line 176 Rondo Daszyńskiego 01 Status"), or None until the name is known (the entity ID was made from the numbers)."""
+    async def async_added_to_hass(self) -> None:
+        """Follow the stop's name from now on: the entity ID is made, so the stop's name may stand in for the numbers in the
+        entity's name (the listener is added first, so the name is renewed before the entity writes its state)."""
+        self.async_on_remove(self.coordinator.async_add_listener(self._renew_name))
+        self._renew_name()
+        await super().async_added_to_hass()
+
+    @callback
+    def _renew_name(self) -> None:
+        """Put the stop's name into the entity's name once the City has given it. Home Assistant keeps the name it worked out
+        once, so the cached name is dropped when the placeholder changes (only the friendly name changes, the entity ID stays)."""
         stop_name = self._stop_info().get("nazwa_zespolu")
-        return f"Line {self._line} {stop_name} {self._stop_number} {suffix}" if stop_name else None
+        if stop_name:
+            placeholders = {"stop": f"{stop_name} {self._stop_number}"}
+        else:
+            placeholders = self._numbers_placeholders()
+        if placeholders != self._attr_translation_placeholders:
+            self._attr_translation_placeholders = placeholders
+            self.__dict__.pop("name", None)
+
+    def _numbers_placeholders(self) -> dict[str, str]:
+        """``{stop}`` of the entity's name before the stop's name is known: "from" and the numbers ("from 7009/01"). The entity
+        ID is made from this and the English name, so it is the same in every language and as it has always been."""
+        return {"stop": f"from {self.coordinator.stop_id}/{self._stop_number}"}

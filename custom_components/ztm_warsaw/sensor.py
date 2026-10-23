@@ -89,9 +89,7 @@ class ZTMSensor(ZtmStopEntity, SensorEntity):
         self._max_departures = max_departures
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}"
-        # Always use numeric name initially so HA registers entity_id without stop name.
-        # Stop name is applied later in async_added_to_hass after entity_id is locked.
-        self._attr_name = f"Line {line} from {stop_id}/{stop_number}"
+        self._attr_translation_key = "departures"  # its name ("from {stop}") is in the translations
         
         # Base attributes that don't change
         self._base_attrs = {
@@ -204,8 +202,6 @@ class ZTMSensor(ZtmStopEntity, SensorEntity):
             self._set_no_departures()
             return
 
-        # Update friendly name with stop name as early as possible (entity_id is already locked)
-        self._update_stop_name()
         if has_new_data:
             _LOGGER.info("Coordinator has new data for %s, forcing full update", self.entity_id)
             self._last_coordinator_update = self.coordinator.last_update_success_time
@@ -226,16 +222,6 @@ class ZTMSensor(ZtmStopEntity, SensorEntity):
         """Show the walking time of the stop in the attributes, when one is set (a sensor without one has no such attribute)."""
         if self.coordinator.walking_minutes:
             self._attributes["Walking time, Minutes"] = self.coordinator.walking_minutes
-
-    def _update_stop_name(self) -> None:
-        """Update friendly name if stop info is now available."""
-        stop_info = self._get_stop_info()
-        stop_name = stop_info.get("nazwa_zespolu")
-        if stop_name:
-            new_name = f"Line {self._line} {stop_name} {self._stop_number}"
-            if self._attr_name != new_name:
-                _LOGGER.info("Updating friendly name for %s to: %s", self.entity_id, new_name)
-                self._attr_name = new_name
 
     def _update_departure_info(self, future_departures: list[ZTMDepartureDataReading], now: datetime) -> None:
         """Update departure information and attributes."""
@@ -320,7 +306,6 @@ class ZTMLastUpdateSensor(ZtmStopEntity, SensorEntity):
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_last_update"
-        self._attr_name = f"Line {line} from {stop_id}/{stop_number} Last update"
         self._attr_translation_key = "last_update"  # its icon is in icons.json
 
     @property
@@ -351,9 +336,6 @@ class ZTMLastUpdateSensor(ZtmStopEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update friendly name with stop name when coordinator data arrives."""
-        name = self._name_with_stop("Last update")
-        if name:
-            self._attr_name = name
         self.async_write_ha_state()
 
 
@@ -375,7 +357,6 @@ class ZTMNextDepartureSensor(ZtmStopEntity, SensorEntity):
         self._departure: ZTMDepartureDataReading | None = None
         self._scheduled_unsub: CALLBACK_TYPE | None = None
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_next_{position}"
-        self._attr_name = f"Line {line} from {stop_id}/{stop_number} Next {position}"
         self._attr_translation_key = f"next_{position}"  # its icon is in icons.json
 
     @property
@@ -425,7 +406,6 @@ class ZTMNextDepartureSensor(ZtmStopEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Pick the departure and take the stop's name when the sensor is added."""
         await super().async_added_to_hass()
-        self._take_stop_name()
         self._refresh()
 
     async def async_will_remove_from_hass(self) -> None:
@@ -433,16 +413,9 @@ class ZTMNextDepartureSensor(ZtmStopEntity, SensorEntity):
         self._cancel_wakeup()
         await super().async_will_remove_from_hass()
 
-    def _take_stop_name(self) -> None:
-        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
-        name = self._name_with_stop(f"Next {self._position}")
-        if name:
-            self._attr_name = name
-
     @callback
     def _handle_coordinator_update(self) -> None:
-        """A new answer: take the stop's name once it is known, pick the departure again and write the state."""
-        self._take_stop_name()
+        """A new answer: pick the departure again and write the state."""
         self._refresh()
         self.async_write_ha_state()
 
@@ -473,7 +446,6 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
         self._status = "waiting"
         self._scheduled_unsub: CALLBACK_TYPE | None = None
         self._attr_unique_id = f"line_{line}_from_{stop_id}_{stop_number}_status"
-        self._attr_name = f"Line {line} from {stop_id}/{stop_number} Status"
         self._attr_translation_key = "status"  # its name, the texts of its states and its icons are in the translations
 
     @property
@@ -540,7 +512,6 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Work out the status when the sensor is added."""
         await super().async_added_to_hass()
-        self._take_stop_name()
         self._refresh()
 
     async def async_will_remove_from_hass(self) -> None:
@@ -548,16 +519,9 @@ class ZTMStatusSensor(ZtmStopEntity, SensorEntity):
         self._cancel_wakeup()
         await super().async_will_remove_from_hass()
 
-    def _take_stop_name(self) -> None:
-        """Put the stop's name into the entity's name once it is known (the entity ID was made from the numbers)."""
-        name = self._name_with_stop("Status")
-        if name:
-            self._attr_name = name
-
     @callback
     def _handle_coordinator_update(self) -> None:
-        """A new answer: take the stop's name, work out the status again and write the state."""
-        self._take_stop_name()
+        """A new answer: work out the status again and write the state."""
         self._refresh()
         self.async_write_ha_state()
 

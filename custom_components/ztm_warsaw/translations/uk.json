@@ -192,11 +192,8 @@
   },
   "entity": {
     "sensor": {
-      "ztm_warsaw": {
-        "name": "Маршрут ZTM"
-      },
       "status": {
-        "name": "Статус",
+        "name": "{stop} · статус",
         "state": {
           "running": "Курсує",
           "cannot_catch": "Не встигнете",
@@ -209,7 +206,27 @@
         }
       },
       "vehicle_distance": {
-        "name": "Відстань до транспорту"
+        "name": "{stop} · відстань до транспорту"
+      },
+      "departures": {
+        "name": "{stop}"
+      },
+      "last_update": {
+        "name": "{stop} · останнє оновлення"
+      },
+      "next_1": {
+        "name": "{stop} · наступний 1"
+      },
+      "next_2": {
+        "name": "{stop} · наступний 2"
+      },
+      "next_3": {
+        "name": "{stop} · наступний 3"
+      }
+    },
+    "calendar": {
+      "timetable": {
+        "name": "{stop} · розклад"
       }
     }
   },
