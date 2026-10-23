@@ -153,6 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
             # After the reload: the unload of the old coordinators saves their answers once more.
             for gone in seen_refs - {unit.ref for unit in stop_units(changed)}:  # a stop that was removed
                 await Store(hass, 1, store_key(gone)).async_remove()
+                ir.async_delete_issue(hass, DOMAIN, silent_issue_id(gone))
 
     entry.async_on_unload(entry.add_update_listener(_reload_if_changed))
     return True

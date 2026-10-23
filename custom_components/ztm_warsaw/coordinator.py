@@ -81,6 +81,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._retry_unsub: CALLBACK_TYPE | None = None
         self._ref = entry_id
         self._silent_said = False  # the notice about the City's silence is up
+        self._silent_runs = 0  # refreshes in a row that got no answer from the City, whatever covered them
         self._failures = 0  # refreshes in a row that the cached timetable had to cover (the log says it once, the wait grows)
         self._refreshing = asyncio.Lock()
         self._rejections = 0  # consecutive answers of the City that reject the key
@@ -232,7 +233,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
     def _note_silence(self) -> None:
         """A token's refreshes failed many times in a row: tell the user (Repairs). The City answers every rejected request like an
         outage, so a revoked token cannot be told from a City that is down; the notice says both, and goes when an answer comes."""
-        if self._silent_said or not self.client.uses_token or self._failures < FAILURES_BEFORE_NOTICE:
+        if self._silent_said or not self.client.uses_token or self._silent_runs < FAILURES_BEFORE_NOTICE:
             return
         self._silent_said = True
         ir.async_create_issue(
@@ -311,9 +312,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._api_error = False
         self._rejections = 0
         self._failures = 0
-        if self._silent_said:
-            self._silent_said = False
-            ir.async_delete_issue(self.hass, DOMAIN, silent_issue_id(self._ref))
+        self._silent_runs = 0
+        self._silent_said = False
+        ir.async_delete_issue(self.hass, DOMAIN, silent_issue_id(self._ref))  # also one a coordinator before a reload put up
         self._save()
         self.last_update_success_time = dt_util.utcnow()
         # Track last success date in local time (Europe/Warsaw)
@@ -379,6 +380,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
                 return self._hold_during_swap()
             if new_data is None:
                 self._outage()
+                self._silent_runs += 1
                 self._note_silence()
                 if self.data is not None and not self._api_error:
                     self._say_kept()

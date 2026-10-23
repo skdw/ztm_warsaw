@@ -563,12 +563,40 @@ async def test_e2e_16_a_token_the_city_never_answers_is_made_a_notice_and_the_no
     for _ in range(3):
         await env.hourly_tick()
     assert not _silent_notices(env), "a few hours of silence is an outage, not yet a notice"
-    for _ in range(coord._failures, FAILURES_BEFORE_NOTICE + 2):
+    for _ in range(coord._silent_runs, FAILURES_BEFORE_NOTICE + 2):
         await env.hourly_tick()
     assert len(_silent_notices(env)) == 1
     env.city.heal()
     await env.hourly_tick()
     assert not _silent_notices(env), "an answer takes the notice back"
+
+
+async def _with_a_silence_notice(env):
+    """A line with a token whose City has been silent long enough to have a notice; returns the entry."""
+    entry = await env.add_entry_via_flow(line="151", api_key=DEFAULT_TOKEN)  # a line, whose stops are subentries
+    env.city.always(None, Reset())
+    for _ in range(FAILURES_BEFORE_NOTICE + 2):
+        await env.hourly_tick()
+    assert len(_silent_notices(env)) == 1
+    return entry
+
+
+async def test_e2e_16_a_reload_that_gets_an_answer_takes_back_a_notice_the_earlier_coordinator_put_up(env):
+    """Replacing the token reloads the entry: the new coordinator never raised the notice, but its first answer clears it."""
+    entry = await _with_a_silence_notice(env)
+    env.city.heal()
+    assert await env.hass.config_entries.async_reload(entry.entry_id)
+    await env.settle()
+    assert not _silent_notices(env)
+
+
+async def test_e2e_16_removing_the_stop_removes_its_silence_notice(env):
+    """No coordinator is left to clear the notice of a stop that is deleted from a line."""
+    entry = await _with_a_silence_notice(env)
+    (only,) = entry.subentries
+    env.hass.config_entries.async_remove_subentry(entry, only)
+    await env.settle()
+    assert not _silent_notices(env)
 
 
 async def test_e2e_16_an_old_key_is_never_made_a_silence_notice(env):
