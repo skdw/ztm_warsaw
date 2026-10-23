@@ -29,6 +29,7 @@ from typing import Any
 from homeassistant.components.geo_location import GeolocationEvent
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -39,7 +40,7 @@ from .entity import stop_info_of, stop_place
 from .entries import runtimes
 from .runtime import ZtmConfigEntry
 from .utils import get_line_badge, get_line_type, get_stop_badge
-from .vehicles import Vehicle, VehicleFeed, bearing_deg, brigade_key, distance_m, feed_for
+from .vehicles import FLEET_RETRY, Vehicle, VehicleFeed, bearing_deg, brigade_key, distance_m, feed_for
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -308,12 +309,19 @@ class LineVehicles:
         self._reconcile = reconcile  # told, once the City has answered, which vehicles are there (the registry entries of the others go)
         self._pins: dict[str, VehiclePin] = {}
         self._unsub: Callable[[], None] | None = None
+        self._fleet_unsub: Callable[[], None] | None = None
 
     def start(self) -> None:
         """Ask the feed for this line (it polls while any line wants vehicles) and show what it has."""
         self._unsub = self._feed.subscribe(lambda: self._line, self._update)
         self._update()
         self._hass.async_create_background_task(self._read_fleet(), f"{DOMAIN} fleet")  # the facts about the vehicles come when they come
+        # Every hour the feed is asked whether the fleet is due (it reads it when it is a day old, or an hour after a failed read).
+        self._fleet_unsub = async_track_time_interval(self._hass, self._fleet_tick, FLEET_RETRY)
+
+    async def _fleet_tick(self, _now: Any) -> None:
+        """The hourly question: is the fleet due?"""
+        await self._read_fleet()
 
     async def _read_fleet(self) -> None:
         """Read the City's fleet (when it is not read, or is a day old) and show what it says on the pins."""
@@ -325,6 +333,9 @@ class LineVehicles:
         if self._unsub is not None:
             self._unsub()
             self._unsub = None
+        if self._fleet_unsub is not None:
+            self._fleet_unsub()
+            self._fleet_unsub = None
         self._pins.clear()
 
     @callback

@@ -161,6 +161,7 @@ class VehicleFeed:
         def unsubscribe() -> None:
             """Stop following; the timer goes with the last follower."""
             self._wants.pop(wanted, None)
+            self._polled &= {line.upper() for line in (w() for w in tuple(self._wants)) if line}  # a line that left must be polled again when it returns
             if not self._wants and self._unsub is not None:
                 self._unsub()
                 self._unsub = None

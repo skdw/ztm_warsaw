@@ -208,6 +208,18 @@ async def test_e2e_48_stopping_the_vehicles_of_a_line_twice_does_no_harm(env):
             """No vehicle."""
             return []
 
+        def details_of(self, number):
+            """Nothing is known about a vehicle."""
+            return {}
+
+        def has_polled(self, line):
+            """No poll has worked."""
+            return False
+
+        async def ensure_fleet(self):
+            """The fleet is not read."""
+            return False
+
     feed = _Feed()
     pins = LineVehicles(env.hass, "151", feed, lambda entities: None)  # type: ignore[arg-type]
     pins.start()
@@ -370,3 +382,34 @@ async def test_e2e_48_a_jump_of_the_position_is_not_a_speed(env):
     await env.advance(seconds=31)
     (pin,) = _vehicles(env)
     assert "Speed, km/h" not in pin.attributes
+
+
+async def test_e2e_48_the_fleet_is_asked_again_every_hour_and_read_again_after_a_day_or_after_a_failure(env):
+    env.city.fleet = []  # the first read finds nothing
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert env.city.count("fleet") == 1
+    env.city.fleet = [_record("4711")]
+    await env.advance(seconds=3500)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]  # the vehicle is still reported (a position is only good for a few minutes)
+    await env.advance(seconds=130)  # an hour after the failed read it is asked again
+    (pin,) = _vehicles(env)
+    assert env.city.count("fleet") == 2
+    assert pin.attributes["Operator"] == "Miejskie Zakłady Autobusowe"
+
+
+async def test_e2e_48_a_line_that_reloads_while_another_keeps_the_feed_is_not_reconciled_against_the_other_lines_poll(env):
+    from custom_components.ztm_warsaw.geo_location import LAYERS_KEY  # noqa: F401 - the module is imported for its side effects only
+
+    a = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    await env.add_entry(line="523", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711"), _row(line="523", brigade="y", number="5000")]
+    await env.advance(seconds=31)
+    pin = env.entity_registry.async_get("geo_location.line_151_4711")
+    env.entity_registry.async_update_entity(pin.entity_id, name="My bus")
+    assert await env.hass.config_entries.async_unload(a.entry_id)
+    await env.advance(seconds=31)  # a poll with only the other line wanted
+    assert await env.hass.config_entries.async_setup(a.entry_id)
+    await env.settle()
+    assert env.entity_registry.async_get("geo_location.line_151_4711").name == "My bus", "nothing is deleted before the line has been polled again"
