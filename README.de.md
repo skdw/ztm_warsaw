@@ -69,7 +69,7 @@ Die Integration liest Fahrpläne, deshalb zeigt sie **planmäßige** Abfahrten. 
 
 - ✅ Die Integration unterstützt Busse, Straßenbahnen, die U-Bahn und die S-Bahn (SKM), auch Nacht-, Express- und Lokallinien.
 - ✅ Der Zustand des Sensors ist die Zeit der nächsten Abfahrt. Die drei folgenden Abfahrten sowie die erste und die letzte Abfahrt des Tages findest du in den Attributen.
-- ✅ Ein eigener *Status*-Sensor erklärt in einfachen Worten, was gerade los ist, zum Beispiel „Die letzte Abfahrt des Tages ist vorbei“.
+- ✅ Ein eigener *Status*-Sensor erklärt in einfachen Worten, was gerade los ist, zum Beispiel „Heute keine Abfahrten mehr“.
 - ✅ Eine Haltestelle fügst du hinzu, indem du einen Teil ihres Namens tippst. Danach wählst du die Richtung, in die du fährst (wenn die Haltestelle mehr als eine Halteposition hat), und die Linie. Du musst also keine Nummern nachschlagen.
 - ✅ Du kannst mehrere Linien und Haltestellen hinzufügen, eine Gehzeit zur Haltestelle festlegen, einen Abfahrtskalender einschalten und das Fahrzeug auf der Karte sehen. Kalender und Fahrzeug sind standardmäßig ausgeschaltet.
 - ✅ Die Oberfläche gibt es in acht Sprachen: Englisch, Polnisch, Ukrainisch, Russisch, Deutsch, Spanisch, Französisch und Italienisch. Die sechs neueren hat ein Programm übersetzt, Korrekturen als Pull Request sind daher willkommen.

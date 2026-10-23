@@ -69,7 +69,7 @@ La integración lee horarios, por eso muestra salidas **programadas**. No muestr
 
 - ✅ La integración admite autobuses, tranvías, metro y cercanías (SKM), también líneas nocturnas, exprés y locales.
 - ✅ El estado del sensor es la hora de la próxima salida. Las tres siguientes, y la primera y la última salida del día, están en los atributos.
-- ✅ Un sensor de *Estado* aparte explica con palabras sencillas lo que ocurre, por ejemplo «Ya salió la última salida del día».
+- ✅ Un sensor de *Estado* aparte explica con palabras sencillas lo que ocurre, por ejemplo «Hoy ya no hay más salidas».
 - ✅ Añades una parada escribiendo parte de su nombre. Después eliges la dirección en la que viajas (si la parada tiene más de un punto de parada) y la línea, así que no tienes que buscar ningún número.
 - ✅ Puedes añadir varias líneas y paradas, fijar un tiempo de paseo hasta la parada, activar un calendario de salidas y ver el vehículo en el mapa. El calendario y el vehículo vienen desactivados.
 - ✅ La interfaz está en ocho idiomas: inglés, polaco, ucraniano, ruso, alemán, español, francés e italiano. Un programa tradujo los seis más recientes, así que las correcciones en forma de pull request son bienvenidas.

@@ -195,10 +195,10 @@
       "status": {
         "name": "{stop} · estado",
         "state": {
-          "running": "En servicio",
+          "running": "Hay salidas",
           "cannot_catch": "No llegas a tiempo",
-          "after_last_departure": "Ya salió la última salida del día",
-          "no_service_today": "Hoy no circula",
+          "after_last_departure": "Hoy ya no hay más salidas",
+          "no_service_today": "Hoy sin servicio",
           "city_updating": "Se están actualizando los horarios (hacia las 02:10–03:05)",
           "waiting": "Esperando el horario",
           "city_error": "No se pudo obtener el horario",

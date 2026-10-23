@@ -195,10 +195,10 @@
       "status": {
         "name": "{stop} · statut",
         "state": {
-          "running": "En service",
+          "running": "Départs à venir",
           "cannot_catch": "Impossible de l’attraper",
-          "after_last_departure": "Le dernier départ de la journée est passé",
-          "no_service_today": "Ne circule pas aujourd’hui",
+          "after_last_departure": "Plus de départs aujourd’hui",
+          "no_service_today": "Pas de service aujourd’hui",
           "city_updating": "Mise à jour des horaires en cours (vers 02:10–03:05)",
           "waiting": "En attente de l’horaire",
           "city_error": "Impossible d’obtenir l’horaire",
