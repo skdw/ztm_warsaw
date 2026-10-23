@@ -118,7 +118,6 @@
     "error": {
       "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
       "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
-      "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
       "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
       "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
       "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
@@ -134,7 +133,6 @@
       "too_many_matches": "Coinciden demasiadas paradas. Escribe un poco más del nombre."
     },
     "abort": {
-      "single_instance_allowed": "Solo se permite una instancia.",
       "reauth_successful": "Se han guardado las nuevas credenciales y se ha vuelto a cargar la configuración.",
       "unknown": "Se ha producido un error desconocido.",
       "already_configured": "La línea seleccionada ya está configurada para este punto de parada.",
@@ -180,7 +178,6 @@
     "error": {
       "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
       "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
-      "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
       "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
       "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
       "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
@@ -253,7 +250,6 @@
         "error": {
           "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
           "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
-          "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
           "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
           "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
           "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
@@ -301,7 +297,6 @@
         "error": {
           "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
           "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
-          "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
           "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
           "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
           "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",
@@ -372,7 +367,6 @@
       "error": {
         "invalid_stop_number": "El número del punto de parada debe tener dos dígitos (p. ej. «01»).",
         "invalid_api_key": "La clave API o el token no es válido. Comprueba que lo hayas copiado completo del portal de datos abiertos de la ciudad de Varsovia.",
-        "api_http_error": "No se pudo conectar con la API de la ciudad de Varsovia.",
         "api_connection_error": "Error de conexión con la API de la ciudad de Varsovia.",
         "line_not_found": "No se ha encontrado la línea indicada en este punto de parada.",
         "no_departures": "Hoy no hay salidas programadas de esta línea en la parada seleccionada.",

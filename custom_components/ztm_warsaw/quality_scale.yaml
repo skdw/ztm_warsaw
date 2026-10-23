@@ -122,7 +122,7 @@ rules:
     status: done
   entity-disabled-by-default:
     status: done
-    comment: The calendar, the next departures, the diagnostic sensor and the vehicle distance are off by default; the vehicles of a line on the map are off until its option is switched on.
+    comment: The calendar, the next departures and the diagnostic sensor are off by default; the vehicles of a line on the map, and with them the vehicle distance sensors, exist only when the line's option is switched on, and are on from the start.
   entity-translations:
     status: todo
     comment: Entity names are in the code, with has-entity-name; the states of the Status sensor are translated.

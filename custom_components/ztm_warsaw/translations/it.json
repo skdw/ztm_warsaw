@@ -118,7 +118,6 @@
     "error": {
       "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
       "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
-      "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
       "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
       "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
       "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
@@ -134,7 +133,6 @@
       "too_many_matches": "Troppe fermate corrispondono. Scrivi un po’ di più del nome."
     },
     "abort": {
-      "single_instance_allowed": "È consentita una sola istanza.",
       "reauth_successful": "Le nuove credenziali sono state salvate e la configurazione è stata ricaricata.",
       "unknown": "Si è verificato un errore sconosciuto.",
       "already_configured": "La linea selezionata è già configurata per questo punto di fermata.",
@@ -180,7 +178,6 @@
     "error": {
       "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
       "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
-      "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
       "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
       "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
       "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
@@ -253,7 +250,6 @@
         "error": {
           "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
           "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
-          "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
           "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
           "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
           "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
@@ -301,7 +297,6 @@
         "error": {
           "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
           "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
-          "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
           "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
           "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
           "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
@@ -372,7 +367,6 @@
       "error": {
         "invalid_stop_number": "Il numero del punto di fermata deve contenere due cifre (es. «01»).",
         "invalid_api_key": "La chiave API o il token non è valido. Verifica di aver copiato la chiave o il token per intero dal portale dei dati aperti della città di Varsavia.",
-        "api_http_error": "Impossibile connettersi all’API della città di Varsavia.",
         "api_connection_error": "Errore di connessione con l’API della città di Varsavia.",
         "line_not_found": "La linea indicata non è stata trovata in questo punto di fermata.",
         "no_departures": "Oggi non sono previste partenze di questa linea alla fermata selezionata.",
