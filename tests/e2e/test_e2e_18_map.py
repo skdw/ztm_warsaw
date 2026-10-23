@@ -344,7 +344,8 @@ async def test_e2e_48_a_vehicle_pin_has_what_the_fleet_and_the_timetable_say_abo
         "Miejskie Zakłady Autobusowe", "Woronicza", "WZ 1234A", 2019, "Bus")
     assert (attrs["Make"], attrs["Model"], attrs["Size class"], attrs["Powertrain"], attrs["Air conditioning"]) == ("Solaris", "Urbino 12", "MAXI (12m)", "Spalinowy", True)
     assert (attrs["Floor"], attrs["Seats"], attrs["Standing places"], attrs["Capacity"]) == ("Low floor", 30, 74, 104)
-    assert "kolorPojazdu" not in attrs and "zasilanie" not in attrs, "only the facts that are shown"
+    assert "kolorPojazdu" not in attrs, "only the facts that are shown"
+    assert "zasilanie" not in attrs, "only the facts that are shown"
     assert attrs["Route"] == departure.trasa
     assert attrs["Scheduled at"] == f"{stop_name_for('7009')} 01"
     assert attrs["Scheduled departure"].startswith(str(dt_util.as_local(departure.dt).date()))

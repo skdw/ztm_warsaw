@@ -451,13 +451,18 @@ class ZTMStopClient:
             return None
         fleet: dict[str, dict[str, Any]] = {}
         for kind, rows in groups.items():  # the buses, the trams ... each a list of records
-            if kind not in self.MODEL_LISTS or not isinstance(rows, list):
-                continue
-            models = {m.get("idMarki"): m for m in groups.get(self.MODEL_LISTS[kind]) or [] if isinstance(m, dict)}
-            for row in rows:
-                if isinstance(row, dict) and row.get("numerTaborowy") not in (None, ""):
-                    fleet[f"{self.KINDS[kind]}/{str(row['numerTaborowy']).strip()}"] = self._facts_of(row, models.get(row.get("idMarki")) or {})
+            if kind in self.MODEL_LISTS and isinstance(rows, list):
+                fleet.update(self._kind_facts(kind, rows, groups.get(self.MODEL_LISTS[kind]) or []))
         return fleet or None
+
+    def _kind_facts(self, kind: str, rows: list[Any], model_rows: list[Any]) -> dict[str, dict[str, Any]]:
+        """The facts of the vehicles of one kind, by ``"<kind number>/<fleet number>"``, each with its model's."""
+        models = {m.get("idMarki"): m for m in model_rows if isinstance(m, dict)}
+        return {
+            f"{self.KINDS[kind]}/{str(row['numerTaborowy']).strip()}": self._facts_of(row, models.get(row.get("idMarki")) or {})
+            for row in rows
+            if isinstance(row, dict) and row.get("numerTaborowy") not in (None, "")
+        }
 
     def _facts_of(self, row: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
         """The facts a pin shows about one vehicle: its own, then those of its model."""
