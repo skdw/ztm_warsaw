@@ -114,6 +114,7 @@ class VehicleFeed:
         self._failures = 0
         self._skip = 0  # polls still to skip after a failure
         self.failed = False  # the last poll failed (cleared by the next that worked)
+        self._polled: set[str] = set()  # the lines a poll has worked for since the feed was made (what it holds for them is what the City reports)
         self._fleet: dict[str, dict[str, Any]] = {}  # the City's fleet by fleet number, as far as it was read
         self._fleet_read: datetime | None = None  # when it was asked for last, whatever the outcome
 
@@ -134,6 +135,10 @@ class VehicleFeed:
             self._fleet = fleet
             return True
         return False
+
+    def has_polled(self, line: str) -> bool:
+        """Whether a poll that asked for this line has worked: before that the feed knows nothing about its vehicles."""
+        return line.upper() in self._polled
 
     def details_of(self, number: str) -> dict[str, Any]:
         """What the City's fleet says about this vehicle (empty while the fleet is not read or does not know it)."""
@@ -188,6 +193,7 @@ class VehicleFeed:
                 _LOGGER.info("The positions of the vehicles are back")
             self._failures, self._skip = 0, 0
             self._vehicles = found
+            self._polled |= lines
         self.failed = failed
         self._notify()
 

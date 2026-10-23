@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from unittest.mock import patch
 from datetime import timedelta
 
 import pytest
@@ -270,12 +271,44 @@ async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registr
     assert not [d for d in dr.async_entries_for_config_entry(env.device_registry, entry.entry_id) if ("ztm_warsaw", "vehicles_151") in d.identifiers]
 
 
-async def test_e2e_48_registry_entries_of_vehicles_left_by_a_restart_are_taken_out_at_the_next_setup(env):
+async def test_e2e_48_after_a_restart_the_entries_of_vehicles_the_city_no_longer_reports_go_and_those_still_reported_keep_their_settings(env):
     entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True}, setup=False)
-    env.entity_registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_9999", config_entry=entry)
+    registry = env.entity_registry
+    gone = registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_9999", config_entry=entry, suggested_object_id="line_151_9999")
+    kept = registry.async_get_or_create("geo_location", "ztm_warsaw", "vehicle_151_4711", config_entry=entry, suggested_object_id="line_151_4711")
+    registry.async_update_entity(kept.entity_id, name="My bus")
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
     await env.hass.config_entries.async_setup(entry.entry_id)
     await env.settle()
-    assert [e for e in env.entity_registry.entities.values() if e.unique_id == "vehicle_151_9999"] == []
+    await env.advance(seconds=31)
+    assert registry.async_get(gone.entity_id) is None
+    assert registry.async_get(kept.entity_id).name == "My bus", "the vehicle is still there: its settings are as they were"
+    (pin,) = _vehicles(env)
+    assert pin.entity_id == kept.entity_id
+
+
+async def test_e2e_48_switching_the_vehicles_off_takes_their_entries_and_their_device_out_of_the_registry(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert dr.async_entries_for_config_entry(env.device_registry, entry.entry_id)
+    env.hass.config_entries.async_update_entry(entry, options={"show_vehicles": False})
+    await env.settle()
+    assert env.entity_registry.async_get("geo_location.line_151_4711") is None
+    assert not [d for d in dr.async_entries_for_config_entry(env.device_registry, entry.entry_id) if ("ztm_warsaw", "vehicles_151") in d.identifiers]
+
+
+async def test_e2e_48_a_vehicle_still_running_yesterdays_late_departure_has_its_destination_from_the_previous_answer(env):
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    coordinator = entry.runtime_data["coordinator"]
+    reading = next(d for d in coordinator.data.departures if d.brygada)
+    late = type(reading)(kierunek="Nocna Pętla", czas=reading.czas, trasa="TX-N", brygada="77", dt=dt_util.utcnow())
+    with patch.object(type(coordinator), "known", lambda self: [late, *[d for d in self.data.departures if d.dt]]):
+        env.city.vehicles = [_row(line="151", brigade="77", number="4712")]
+        await env.advance(seconds=31)
+        (pin,) = _vehicles(env)
+    assert pin.attributes["Direction"] == "Nocna Pętla"
+
 
 
 def _record(number="4711", **more):

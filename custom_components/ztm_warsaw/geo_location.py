@@ -78,7 +78,7 @@ def planned_of(entry: ZtmConfigEntry, brigade: str) -> Planned | None:
     best: tuple[timedelta, Any, str] | None = None
     for runtime in runtimes(entry).values():
         coordinator = runtime["coordinator"]
-        for reading in getattr(coordinator.data, "departures", None) or []:
+        for reading in coordinator.known():  # the late departures of the day before too, that the coordinator still keeps after the rollover
             if reading.dt is None or reading.brygada is None or brigade_key(reading.brygada) != brigade:
                 continue
             gap = abs(reading.dt - now)
@@ -298,12 +298,14 @@ class LineVehicles:
     reports it again, and taken away when it is not reported any more or its position is too old."""
 
     def __init__(
-        self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback, planned: Callable[[str], Planned | None] | None = None
+        self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback, planned: Callable[[str], Planned | None] | None = None,
+        reconcile: Callable[[set[str]], None] | None = None,
     ) -> None:
         """Follow ``feed`` for the vehicles of ``line``; the pins are added through ``adder``, each with what the timetable says about its
         brigade (``planned``) and what the City's fleet says about the vehicle."""
         self._hass, self._line, self._feed, self._adder = hass, line, feed, adder
         self._planned = planned or (lambda _brigade: None)
+        self._reconcile = reconcile  # told, once the City has answered, which vehicles are there (the registry entries of the others go)
         self._pins: dict[str, VehiclePin] = {}
         self._unsub: Callable[[], None] | None = None
 
@@ -341,14 +343,22 @@ class LineVehicles:
                 fresh.append(pin)
         if fresh:
             self._adder(fresh)
+        if self._reconcile is not None and self._feed.has_polled(self._line):
+            self._reconcile({f"vehicle_{self._line}_{number}" for number in self._pins})
+            self._reconcile = None  # once: what an earlier run left is gone, and the pins that go from here retire themselves
 
 
-def _forget_vehicles(hass: HomeAssistant, config_entry: ZtmConfigEntry) -> None:
-    """Take the registry entries of vehicle pins of this line out: a vehicle is only an entity while the City reports it."""
+def _forget_vehicles(hass: HomeAssistant, config_entry: ZtmConfigEntry, keep: set[str]) -> None:
+    """Take the registry entries of the vehicle pins of this line out, except those whose unique ID is in ``keep`` (vehicles the City
+    still reports, whose settings the user may have changed), and the devices that are left with nothing on them."""
     registry = er.async_get(hass)
+    devices = dr.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
-        if entity.platform == DOMAIN and entity.domain == "geo_location" and entity.unique_id.startswith("vehicle_"):
-            registry.async_remove(entity.entity_id)
+        if entity.platform != DOMAIN or entity.domain != "geo_location" or not entity.unique_id.startswith("vehicle_") or entity.unique_id in keep:
+            continue
+        registry.async_remove(entity.entity_id)
+        if entity.device_id and not er.async_entries_for_device(registry, entity.device_id):
+            devices.async_remove_device(entity.device_id)
 
 
 def shows_vehicles(entry: ZtmConfigEntry) -> bool:
@@ -359,15 +369,16 @@ def shows_vehicles(entry: ZtmConfigEntry) -> bool:
 # Home Assistant awaits the platform's setup function, so it has to be a coroutine function although it awaits nothing.
 async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:  # NOSONAR
     """Put the poles of the line on the map, and its vehicles when the line shows them and has a token."""
-    _forget_vehicles(hass, config_entry)  # after a restart these entries have no entity behind them: the pins are made again below
     layers: MapLayers = hass.data.setdefault(LAYERS_KEY, MapLayers(hass))
     layers.add_entry(config_entry, async_add_entities)
     config_entry.async_on_unload(lambda: layers.drop_entry(config_entry.entry_id))
     stops = [r for r in runtimes(config_entry).values() if r["client"].uses_token]
     if not shows_vehicles(config_entry) or not stops:
-        return  # the vehicles are off, or need a token
+        _forget_vehicles(hass, config_entry, set())  # the vehicles are off, or need a token: nothing of them stays in the registry
+        return
     pins = LineVehicles(
-        hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities, lambda brigade: planned_of(config_entry, brigade)
+        hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities, lambda brigade: planned_of(config_entry, brigade),
+        lambda keep: _forget_vehicles(hass, config_entry, keep),
     )
     pins.start()
     config_entry.async_on_unload(pins.stop)
