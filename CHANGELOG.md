@@ -69,6 +69,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Fixed
 
+- **Year of production without a comma**: a vehicle's year on the map showed as "2,021"; it now reads "2021".
 - **One request per line**: a line with an old key shows a single notice asking for a token once for the whole line, named "Line 151" rather than by its stops.
 - **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
 - **A link that stays in one piece**: the address of the token portal in the dialogs no longer breaks in the middle.

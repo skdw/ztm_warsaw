@@ -51,3 +51,11 @@ async def test_a_catalogue_that_cannot_be_read_gives_nothing_and_says_so():
             return []
 
     assert await StopCatalogue(ttl=0).poles_of(Broken([]), "1085") == (False, [])
+
+
+def test_a_vehicle_year_is_text_and_a_vehicle_without_one_has_none():
+    """A number would be shown by Home Assistant as "2,021"; a fleet record without a year has no such fact."""
+    from custom_components.ztm_warsaw.client import YEAR_FACT, ZTMStopClient
+
+    assert ZTMStopClient._facts_of(ZTMStopClient, {"rokProdukcji": 2021}, {})[YEAR_FACT] == "2021"
+    assert YEAR_FACT not in ZTMStopClient._facts_of(ZTMStopClient, {"operator": "x"}, {})
