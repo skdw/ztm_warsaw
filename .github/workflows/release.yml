@@ -51,6 +51,8 @@ jobs:
     name: Plan the release
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write # only to list the Releases: a draft is invisible to a token that can only read
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       skip: ${{ steps.tag.outputs.skip }}
@@ -65,6 +67,7 @@ jobs:
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ "$REF_TYPE" == "tag" ]]; then
@@ -74,7 +77,12 @@ jobs:
             tag="v${version}"
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          # A version is done when it has a tag or a Release. A draft has no tag until it is published, so a stable
+          # version waiting as a draft is only seen in the list of Releases; publishing it by hand pushes the tag, and
+          # that run must find the Release and stop too.
           if [[ "$REF_TYPE" != "tag" ]] && git rev-parse -q --verify "refs/tags/${tag}" > /dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -qxF "$tag"; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
