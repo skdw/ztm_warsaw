@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.ztm_warsaw.client import ZTMStopClient
 from custom_components.ztm_warsaw.coordinator import FAILURES_BEFORE_NOTICE
+from custom_components.ztm_warsaw.models import ZTMDepartureData
 
 from .fake_city import (
     DEFAULT_KEY,
@@ -526,6 +527,26 @@ async def test_e2e_16_a_failed_refresh_covered_by_the_cache_is_retried_in_minute
     await env.advance(seconds=360)
     assert coord.data is not cached, "the retry fetched a fresh timetable long before the next hourly refresh"
     assert coord._retry_unsub is None, "a retry that worked does not schedule another"
+
+
+async def test_e2e_16_an_answer_without_the_stop_name_keeps_the_name_the_stop_has(env):
+    """A refresh whose catalogue read failed brings a timetable without the stop's name: the name (and the pin) must stay."""
+    await env.add_entry()
+    coord = coordinator_of(env)
+    known = coord.data.stop_info
+    assert known
+    coord._accept(ZTMDepartureData(departures=list(coord.data.departures), stop_info=None, service_date=coord.data.service_date))
+    assert coord.data.stop_info == known
+
+
+async def test_e2e_16_a_stop_that_starts_without_a_timetable_is_asked_again_in_minutes(env):
+    """One stop of a line failing at startup must not wait for the next hourly tick."""
+    await env.add_entry()
+    coord = coordinator_of(env)
+    assert coord._retry_unsub is None
+    with patch.object(coord, "_schedule_flip_refresh"):  # the one made at the setup is the one that stays
+        coord.start_without_timetable()
+    assert coord._retry_unsub is not None
 
 
 def _silent_notices(env):

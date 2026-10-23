@@ -131,6 +131,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         entities are unavailable, and the hourly refresh (and the one after the service day changes) brings the timetable."""
         self._started = True
         self._schedule_flip_refresh()
+        self._retry_soon()  # a City that failed once at startup is asked again in a few minutes, not at the next hourly tick
 
     async def _load_stop_name(self) -> None:
         """The stop's name, once at startup (the client keeps it), on a short leash and never inside the City's update;
@@ -304,6 +305,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         data_changed = self._data_changed(new_data)
         if self.data is not None and self.data.service_date != new_data.service_date:
             self._previous = self.data
+        if not new_data.stop_info and self.data is not None and self.data.stop_info:
+            new_data.stop_info = self.data.stop_info  # the answer does not carry the stop's name; the one we have is still right
         self.data = new_data
         self._api_error = False
         self._rejections = 0
@@ -381,6 +384,7 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
                     self._say_kept()
                     self._retry_soon()
                     return self.data
+                self._retry_soon()
                 raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_cached_timetable")
             return self._accept(new_data)
 
