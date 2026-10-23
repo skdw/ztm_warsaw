@@ -195,9 +195,9 @@
       "status": {
         "name": "{stop} · статус",
         "state": {
-          "running": "Ходит",
+          "running": "Сегодня ходит",
           "cannot_catch": "Не успеете",
-          "after_last_departure": "Последнее отправление сегодня уже было",
+          "after_last_departure": "Сегодня отправлений больше нет",
           "no_service_today": "Сегодня не ходит",
           "city_updating": "Идёт обновление расписаний (примерно 02:10–03:05)",
           "waiting": "Жду расписание",

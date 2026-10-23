@@ -195,9 +195,9 @@
       "status": {
         "name": "{stop} · status",
         "state": {
-          "running": "Kursuje",
+          "running": "Dziś kursuje",
           "cannot_catch": "Nie zdążysz",
-          "after_last_departure": "Ostatni odjazd dzisiaj już był",
+          "after_last_departure": "Na dziś odjazdów już nie ma",
           "no_service_today": "Dziś nie kursuje",
           "city_updating": "Trwa aktualizacja rozkładów (ok. 2:10–3:05)",
           "waiting": "Czekam na rozkład",

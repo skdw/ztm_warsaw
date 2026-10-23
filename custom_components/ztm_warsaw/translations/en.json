@@ -195,9 +195,9 @@
       "status": {
         "name": "{stop} Status",
         "state": {
-          "running": "Running",
+          "running": "Runs today",
           "cannot_catch": "You cannot make it in time",
-          "after_last_departure": "The last departure of the day has gone",
+          "after_last_departure": "No more departures today",
           "no_service_today": "Does not run today",
           "city_updating": "Timetables are being updated (about 02:10–03:05)",
           "waiting": "Waiting for the timetable",

@@ -69,7 +69,7 @@ L’integrazione legge gli orari, perciò mostra partenze **programmate**. Non m
 
 - ✅ L’integrazione supporta autobus, tram, metropolitana e treni urbani (SKM), comprese le linee notturne, espresse e locali.
 - ✅ Lo stato del sensore è l’ora della prossima partenza. Le tre successive, la prima e l’ultima partenza della giornata si trovano negli attributi.
-- ✅ Un sensore *Stato* a parte spiega con parole semplici cosa succede, per esempio «L’ultima partenza della giornata è passata».
+- ✅ Un sensore *Stato* a parte spiega con parole semplici cosa succede, per esempio «Oggi non ci sono più partenze».
 - ✅ Aggiungi una fermata scrivendo una parte del suo nome. Poi scegli la direzione in cui viaggi (se la fermata ha più di un punto di fermata) e la linea, quindi non devi cercare nessun numero.
 - ✅ Puoi aggiungere più linee e fermate, impostare un tempo di cammino fino alla fermata, attivare un calendario delle partenze e vedere il veicolo sulla mappa. Calendario e veicolo sono disattivati per impostazione predefinita.
 - ✅ L’interfaccia è disponibile in otto lingue: inglese, polacco, ucraino, russo, tedesco, spagnolo, francese e italiano. Un programma ha tradotto le sei più recenti, quindi le correzioni come pull request sono benvenute.

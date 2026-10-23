@@ -69,7 +69,7 @@ Integracja korzysta z rozkładu jazdy, więc wyświetla **planowane** odjazdy. N
 
 - ✅ Integracja obsługuje autobusy, tramwaje, metro i SKM, także linie nocne, ekspresowe i lokalne.
 - ✅ Stanem sensora jest godzina najbliższego odjazdu. Trzy następne odjazdy oraz pierwszy i ostatni odjazd doby znajdziesz w atrybutach.
-- ✅ Osobny sensor *Status* wyjaśnia zwykłymi słowami, co się dzieje, na przykład „Ostatni odjazd dzisiaj już był”.
+- ✅ Osobny sensor *Status* wyjaśnia zwykłymi słowami, co się dzieje, na przykład „Na dziś odjazdów już nie ma”.
 - ✅ Przystanek dodajesz, wpisując fragment jego nazwy. Potem wybierasz kierunek, w którym jedziesz (gdy przystanek ma więcej niż jeden słupek), i linię, więc nie musisz szukać żadnych numerów.
 - ✅ Możesz dodać wiele linii i przystanków, ustawić czas dojścia na przystanek, włączyć kalendarz odjazdów i zobaczyć pojazd na mapie. Kalendarz i pojazd są domyślnie wyłączone.
 - ✅ Interfejs jest w ośmiu językach: angielskim, polskim, ukraińskim, rosyjskim, niemieckim, hiszpańskim, francuskim i włoskim. Sześć nowszych wersji przetłumaczył program, więc poprawki w postaci pull requestów są mile widziane.

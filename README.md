@@ -69,7 +69,7 @@ The integration reads timetables, so it displays **scheduled** departures. It do
 
 - ✅ The integration supports buses, trams, the metro and urban rail (SKM), including night, express and local lines.
 - ✅ The state of the sensor is the time of the next departure. You find the three after it, and the first and the last departure of the day, in the attributes.
-- ✅ A separate *Status* sensor explains in plain words what is going on, for example "The last departure of the day has gone".
+- ✅ A separate *Status* sensor explains in plain words what is going on, for example "No more departures today".
 - ✅ You add a stop by typing part of its name, then pick the direction you travel in (where the stop has more than one pole) and the line, so you never look up a number.
 - ✅ You can add several lines and stops, set a walking time to the stop, turn on a calendar of departures and see the vehicle on the map. The calendar and the vehicle are off by default.
 - ✅ The interface is in eight languages: English, Polish, Ukrainian, Russian, German, Spanish, French and Italian. A program translated the six newer ones, so corrections as pull requests are welcome.

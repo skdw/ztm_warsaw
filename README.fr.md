@@ -69,7 +69,7 @@ L’intégration lit les horaires, elle affiche donc des départs **prévus**. E
 
 - ✅ L’intégration prend en charge les bus, les tramways, le métro et les trains urbains (SKM), y compris les lignes de nuit, express et locales.
 - ✅ L’état du capteur est l’heure du prochain départ. Vous trouvez les trois suivants, ainsi que le premier et le dernier départ de la journée, dans les attributs.
-- ✅ Un capteur *État* distinct explique en mots simples ce qui se passe, par exemple « Le dernier départ de la journée est passé ».
+- ✅ Un capteur *État* distinct explique en mots simples ce qui se passe, par exemple « Plus de départs aujourd’hui ».
 - ✅ Vous ajoutez un arrêt en tapant une partie de son nom. Vous choisissez ensuite la direction dans laquelle vous voyagez (si l’arrêt a plus d’un point d’arrêt) et la ligne : inutile de chercher un numéro.
 - ✅ Vous pouvez ajouter plusieurs lignes et arrêts, régler un temps de marche jusqu’à l’arrêt, activer un calendrier des départs et voir le véhicule sur la carte. Le calendrier et le véhicule sont désactivés par défaut.
 - ✅ L’interface existe en huit langues : anglais, polonais, ukrainien, russe, allemand, espagnol, français et italien. Un programme a traduit les six plus récentes ; les corrections sous forme de pull request sont les bienvenues.
