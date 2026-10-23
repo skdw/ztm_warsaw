@@ -410,7 +410,8 @@ class ZTMStopClient:
         result = answer.get("result") if isinstance(answer, dict) else None
         return result if isinstance(result, list) else None
 
-    # What the City says about a vehicle of its fleet that is shown on a pin (the fleet record's key -> the attribute's name).
+    # What the City says about a vehicle of its fleet that is shown on a pin (the fleet record's key -> the attribute's name), and about
+    # its model (the record of the model that the vehicle points to by ``idMarki``, kept in the list that goes with its kind).
     FLEET_FACTS = {
         "nazwaOperatora": "Operator",
         "nazwaZajezdni": "Depot",
@@ -418,11 +419,27 @@ class ZTMStopClient:
         "rokProdukcji": "Year of production",
         "trakcja": "Vehicle type",
     }
+    MODEL_FACTS = {
+        "marka": "Make",
+        "typ": "Model",
+        "katWielkosci": "Size class",
+        "rodzajZasilania": "Powertrain",
+        "klimatyzacja": "Air conditioning",
+        "liczMiejscSiedzacychTab": "Seats",
+        "liczMiejscStojacychTab": "Standing places",
+        "liczMiejscTab": "Capacity",
+    }
+    FLOORS = {"LF": "Low floor", "LE": "Low entry", "HF": "High floor"}
+    MODEL_LISTS = {"busy": "markiBus", "tramwaje": "markiTramwaje"}  # the vehicles that have positions: buses (kind 1) and trams (kind 2)
+    KINDS = {"busy": 1, "tramwaje": 2}
 
     async def get_fleet(self) -> dict[str, dict[str, Any]] | None:
-        """The City's fleet by fleet number (the ``VehicleNumber`` of a position), each with the few facts a pin shows (see ``FLEET_FACTS``);
-        None when the answer is missing or has no vehicles. The answer is big (about 1.3 MB) and changes slowly, so it is asked for rarely.
-        Only the new host serves it, so an old key gets None without a request."""
+        """The City's buses and trams by kind and fleet number (``"1/4300"`` is the bus, ``"2/4300"`` the tram that has that number: the
+        numbers of the two kinds overlap, and the ``VehicleNumber`` of a position is one of them), each with the few facts a pin shows
+        (see ``FLEET_FACTS`` and, from the model the vehicle points to, ``MODEL_FACTS`` and the floor); None when the answer is missing or
+        has no such vehicles. The
+        answer is big (about 1.3 MB) and changes slowly, so it is asked for rarely. Only the new host serves it, so an old key gets None
+        without a request."""
         if self._legacy:
             return None
         answer = await self._get_with_retry(
@@ -433,13 +450,27 @@ class ZTMStopClient:
         if not isinstance(groups, dict):
             return None
         fleet: dict[str, dict[str, Any]] = {}
-        for rows in groups.values():  # the buses, the trams ... each a list of records
-            for row in rows if isinstance(rows, list) else []:
-                if isinstance(row, dict) and row.get("numerTaborowy") not in (None, ""):
-                    fleet[str(row["numerTaborowy"]).strip()] = {
-                        label: row[key] for key, label in self.FLEET_FACTS.items() if row.get(key) not in (None, "")
-                    }
+        for kind, rows in groups.items():  # the buses, the trams ... each a list of records
+            if kind in self.MODEL_LISTS and isinstance(rows, list):
+                fleet.update(self._kind_facts(kind, rows, groups.get(self.MODEL_LISTS[kind]) or []))
         return fleet or None
+
+    def _kind_facts(self, kind: str, rows: list[Any], model_rows: list[Any]) -> dict[str, dict[str, Any]]:
+        """The facts of the vehicles of one kind, by ``"<kind number>/<fleet number>"``, each with its model's."""
+        models = {m.get("idMarki"): m for m in model_rows if isinstance(m, dict)}
+        return {
+            f"{self.KINDS[kind]}/{str(row['numerTaborowy']).strip()}": self._facts_of(row, models.get(row.get("idMarki")) or {})
+            for row in rows
+            if isinstance(row, dict) and row.get("numerTaborowy") not in (None, "")
+        }
+
+    def _facts_of(self, row: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
+        """The facts a pin shows about one vehicle: its own, then those of its model."""
+        facts = {label: row[key] for key, label in self.FLEET_FACTS.items() if row.get(key) not in (None, "")}
+        facts.update({label: model[key] for key, label in self.MODEL_FACTS.items() if model.get(key) not in (None, "")})
+        if model.get("podloga") in self.FLOORS:
+            facts["Floor"] = self.FLOORS[model["podloga"]]
+        return facts
 
     @property
     def retired(self) -> bool:

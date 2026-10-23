@@ -139,6 +139,7 @@ class FakeCity:
         self.day_overrides: dict[date, str] = {}  # force a day set for a service date
         self.calls: list[Call] = []
         self.fleet: list[dict[str, Any]] = []  # the records the fleet endpoint answers with, under "busy" (a test sets them)
+        self.fleet_models: list[dict[str, Any]] = []  # the model records it answers with, under "markiBus" (the vehicles point to them by idMarki)
         self.vehicles: list[dict[str, Any]] = []  # the rows the vehicles endpoint answers with (both kinds; a test sets them)
         self.blocked: list[str] = []  # attempts to reach a host that is not the fake city
         self._rules: list[_Rule] = []
@@ -459,7 +460,7 @@ class FakeCity:
             call.behavior = "bad_token"
             return self._new_json(SERVICE_UNAVAILABLE_PAYLOAD, status=500)
         if call.endpoint == "fleet":
-            return self._new_json({"busy": self.fleet})
+            return self._new_json({"busy": self.fleet, "markiBus": self.fleet_models})
         if call.endpoint == "vehicles":
             kind = (call.body or {}).get("type") if isinstance(call.body, dict) else None
             if kind not in (1, 2):  # OBSERVED: a string for the type answers an empty list
