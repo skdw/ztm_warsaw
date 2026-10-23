@@ -47,8 +47,8 @@ rules:
   entity-unique-id:
     status: done
   has-entity-name:
-    status: todo
-    comment: Entities carry their full name ("Line 151 from 7009/01"). Switching to has_entity_name would change entity IDs, which automations depend on; it needs a migration plan first.
+    status: done
+    comment: The entities are named after the device of their line ("Line 151") plus a translated name, which gives the same names and entity IDs as before.
   runtime-data:
     status: done
   test-before-configure:
@@ -124,8 +124,8 @@ rules:
     status: done
     comment: The calendar, the next departures and the diagnostic sensor are off by default; the vehicles of a line on the map, and with them the vehicle distance sensors, exist only when the line's option is switched on, and are on from the start.
   entity-translations:
-    status: todo
-    comment: Entity names are in the code, with has-entity-name; the states of the Status sensor are translated.
+    status: done
+    comment: The names of all entities and the states of the Status sensor are translated. The entity ID is made from the English name, so it does not depend on the language.
   exception-translations:
     status: done
   icon-translations:
