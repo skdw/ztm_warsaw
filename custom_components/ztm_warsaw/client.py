@@ -322,6 +322,8 @@ def _ctxp(params: dict[str, Any] | None) -> str:
     )
 
 # Client for interacting with the Warsaw ZTM public transport API
+YEAR_FACT = "Year of production"  # the one fact of a vehicle that is a year, kept as text
+
 class ZTMStopClient:
     """Asks the City of Warsaw for the timetable, the lines and the name of one line at one pole.
 
@@ -416,7 +418,7 @@ class ZTMStopClient:
         "nazwaOperatora": "Operator",
         "nazwaZajezdni": "Depot",
         "numerRejestracyjny": "Registration",
-        "rokProdukcji": "Year of production",
+        "rokProdukcji": YEAR_FACT,
         "trakcja": "Vehicle type",
     }
     MODEL_FACTS = {
@@ -468,6 +470,8 @@ class ZTMStopClient:
         """The facts a pin shows about one vehicle: its own, then those of its model."""
         facts = {label: row[key] for key, label in self.FLEET_FACTS.items() if row.get(key) not in (None, "")}
         facts.update({label: model[key] for key, label in self.MODEL_FACTS.items() if model.get(key) not in (None, "")})
+        if YEAR_FACT in facts:
+            facts[YEAR_FACT] = str(facts[YEAR_FACT])  # text: a number would be shown as "2,021"
         if model.get("podloga") in self.FLOORS:
             facts["Floor"] = self.FLOORS[model["podloga"]]
         return facts
