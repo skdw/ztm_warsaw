@@ -13,7 +13,7 @@ The pins of the poles are ``geo_location`` entities without a registry entry (th
 one). The pins of the vehicles have a unique ID and sit on a device of their line, as Home Assistant's documentation allows for
 entities that come and go: they are removed, registry entry and device included, when the City stops reporting the vehicle, so they show
 on the integration's page while they exist. A map card lists them all with ``geo_location_sources: [ztm_warsaw]``. The entity ID of
-a vehicle is made from the name it has when it is first added ("Line 126 · 1722"); where it heads ("Line 126 → Rechniewskiego") goes
+a vehicle is made from the name it has when it is first added ("Line 126 · 1722"); where it heads ("Line 126 brigade 3 → Rechniewskiego") goes
 into the name only, because the timetable changes while an ID must not. The device is named like the line, so Home Assistant does not
 put another name in front of the pin's.
 """
@@ -138,6 +138,8 @@ class _Pin(GeolocationEvent):
         self._attr_latitude, self._attr_longitude = latitude, longitude
         home = self.hass.config.distance(latitude, longitude) if self.hass is not None else None
         self._attr_distance = round(home, 1) if home is not None else None
+        if self.hass is not None:
+            self._attr_unit_of_measurement = self.hass.config.units.length_unit  # the state is a distance: say in what
 
     def _publish(self) -> None:
         """Write the new state, when the pin is on the map already."""
@@ -185,12 +187,18 @@ class VehiclePin(_Pin):
         self.move(vehicle, planned, details)
 
     def move(self, vehicle: Vehicle, planned: Planned | None = None, details: dict[str, Any] | None = None) -> None:
-        """Put the pin where the vehicle is now, with the name that tells where it goes: "Line 126 → Rechniewskiego", or the
+        """Put the pin where the vehicle is now, with the name that tells where it goes: "Line 126 brigade 3 → Rechniewskiego", or the
         vehicle's number while the timetable does not say. The timetable can change, so this is the name, not the ID. The speed and the
         course come from the last two positions, when the vehicle has moved between them."""
         before, self._vehicle = self._vehicle, vehicle
         self._planned, self._details = planned, details or {}
-        self._full_name = f"Line {self._line} → {planned.direction}" if planned else f"Line {self._line} · {vehicle.number}"
+        brigade = f" Brigade {vehicle.brigade}" if vehicle.brigade else ""  # a list of the line's vehicles tells them apart
+        if planned:
+            self._full_name = f"Line {self._line}{brigade} → {planned.direction}"
+        elif brigade:
+            self._full_name = f"Line {self._line}{brigade} ({vehicle.number})"  # where it goes is not known: its number, in brackets
+        else:
+            self._full_name = f"Line {self._line} Vehicle {vehicle.number}"
         if before is not None and before.moment != vehicle.moment:
             self._take_motion(before, vehicle)
         if self.entity_id:

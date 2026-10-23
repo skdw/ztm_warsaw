@@ -236,7 +236,8 @@ async def test_e2e_48_a_vehicle_pin_says_where_it_heads_from_the_timetable_of_it
     await env.advance(seconds=31)
     (pin,) = _vehicles(env)
     assert pin.attributes["Direction"] == departure.kierunek
-    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}", "the place under the pin says where the vehicle goes"
+    assert pin.attributes["friendly_name"] == f"Line 151 Brigade {departure.brygada} → {departure.kierunek}", "the place under the pin says which brigade it is and where it goes"
+    assert pin.attributes["unit_of_measurement"] == "km", "the state is a distance, and says in what"
 
 
 async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_direction(env):
@@ -245,7 +246,7 @@ async def test_e2e_48_a_vehicle_whose_brigade_has_no_departure_near_now_has_no_d
     await env.advance(seconds=31)
     (pin,) = _vehicles(env)
     assert "Direction" not in pin.attributes
-    assert pin.attributes["friendly_name"] == "Line 151 · 4712"
+    assert pin.attributes["friendly_name"] == "Line 151 Brigade no-such-brigade (4712)"  # where it goes is not known: its number, in brackets
     assert entry is not None
 
 
@@ -268,7 +269,7 @@ async def test_e2e_48_the_id_of_a_vehicle_does_not_carry_where_it_heads_because_
     await env.advance(seconds=31)
     (pin,) = _vehicles(env)
     assert pin.entity_id == "geo_location.line_151_4711"
-    assert pin.attributes["friendly_name"] == f"Line 151 → {departure.kierunek}"
+    assert pin.attributes["friendly_name"] == f"Line 151 Brigade {departure.brygada} → {departure.kierunek}"
 
 
 async def test_e2e_48_a_vehicle_that_is_not_reported_any_more_leaves_the_registry_and_its_device_too(env):
