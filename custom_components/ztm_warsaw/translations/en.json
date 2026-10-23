@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Line {line}: shared credentials selected",
       "description": "**The stops on line {line} used different API keys or tokens.**\n\nThe stops have been grouped into one configuration, so the whole line now shares one set of credentials. If a stop had a saved token, that token was selected. Otherwise, the key from the oldest configuration was kept.\n\nIf data are no longer available for a stop, open the integration and choose **Configure** for this line to enter the correct API key or token.\n\nYou can dismiss this notice."
+    },
+    "silent_city": {
+      "title": "No answer from the City for hours: line {line}",
+      "description": "**The City of Warsaw has not given the timetable of line {line} at stop {stop} for several hours.**\n\nThe sensors keep today's timetable, but changes and vehicles will not arrive. Usually the City is simply down and everything recovers by itself. If it does not, your token may have been revoked or may have expired: open **Settings > Devices & services > Warsaw Public Transport**, choose **Configure** on the line and enter a new token.\n\nThis notice disappears when the City answers again."
     }
   },
   "config_subentries": {

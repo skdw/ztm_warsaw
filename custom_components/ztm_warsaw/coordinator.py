@@ -16,6 +16,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 
 from .const import DOMAIN
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later, async_track_point_in_utc_time
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -28,7 +29,13 @@ _LOGGER = logging.getLogger(__name__)
 
 SETUP_DEADLINE = 30  # seconds the first refresh of an entry may take before setup is retried
 STOP_NAME_DEADLINE = 10  # and the stop's name after it
+FAILURES_BEFORE_NOTICE = 6  # failed refreshes in a row (about two and a half hours) before a token's silence is made a notice
 REJECTIONS_BEFORE_REAUTH = 3  # consecutive refreshes that the City answers with 'rejected key' before the user is asked
+
+def silent_issue_id(ref: str) -> str:
+    """The ID of the Repairs notice that says the City has not answered a stop for hours (``ref`` is the stop's entry or subentry ID)."""
+    return f"silent_{ref}"
+
 
 def store_key(entry_id: str) -> str:
     """One store per config entry: the saved failure marker belongs to the key of that entry."""
@@ -72,6 +79,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._previous: ZTMDepartureData | None = None
         self._flip_unsub: CALLBACK_TYPE | None = None
         self._retry_unsub: CALLBACK_TYPE | None = None
+        self._ref = entry_id
+        self._silent_said = False  # the notice about the City's silence is up
+        self._silent_runs = 0  # refreshes in a row that got no answer from the City, whatever covered them
         self._failures = 0  # refreshes in a row that the cached timetable had to cover (the log says it once, the wait grows)
         self._refreshing = asyncio.Lock()
         self._rejections = 0  # consecutive answers of the City that reject the key
@@ -220,6 +230,22 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         warn = self._failures == 0 and self.client.uses_token
         _LOGGER.log(logging.WARNING if warn else logging.DEBUG, "ZTM Coordinator [%s] — timetable fetch failed; keeping cached data", self.name)
 
+    def _note_silence(self) -> None:
+        """A token's refreshes failed many times in a row: tell the user (Repairs). The City answers every rejected request like an
+        outage, so a revoked token cannot be told from a City that is down; the notice says both, and goes when an answer comes."""
+        if self._silent_said or not self.client.uses_token or self._silent_runs < FAILURES_BEFORE_NOTICE:
+            return
+        self._silent_said = True
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            silent_issue_id(self._ref),
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="silent_city",
+            translation_placeholders={"line": self.line, "stop": f"{self.stop_id}/{self.stop_nr}"},  # numbers only: a name from the City would go into Markdown
+        )
+
     def _retry_soon(self) -> None:
         """A refresh failed and the cached timetable was served instead: ask again in a few minutes, not only at the hourly tick
         (a City that was unreachable for a moment, for example right after Home Assistant started, would otherwise be left alone for an hour)."""
@@ -286,6 +312,9 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
         self._api_error = False
         self._rejections = 0
         self._failures = 0
+        self._silent_runs = 0
+        self._silent_said = False
+        ir.async_delete_issue(self.hass, DOMAIN, silent_issue_id(self._ref))  # also one a coordinator before a reload put up
         self._save()
         self.last_update_success_time = dt_util.utcnow()
         # Track last success date in local time (Europe/Warsaw)
@@ -351,6 +380,8 @@ class ZTMStopCoordinator(DataUpdateCoordinator[ZTMDepartureData | None]):
                 return self._hold_during_swap()
             if new_data is None:
                 self._outage()
+                self._silent_runs += 1
+                self._note_silence()
                 if self.data is not None and not self._api_error:
                     self._say_kept()
                     self._retry_soon()

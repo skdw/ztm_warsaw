@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Linie {line}: gemeinsame Zugangsdaten festgelegt",
       "description": "**Die Haltestellen der Linie {line} verwendeten unterschiedliche API-Schlüssel oder Tokens.**\n\nDie Haltestellen wurden in einer Konfiguration zusammengefasst. Die gesamte Linie verwendet jetzt dieselben Zugangsdaten. War für eine Haltestelle ein Token gespeichert, wurde dieses übernommen. Andernfalls wurde der Schlüssel aus der ältesten Konfiguration beibehalten.\n\nWenn für eine Haltestelle keine Daten mehr geladen werden, öffne die Integration und wähle bei dieser Linie **Konfigurieren**, um den richtigen API-Schlüssel oder das richtige Token einzugeben.\n\nDu kannst diesen Hinweis schließen."
+    },
+    "silent_city": {
+      "title": "Seit Stunden keine Antwort der Stadt: Linie {line}",
+      "description": "**Die Stadt Warschau liefert seit mehreren Stunden keinen Fahrplan für Linie {line} an der Haltestelle {stop}.**\n\nDie Sensoren behalten den heutigen Fahrplan, aber Änderungen und Fahrzeuge kommen nicht an. Meist ist die Stadt nur gestört, und alles erholt sich von selbst. Falls nicht, wurde Ihr Token möglicherweise widerrufen oder ist abgelaufen: Öffnen Sie **Einstellungen > Geräte & Dienste > Öffentlicher Nahverkehr Warschau**, wählen Sie bei der Linie **Konfigurieren** und geben Sie einen neuen Token ein.\n\nDieser Hinweis verschwindet, sobald die Stadt wieder antwortet."
     }
   },
   "config_subentries": {

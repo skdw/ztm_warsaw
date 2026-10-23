@@ -17,7 +17,7 @@ from .client import StopCatalogue, ZTMStopClient, key_kind, user_agent
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
-from .coordinator import ZTMStopCoordinator, store_key
+from .coordinator import ZTMStopCoordinator, silent_issue_id, store_key
 from .migration import async_migrate_to_lines, merged_keys_issue_id
 from .runtime import RuntimeData, StopRuntime, ZtmConfigEntry
 from .entries import (  # noqa: F401 - _entry_values and stop_key are used by the config flow and the diagnostics
@@ -153,6 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZtmConfigEntry) -> bool:
             # After the reload: the unload of the old coordinators saves their answers once more.
             for gone in seen_refs - {unit.ref for unit in stop_units(changed)}:  # a stop that was removed
                 await Store(hass, 1, store_key(gone)).async_remove()
+                ir.async_delete_issue(hass, DOMAIN, silent_issue_id(gone))
 
     entry.async_on_unload(entry.add_update_listener(_reload_if_changed))
     return True
@@ -335,6 +336,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Delete the answers stored for a removed entry, and the notice about it or about its twin."""
     for ref in (entry.entry_id, *entry.subentries):
         await Store(hass, 1, store_key(ref)).async_remove()
+        ir.async_delete_issue(hass, DOMAIN, silent_issue_id(ref))
     ir.async_delete_issue(hass, DOMAIN, _duplicate_issue_id(entry))
     ir.async_delete_issue(hass, DOMAIN, f"legacy_key_{entry.entry_id}")
     ir.async_delete_issue(hass, DOMAIN, merged_keys_issue_id(entry.entry_id))

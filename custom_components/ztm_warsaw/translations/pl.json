@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Linia {line}: ujednolicono dane dostępu",
       "description": "**Przystanki linii {line} korzystały z różnych kluczy API lub tokenów.**\n\nPo połączeniu przystanków w jedną konfigurację cała linia korzysta ze wspólnych danych dostępu. Jeśli dla któregoś przystanku był zapisany token, został on wybrany. W przeciwnym razie zachowano klucz z najstarszej konfiguracji.\n\nJeśli któryś z przystanków przestanie działać, otwórz integrację i wybierz **Konfiguruj** przy tej linii, aby podać właściwy klucz API lub token.\n\nMożesz zamknąć to powiadomienie."
+    },
+    "silent_city": {
+      "title": "Brak odpowiedzi miasta od kilku godzin: linia {line}",
+      "description": "**Miasto Warszawa od kilku godzin nie podaje rozkładu linii {line} na przystanku {stop}.**\n\nCzujniki zachowują dzisiejszy rozkład, ale zmiany i pojazdy nie dotrą. Zwykle to po prostu awaria po stronie miasta i wszystko wróci samo. Jeśli nie wróci, token mógł zostać unieważniony albo wygasnąć: otwórz **Ustawienia > Urządzenia i usługi > Warszawski Transport Publiczny**, wybierz **Konfiguruj** przy linii i wpisz nowy token.\n\nTo powiadomienie zniknie, gdy miasto znów odpowie."
     }
   },
   "config_subentries": {
