@@ -23,6 +23,7 @@ LEGACY_STOPS_ID = "ab75c33d-3a26-4342-b36a-6e5fef0a3ac3"
 NEW_ACTION_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 NEW_ACTION_LINES = "get_ztm_lista_linii_na_przystanku"
 NEW_ACTION_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
+NEW_ACTION_FLEET = "get_ztm_pojazdy"  # OBSERVED 2026-10-22: POST {} answers {"busy": [records ...]} of about 1.3 MB, each with numerTaborowy, nazwaOperatora, nazwaZajezdni, numerRejestracyjny, rokProdukcji, trakcja
 NEW_ACTION_VEHICLES = "get_ztm_lokalizacja_pojazdow"  # OBSERVED 2026-10-19: POST {"type": 1|2} answers a bare JSON list; line/brigade filters are ignored
 
 PARAM_ERROR_TEXT = "Błędna metoda lub parametry wywołania"

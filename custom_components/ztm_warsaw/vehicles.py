@@ -32,6 +32,8 @@ _LOGGER = logging.getLogger(__name__)
 POLL_EVERY = timedelta(seconds=30)  # how often the City is asked while a vehicle is wanted
 MAX_BACKOFF = timedelta(minutes=10)  # the longest wait after failures
 MAX_AGE = timedelta(minutes=3)  # a position older than this is not shown (the median is ten seconds on a day)
+FLEET_REFRESH = timedelta(days=1)  # how old the City's fleet may be before it is read again
+FLEET_RETRY = timedelta(hours=1)  # how long to wait after a failed read
 WANTED_WITHIN = timedelta(minutes=15)  # a vehicle is followed when its departure is this near
 BUS, TRAM = 1, 2  # the City's codes for the kind of vehicle
 
@@ -42,6 +44,14 @@ def brigade_key(brigade: object) -> str:
     """A brigade as the timetable and the positions may spell it differently ("05" and "5") compared as one."""
     text = str(brigade).strip().lstrip("0")
     return text or "0"
+
+
+def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+    """The direction from the first place to the second in degrees from the north (0-359)."""
+    phi1, phi2, delta = math.radians(lat1), math.radians(lat2), math.radians(lon2 - lon1)
+    y = math.sin(delta) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(delta)
+    return round((math.degrees(math.atan2(y, x)) + 360) % 360) % 360
 
 
 def distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -104,6 +114,30 @@ class VehicleFeed:
         self._failures = 0
         self._skip = 0  # polls still to skip after a failure
         self.failed = False  # the last poll failed (cleared by the next that worked)
+        self._fleet: dict[str, dict[str, Any]] = {}  # the City's fleet by fleet number, as far as it was read
+        self._fleet_read: datetime | None = None  # when it was asked for last, whatever the outcome
+
+    async def ensure_fleet(self) -> bool:
+        """Read the City's fleet when it is not read yet or is a day old (an hour after a failure): True when it was read now.
+        The facts about a vehicle (operator, depot, registration ...) change slowly, and are shown on a pin as they are."""
+        now = dt_util.utcnow()
+        wait = FLEET_REFRESH if self._fleet else FLEET_RETRY
+        if self._fleet_read is not None and now - self._fleet_read < wait:
+            return False
+        self._fleet_read = now
+        try:
+            fleet = await self._client.get_fleet()
+        except Exception as err:  # noqa: BLE001 - the facts are a courtesy: only the class is logged, the text can carry the URL
+            _LOGGER.debug("The City's fleet could not be read (%s)", type(err).__name__)
+            return False
+        if fleet:
+            self._fleet = fleet
+            return True
+        return False
+
+    def details_of(self, number: str) -> dict[str, Any]:
+        """What the City's fleet says about this vehicle (empty while the fleet is not read or does not know it)."""
+        return self._fleet.get(str(number).strip(), {})
 
     def uses_key_of(self, client: ZTMStopClient) -> bool:
         """Whether this feed asks the City with the same key as ``client`` does."""

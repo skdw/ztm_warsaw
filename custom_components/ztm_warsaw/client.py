@@ -34,6 +34,7 @@ _NEW_TIMETABLE = "get_ztm_odjazdy_linii_z_przystanku"
 _NEW_STOPS = "get_ztm_przystanki_komunikacji_miejskiej"
 _NEW_LINES = "get_ztm_lista_linii_na_przystanku"
 _NEW_VEHICLES = "get_ztm_lokalizacja_pojazdow"
+_NEW_FLEET = "get_ztm_pojazdy"  # the vehicles of the fleet (operator, depot, registration, year ...), keyed by the fleet number
 _LEGACY_LINES_ID = "88cd555f-6f31-43ca-9de4-66c479ad5942"
 _TOKEN = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$")  # a JWT: three dot-separated segments
 # A key shaped like this belongs to the legacy host (GET, key in the query); any other key is a token for the new
@@ -408,6 +409,37 @@ class ZTMStopClient:
         )
         result = answer.get("result") if isinstance(answer, dict) else None
         return result if isinstance(result, list) else None
+
+    # What the City says about a vehicle of its fleet that is shown on a pin (the fleet record's key -> the attribute's name).
+    FLEET_FACTS = {
+        "nazwaOperatora": "Operator",
+        "nazwaZajezdni": "Depot",
+        "numerRejestracyjny": "Registration",
+        "rokProdukcji": "Year of production",
+        "trakcja": "Vehicle type",
+    }
+
+    async def get_fleet(self) -> dict[str, dict[str, Any]] | None:
+        """The City's fleet by fleet number (the ``VehicleNumber`` of a position), each with the few facts a pin shows (see ``FLEET_FACTS``);
+        None when the answer is missing or has no vehicles. The answer is big (about 1.3 MB) and changes slowly, so it is asked for rarely.
+        Only the new host serves it, so an old key gets None without a request."""
+        if self._legacy:
+            return None
+        answer = await self._get_with_retry(
+            _NEW_API + _NEW_FLEET, None, method="POST", json_body={}, headers={"Authorization": self._params["apikey"]},
+            wrap=True, limit=_MAX_CATALOGUE_BYTES,
+        )
+        groups = answer.get("result") if isinstance(answer, dict) else None
+        if not isinstance(groups, dict):
+            return None
+        fleet: dict[str, dict[str, Any]] = {}
+        for rows in groups.values():  # the buses, the trams ... each a list of records
+            for row in rows if isinstance(rows, list) else []:
+                if isinstance(row, dict) and row.get("numerTaborowy") not in (None, ""):
+                    fleet[str(row["numerTaborowy"]).strip()] = {
+                        label: row[key] for key, label in self.FLEET_FACTS.items() if row.get(key) not in (None, "")
+                    }
+        return fleet or None
 
     @property
     def retired(self) -> bool:

@@ -276,3 +276,64 @@ async def test_e2e_48_registry_entries_of_vehicles_left_by_a_restart_are_taken_o
     await env.hass.config_entries.async_setup(entry.entry_id)
     await env.settle()
     assert [e for e in env.entity_registry.entities.values() if e.unique_id == "vehicle_151_9999"] == []
+
+
+def _record(number="4711", **more):
+    """A record of the City's fleet as the City sends it."""
+    return {"numerTaborowy": number, "nazwaOperatora": "Miejskie Zakłady Autobusowe", "nazwaZajezdni": "Woronicza", "numerRejestracyjny": "WZ 1234A",
+            "rokProdukcji": 2019, "trakcja": "Bus", "kolorPojazdu": "RAL 1003", **more}
+
+
+async def test_e2e_48_a_vehicle_pin_has_what_the_fleet_and_the_timetable_say_about_the_vehicle(env):
+    env.city.fleet = [_record("4711")]
+    entry = await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    brigade = next(d.brygada for d in entry.runtime_data["coordinator"].data.departures if d.brygada)
+    departure = min((d for d in entry.runtime_data["coordinator"].data.departures if d.brygada == brigade), key=lambda d: abs(d.dt - dt_util.utcnow()))
+    env.city.vehicles = [_row(line="151", brigade=brigade, number="4711")]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    attrs = pin.attributes
+    assert (attrs["Operator"], attrs["Depot"], attrs["Registration"], attrs["Year of production"], attrs["Vehicle type"]) == (
+        "Miejskie Zakłady Autobusowe", "Woronicza", "WZ 1234A", 2019, "Bus")
+    assert "kolorPojazdu" not in attrs, "only the facts that are shown"
+    assert attrs["Route"] == departure.trasa
+    assert attrs["Scheduled at"] == f"{stop_name_for('7009')} 01"
+    assert attrs["Scheduled departure"].startswith(str(dt_util.as_local(departure.dt).date()))
+
+
+async def test_e2e_48_the_fleet_is_read_once_and_a_failing_fleet_does_not_touch_the_pins(env):
+    env.city.fleet = []  # the City answers with no vehicles: nothing to show
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Operator" not in pin.attributes
+    assert env.city.count("fleet") == 1, "asked once, then not again for an hour"
+
+
+async def test_e2e_48_the_speed_and_the_course_are_worked_out_from_the_last_two_positions_and_not_from_noise(env):
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2000, lon=21.0000, seconds_ago=40)]
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Speed, km/h" not in pin.attributes, "one position says nothing about speed"
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2030, lon=21.0000, seconds_ago=10)]  # about 330 m north in the 61 s between the two reports
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Course, degrees"] == 0
+    assert 18 <= pin.attributes["Speed, km/h"] <= 22
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2030, lon=21.00001, seconds_ago=5)]  # a metre: noise
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Course, degrees"] == 0, "a vehicle that has hardly moved keeps its course"
+
+
+async def test_e2e_48_a_jump_of_the_position_is_not_a_speed(env):
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.2000, lon=21.0000, seconds_ago=40)]
+    await env.advance(seconds=31)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711", lat=52.3000, lon=21.0000, seconds_ago=10)]  # 11 km in 30 s
+    await env.advance(seconds=31)
+    (pin,) = _vehicles(env)
+    assert "Speed, km/h" not in pin.attributes

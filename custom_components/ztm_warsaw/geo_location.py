@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
@@ -38,7 +39,7 @@ from .entity import stop_info_of, stop_place
 from .entries import runtimes
 from .runtime import ZtmConfigEntry
 from .utils import get_line_badge, get_line_type, get_stop_badge
-from .vehicles import Vehicle, VehicleFeed, brigade_key, feed_for
+from .vehicles import Vehicle, VehicleFeed, bearing_deg, brigade_key, distance_m, feed_for
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,23 +54,42 @@ def _line_order(line: str) -> tuple[int, int, str]:
 
 
 HEADING_WITHIN = timedelta(minutes=40)  # how far from now a departure of the brigade may be to say where its vehicle is heading
+MOVED_AT_LEAST = 25  # metres between two positions for a speed and a course to be worked out (a vehicle that stands still reports noise)
+MAX_SPEED = 120  # km/h: more is a jump of the position, not a bus
 
 
-def heading_of(entry: ZtmConfigEntry, brigade: str) -> str | None:
-    """Where the vehicle of this brigade is heading, as the timetable of the line's stops says: the destination ("kierunek") of the
-    departure of the brigade nearest to now, within ``HEADING_WITHIN``. The City's positions do not say it, but the timetable of
-    every stop names the brigade and the destination of each departure. None when no stop of the line has such a departure."""
+@dataclass(frozen=True)
+class Planned:
+    """What the timetable says about the vehicle of a brigade: where it goes, by which route, with which notes, and at which of the
+    user's stops and when it is due there."""
+
+    direction: str
+    route: str | None
+    notes: str | None
+    stop: str
+    departure: str  # the local time, ISO 8601
+
+
+def planned_of(entry: ZtmConfigEntry, brigade: str) -> Planned | None:
+    """The departure of this brigade that is nearest to now, within ``HEADING_WITHIN``, among the stops of the line that are set up: its
+    destination ("kierunek"), route ("trasa"), notes ("symbol_1/2"), the stop and the time. The City's positions say none of it, but the
+    timetable of every stop names the brigade of each departure. None when no stop of the line has such a departure."""
     now = dt_util.utcnow()
-    best: tuple[timedelta, str] | None = None
+    best: tuple[timedelta, Any, str] | None = None
     for runtime in runtimes(entry).values():
-        data = runtime["coordinator"].data
-        for reading in getattr(data, "departures", None) or []:
+        coordinator = runtime["coordinator"]
+        for reading in getattr(coordinator.data, "departures", None) or []:
             if reading.dt is None or reading.brygada is None or brigade_key(reading.brygada) != brigade:
                 continue
             gap = abs(reading.dt - now)
             if gap <= HEADING_WITHIN and reading.kierunek not in ("", "unknown") and (best is None or gap < best[0]):
-                best = (gap, reading.kierunek)
-    return best[1] if best else None
+                name = stop_info_of(coordinator).get("nazwa_zespolu")
+                best = (gap, reading, f"{name} {coordinator.stop_nr}" if name else f"{coordinator.stop_id}/{coordinator.stop_nr}")
+    if best is None:
+        return None
+    reading = best[1]
+    notes = ", ".join(str(n) for n in (reading.symbol_1, reading.symbol_2) if n)
+    return Planned(reading.kierunek, reading.trasa or None, notes or None, best[2], dt_util.as_local(reading.dt).isoformat())
 
 
 async def _retire(hass: HomeAssistant, pin: "_Pin") -> None:
@@ -140,25 +160,43 @@ class PoleMarker(_Pin):
 class VehiclePin(_Pin):
     """The pin of one vehicle: the badge of its line, named after where it goes (or the line and its number while that is not known)."""
 
-    def __init__(self, hass: HomeAssistant, line: str, vehicle: Vehicle, heading: str | None = None) -> None:
-        """A pin for a vehicle of ``line`` at the place the City last reported it, heading where the timetable says (when it does)."""
+    def __init__(self, hass: HomeAssistant, line: str, vehicle: Vehicle, planned: Planned | None = None, details: dict[str, Any] | None = None) -> None:
+        """A pin for a vehicle of ``line`` at the place the City last reported it, with what the timetable and the City's fleet say about it."""
         self.hass = hass
         self._line = line
+        self._speed: int | None = None
+        self._course: int | None = None
         self._attr_unique_id = f"vehicle_{line}_{vehicle.number}"
         self._attr_entity_picture = get_line_badge(line)
         self._attr_name = f"Line {line} · {vehicle.number}"  # what its entity ID is made from
-        self.move(vehicle, heading)
+        self._vehicle: Vehicle | None = None
+        self.move(vehicle, planned, details)
 
-    def move(self, vehicle: Vehicle, heading: str | None = None) -> None:
+    def move(self, vehicle: Vehicle, planned: Planned | None = None, details: dict[str, Any] | None = None) -> None:
         """Put the pin where the vehicle is now, with the name that tells where it goes: "Line 126 → Rechniewskiego", or the
-        vehicle's number while the timetable does not say. The timetable can change, so this is the name, not the ID."""
-        self._vehicle = vehicle
-        self._heading = heading
-        self._full_name = f"Line {self._line} → {heading}" if heading else f"Line {self._line} · {vehicle.number}"
+        vehicle's number while the timetable does not say. The timetable can change, so this is the name, not the ID. The speed and the
+        course come from the last two positions, when the vehicle has moved between them."""
+        before, self._vehicle = self._vehicle, vehicle
+        self._planned, self._details = planned, details or {}
+        self._full_name = f"Line {self._line} → {planned.direction}" if planned else f"Line {self._line} · {vehicle.number}"
+        if before is not None and before.moment != vehicle.moment:
+            self._take_motion(before, vehicle)
         if self.entity_id:
             self._attr_name = self._full_name
         self._set_place(vehicle.latitude, vehicle.longitude)
         self._publish()
+
+    def _take_motion(self, before: Vehicle, now: Vehicle) -> None:
+        """The speed (km/h) and the course (degrees) between two positions; a vehicle that has hardly moved keeps what it had, and a speed
+        no bus reaches (a jump of the position) is not taken."""
+        metres = distance_m(before.latitude, before.longitude, now.latitude, now.longitude)
+        seconds = (now.moment - before.moment).total_seconds()
+        if metres < MOVED_AT_LEAST or seconds <= 0:
+            return
+        speed = metres / seconds * 3.6
+        if speed <= MAX_SPEED:
+            self._speed = round(speed)
+            self._course = bearing_deg(before.latitude, before.longitude, now.latitude, now.longitude)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -173,13 +211,23 @@ class VehiclePin(_Pin):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """The line, where it is heading (when the timetable says), the brigade, the vehicle's number and when the City saw it there."""
+        """What the City says: the line, the brigade, the vehicle's number and when it was seen there; from the timetable where it goes
+        (the planned destination, not a live one), the route, notes, and the stop and time it is due; from the fleet the operator, depot,
+        registration, year and type; and the speed and course worked out from the last two positions."""
+        vehicle = self._vehicle
+        assert vehicle is not None, "a pin always has a position"
+        planned = self._planned
         return {
             "Line": self._line,
-            **({"Direction": self._heading} if self._heading else {}),
-            "Brigade": self._vehicle.brigade,
-            "Vehicle number": self._vehicle.number,
-            "Position time": self._vehicle.moment.isoformat(),
+            **({"Direction": planned.direction} if planned else {}),
+            **({"Route": planned.route} if planned and planned.route else {}),
+            **({"Notes": planned.notes} if planned and planned.notes else {}),
+            **({"Scheduled at": planned.stop, "Scheduled departure": planned.departure} if planned else {}),
+            "Brigade": vehicle.brigade,
+            "Vehicle number": vehicle.number,
+            **self._details,
+            **({"Speed, km/h": self._speed, "Course, degrees": self._course} if self._speed is not None and self._course is not None else {}),
+            "Position time": vehicle.moment.isoformat(),
         }
 
 
@@ -250,12 +298,12 @@ class LineVehicles:
     reports it again, and taken away when it is not reported any more or its position is too old."""
 
     def __init__(
-        self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback, heading: Callable[[str], str | None] | None = None
+        self, hass: HomeAssistant, line: str, feed: VehicleFeed, adder: AddConfigEntryEntitiesCallback, planned: Callable[[str], Planned | None] | None = None
     ) -> None:
-        """Follow ``feed`` for the vehicles of ``line``; the pins are added through ``adder``, each with where the vehicle heads (``heading``
-        gives it for a brigade)."""
+        """Follow ``feed`` for the vehicles of ``line``; the pins are added through ``adder``, each with what the timetable says about its
+        brigade (``planned``) and what the City's fleet says about the vehicle."""
         self._hass, self._line, self._feed, self._adder = hass, line, feed, adder
-        self._heading = heading or (lambda _brigade: None)
+        self._planned = planned or (lambda _brigade: None)
         self._pins: dict[str, VehiclePin] = {}
         self._unsub: Callable[[], None] | None = None
 
@@ -263,6 +311,12 @@ class LineVehicles:
         """Ask the feed for this line (it polls while any line wants vehicles) and show what it has."""
         self._unsub = self._feed.subscribe(lambda: self._line, self._update)
         self._update()
+        self._hass.async_create_background_task(self._read_fleet(), f"{DOMAIN} fleet")  # the facts about the vehicles come when they come
+
+    async def _read_fleet(self) -> None:
+        """Read the City's fleet (when it is not read, or is a day old) and show what it says on the pins."""
+        if await self._feed.ensure_fleet() and self._unsub is not None:
+            self._update()
 
     def stop(self) -> None:
         """Stop following; Home Assistant takes the pins away with the platform."""
@@ -279,11 +333,11 @@ class LineVehicles:
             self._hass.async_create_task(_retire(self._hass, self._pins.pop(number)))
         fresh = []
         for number, vehicle in now.items():
-            heading = self._heading(vehicle.brigade)
+            planned, details = self._planned(vehicle.brigade), self._feed.details_of(number)
             if number in self._pins:
-                self._pins[number].move(vehicle, heading)
+                self._pins[number].move(vehicle, planned, details)
             else:
-                pin = self._pins[number] = VehiclePin(self._hass, self._line, vehicle, heading)
+                pin = self._pins[number] = VehiclePin(self._hass, self._line, vehicle, planned, details)
                 fresh.append(pin)
         if fresh:
             self._adder(fresh)
@@ -313,7 +367,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ZtmConfigEntry, a
     if not shows_vehicles(config_entry) or not stops:
         return  # the vehicles are off, or need a token
     pins = LineVehicles(
-        hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities, lambda brigade: heading_of(config_entry, brigade)
+        hass, stops[0]["coordinator"].line, feed_for(hass, stops[0]["client"]), async_add_entities, lambda brigade: planned_of(config_entry, brigade)
     )
     pins.start()
     config_entry.async_on_unload(pins.stop)
