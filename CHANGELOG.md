@@ -8,6 +8,8 @@ Releases before 1.1.4 are described on the [GitHub Releases](https://github.com/
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-23
+
 Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing has to be set up again.
 
 ### Adopter action
@@ -20,74 +22,45 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Added
 
-- **A notice when the City stays silent**: if a line gets no answer for hours (a revoked or expired token looks exactly like that), Repairs says so and tells you what to check, and the notice goes by itself when the City answers.
 - **Works with the City's new API**: log in with a token from the new portal, and each key goes only to the right server.
-- **Change your key any time**: **Configure** on an entry swaps the key or token, so there is nothing to remove and add again.
-- **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
-- **Stops and vehicles on the map**: every stop pole is one pin with its number, however many of your lines stop there, and a line can show its vehicles as pins too (*Configure* on the line, token needed).
-- **A badge with the line number**: a vehicle on the map shows the badge of its line, in the colours of ZTM's own signs, and the same badge replaces the bus or tram icon in your cards.
-- **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
-- **Paste the token in the notice itself**: the notice in Repairs about an old key has a *Submit* step where you paste a token, so you do not have to look for **Configure**.
+- **A friendlier setup**: type a part of the stop's name, pick the pole and then a line that really stops there, and the City's abbreviations are understood. Tick *I know the numbers* to type them yourself.
+- **Every stop of a line under one entry**: add another with **Add stop**, and each stop is a device of its own. Entries you already have are grouped for you.
+- **Change your key any time**: **Configure** or **Reconfigure** swaps the key or token, and a token you already use is offered again instead of being pasted twice.
+- **One notice for an old key**: Repairs and the integration page ask once for the whole line, and you can paste a token, reuse another line's (picked by its last four characters) or ignore the notice.
+- **A notice when the City stays silent**: if a line gets no answer for hours (a revoked or expired token looks exactly like that), Repairs says so and tells you what to check. It goes by itself when the City answers.
+- **A status in words**: every stop has a *Status* sensor that says what is going on (running, the last departure has gone, no service today, timetables are being updated ...) in your language.
+- **Next departures as their own entities** (off by default): switch on *Next 1*, *Next 2* or *Next 3* in the entity settings to use each following departure in a card or an automation.
+- **First and last bus of the day**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure`, so a card can still say "the last bus left at 23:41" after the last departure.
 - **A walking time for every stop**: set how many minutes it takes you to walk to a stop (*Reconfigure* on the stop), and its sensor skips the departures you could not catch any more.
-- **Next departures as their own entities** (off by default): switch on *Next 1*, *Next 2* or *Next 3* in the entity settings to get each following departure as a time you can use in a card or an automation.
-- **Its own logo in Home Assistant**: the integration carries its icon and logo, so Home Assistant 2026.3 and newer shows them without fetching anything.
-- **Delete a stop's old device**: when a stop is gone from a line, its leftover device now has a *Delete* button on its page, while a device that is still in use cannot be deleted by mistake.
-- **Proper icons**: Next 1 to 3, Last update and the calendar have icons of their own (numbers, an update arrow, a calendar with a clock) instead of Home Assistant's default eye.
-- **A friendlier setup**: type a part of the stop's name, pick the pole, then pick a line that really stops there, instead of filling in four empty fields (or tick *I know the numbers* to type them yourself).
-- **Error messages in your language**: when the City does not answer, is updating its timetables or refuses a request, the message in the Home Assistant log and in the entry's state is in your language too.
-- **A status in words**: every stop has a *Status* sensor that says what is going on (running, the last departure has gone, no service today, timetables are being updated, the timetable could not be fetched ...) in your language, so "unknown" after the last bus is no longer a puzzle.
-- **One token for all your lines**: the notice about an old key can reuse the token you already entered for another line, and pasting a token there can give it to every line that still has an old key, so you do not paste it once per line.
-- **Reconfigure the key from Home Assistant's own menu**: *Reconfigure* on a line replaces its API key or token, like *Configure* does, and an old key is nudged to a token.
-- **An old key is flagged on the integration page**: a line with an old key asks for a new token there too, and that request, *Configure* and *Reconfigure* offer the same choices as the notice in Repairs (paste a token, use another line's, or give one to every line with an old key).
-- **Choose the token to reuse**: when your lines have different tokens, the notice about an old key lets you pick one by its last four characters and the lines that use it.
-- **When the first and the last bus is**: every sensor has `Timetable, First Departure` and `Timetable, Last Departure` for the day, so a card can still say "the last bus left at 23:41" when the state is *unknown* after the last departure, after a restart or for a sensor added late.
-- **How far the bus is** (off by default, needs a token): switch on *Vehicle distance* in a stop's entity settings to get the distance in metres of the vehicle that will make the next departure, for an automation such as "the bus is 500 m away".
-- **Releases you can check**: each release has the integration as a zip with a signature, so you can verify that what you download is what was built here. The steps are in SECURITY.md.
-- **A nudge when your key stops working**: if the old API keeps rejecting it, Home Assistant asks for a new one instead of quietly failing.
-- **Polish setup screen**: the setup is now also in Polish.
-- **More languages**: setup, notices and dialogs now also in Ukrainian, Russian, German, Spanish, French and Italian, and the README in all eight languages, with a language switch at the top. The new languages are machine-translated, so corrections are welcome.
-- **A real manual**: the wiki is rewritten in short pages with a quick start, copy-and-paste cards and automations, answers to common questions and how to remove things, and it is published from the repository so it stays up to date.
+- **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
+- **Stops and vehicles on the map**: every stop pole is one pin, and a line can show its vehicles too (*Configure* on the line, token needed) with the badge of its line in the colours of ZTM's own signs.
+- **Everything the City says about a vehicle**: its brigade and planned destination, route, operator, depot, registration, year, make, model, floor, number of places, speed and course.
+- **How far the bus is** (off by default, needs a token): switch on *Vehicle distance* in a stop's entity settings for an automation such as "the bus is 500 m away".
+- **Entity names in your language**: the names of the sensors and the calendar are translated, and their IDs stay the same, so nothing you built on them breaks.
+- **Eight languages**: the setup, notices, dialogs and README are now in Polish, Ukrainian, Russian, German, Spanish, French and Italian too. The new languages are machine-translated, so corrections are welcome.
+- **Error messages in your language**: when the City does not answer or refuses a request, the message in the log and in the entry's state is translated too.
+- **Download diagnostics**: one click gives you a file for bug reports, with your key hidden.
+- **Delete a stop's old device**: when a stop is gone from a line, its leftover device has a *Delete* button, and a device still in use cannot be deleted by mistake.
+- **Logo and icons**: the integration carries its own logo, and the next departures, the last update and the calendar have icons of their own.
+- **Releases you can check**: each release has the integration as a signed zip, and the steps to verify it are in SECURITY.md.
+- **A real manual**: the wiki is rewritten in short pages with a quick start, cards and automations to copy, and answers to common questions.
 
 ### Changed
 
-- **Entity names in your language**: the names of the sensors and the calendar are translated into all eight languages, and their IDs stay the same, so nothing you built on them breaks.
-
-- **Clearer instructions in every language**: the README and setup messages now explain configuration, API keys and errors more naturally across all eight languages.
-
-- **A shorter setup**: one question less when you add a sensor, and pasted spaces are cleaned up for you.
-- **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence.
-- **A clearer README**: it says plainly that these are scheduled departures, not live positions.
-- **Configure fits your key**: an entry with an old key is nudged to a token with the steps to get one, while an entry that already has a token is just asked for the new one.
-- **Set up a line by stop, direction and line**: you type a part of the stop's name, pick the direction you travel in and then a line that stops there today, a token you already use is offered again instead of being pasted twice, and the City's abbreviations are understood ("Dworzec Centralny" finds "Dw. Centralny").
-- **Vehicles on the map from the setup**: with a token, the line screen has a checkbox to show the line's vehicles on the map right away.
-- **A token you already use, in a menu**: when a line has a token, the first screen of the setup asks whether to use it or paste another, instead of two competing fields.
-- **Distance to the vehicle only where you want it**: the vehicle distance sensors of a line exist while its vehicles are shown on the map, are on from the start and carry the stop's name.
-- **Everything the City says about a vehicle**: a vehicle on the map is named after its planned destination, for example "Line 126 → Rechniewskiego", and shows its route, the stop and time it is due, its operator, depot, registration and year, the make, model, floor and number of places, and its speed and course.
-- **No long-term statistics for the vehicle distance**: the distance of a bus is a live value, so Home Assistant no longer keeps statistics for it or lists it under Statistics when the sensor goes.
-- **Vehicles on the integration's page**: the vehicles of a line are listed under one device of that line, with a stable entity ID made from the line and the vehicle's number, and each leaves the list when the City stops reporting it.
-- **Every stop of a line under one entry**: add another stop with **Add stop**, or by adding the line again, and the line stays one entry, with every stop as a device of its own, instead of one entry per stop. Entries you already have are grouped for you.
-- **The stop's name where you look for it**: entries are titled "Line 176 from Rondo Daszyńskiego 15" (a title you chose yourself stays), and the notices in Repairs name the line and the stop, so nine of them are no longer nine identical rows.
+- **The stop's name where you look for it**: entries are titled "Line 176 from Rondo Daszyńskiego 15" (a title you chose stays), and notices in Repairs name the line and the stop.
+- **Clearer texts**: the README and the setup messages explain configuration, keys and errors more naturally in all eight languages.
+- **Proper credits**: the sensor names the City of Warsaw, ZTM and the licence, and the README says plainly that these are scheduled departures.
 
 ### Fixed
 
-- **The stop's name stays after a slow start**: when the City was slow to answer right after Home Assistant started, a sensor could lose its stop name and map pin for hours; it now keeps what it knew, and a stop that could not load at startup is asked again within minutes.
-- **Vehicles tell themselves apart**: in a list of a line's vehicles each one now names its brigade, then where it is going (or, when that is not known, "no direction" and its number in brackets), and the distance from home says its unit.
-- **Year of production without a comma**: a vehicle's year on the map showed as "2,021"; it now reads "2021".
-- **One request per line**: a line with an old key shows a single notice asking for a token once for the whole line, named "Line 151" rather than by its stops.
-- **Round badges for every line**: the metro, the urban rail and the trams had square or rounded-rectangle badges that Home Assistant cropped into ugly shapes; now all are circles, still told apart by colour.
-- **A link that stays in one piece**: the address of the token portal in the dialogs no longer breaks in the middle.
-- **One pin per stop pole on the map**: when a line was unloaded, the pin it hosted could stay on the map beside a new one, so a pole showed twice; the old pin is now always taken away.
-- **You can ignore the old-key notice**: its window now asks whether to paste a token or keep the old key and ignore the notice, because a notice that can be fixed had no Ignore button; an ignored one stays ignored after a restart.
-- **An empty stop ID field**: the stop ID in the setup and in *Add stop* starts empty instead of with 0, and anything that is not a number is refused with a clear message.
 - **Night lines and midnight**: times after midnight follow the City's own timetable day, so no more "No service" gaps or yesterday's times.
 - **Errors look like errors**: a rejected key or an unreadable answer shows as `unavailable`, not as a misleading "No service".
-- **Slow start-up**: if the City does not answer when Home Assistant starts, the integration tries again instead of waiting an hour.
-- **A quick second try after a hiccup**: if the City cannot be reached for a moment (right after Home Assistant starts, say), your sensors keep their timetable and ask again after five minutes instead of waiting an hour.
-- **No more requests to the old API**: a line with an old key says why it has no timetable (*The old API no longer works: replace the key with a token*), the log says so once, and a new line cannot be set up with an old key.
-- **A quiet log during an outage**: when the City cannot be reached for hours, the log says so once instead of every hour, and the integration asks less and less often until the City answers again.
+- **A quick second try after a hiccup**: if the City cannot be reached for a moment (right after Home Assistant starts, say), your sensors keep their timetable and ask again within minutes instead of an hour.
+- **The stop's name stays after a slow start**: a sensor no longer loses its stop name and map pin when the City is slow to answer after a restart.
+- **No more requests to the old API**: a line with an old key says why it has no timetable, the log says it once, and a new line cannot be set up with an old key.
+- **A quiet log during an outage**: when the City is out for hours, the log says so once and the integration asks less and less often.
 - **Lighter on the City**: the stop list is downloaded once for all your sensors, not once each.
 - **No duplicate entries**: you can no longer add the same stop, pole and line twice.
-- **Under the hood**: no reload when you rename an entry, keys are never logged or sent through redirects, and the integration loads on Home Assistant 2026.10.
 
 ## [1.1.4] - 2026-05-19
 
