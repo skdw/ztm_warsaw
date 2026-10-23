@@ -117,24 +117,27 @@ class VehicleFeed:
         self._polled: set[str] = set()  # the lines a poll has worked for since the feed was made (what it holds for them is what the City reports)
         self._fleet: dict[str, dict[str, Any]] = {}  # the City's fleet by fleet number, as far as it was read
         self._fleet_read: datetime | None = None  # when it was asked for last, whatever the outcome
+        self._fleet_ok = False  # whether that last ask worked (a later failure keeps what was read, but is retried soon)
 
     async def ensure_fleet(self) -> bool:
         """Read the City's fleet when it is not read yet or is a day old (an hour after a failure): True when it was read now.
         The facts about a vehicle (operator, depot, registration ...) change slowly, and are shown on a pin as they are."""
         now = dt_util.utcnow()
-        wait = FLEET_REFRESH if self._fleet else FLEET_RETRY
+        wait = FLEET_REFRESH if self._fleet_ok else FLEET_RETRY
         if self._fleet_read is not None and now - self._fleet_read < wait:
             return False
         self._fleet_read = now
+        self._fleet_ok = False
         try:
             fleet = await self._client.get_fleet()
-        except Exception as err:  # noqa: BLE001 - the facts are a courtesy: only the class is logged, the text can carry the URL
+        except Exception as err:  # noqa: BLE001
+            # The facts are a courtesy: only the class is logged, because the text of an error can carry the URL.
             _LOGGER.debug("The City's fleet could not be read (%s)", type(err).__name__)
             return False
-        if fleet:
-            self._fleet = fleet
-            return True
-        return False
+        if not fleet:
+            return False
+        self._fleet, self._fleet_ok = fleet, True
+        return True
 
     def has_polled(self, line: str) -> bool:
         """Whether a poll that asked for this line has worked: before that the feed knows nothing about its vehicles."""

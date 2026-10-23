@@ -71,26 +71,37 @@ class Planned:
     departure: str  # the local time, ISO 8601
 
 
+def _nearest_departure(coordinator: ZTMStopCoordinator, brigade: str, now: Any) -> tuple[timedelta, Any] | None:
+    """The departure of this brigade nearest to ``now`` that one stop's timetable has, within ``HEADING_WITHIN`` (the departures of the
+    previous answer too: after the rollover the coordinator keeps yesterday's late ones), with how far from now it is."""
+    best: tuple[timedelta, Any] | None = None
+    for reading in coordinator.known():
+        if reading.dt is None or reading.brygada is None or brigade_key(reading.brygada) != brigade or reading.kierunek in ("", "unknown"):
+            continue
+        gap = abs(reading.dt - now)
+        if gap <= HEADING_WITHIN and (best is None or gap < best[0]):
+            best = (gap, reading)
+    return best
+
+
 def planned_of(entry: ZtmConfigEntry, brigade: str) -> Planned | None:
-    """The departure of this brigade that is nearest to now, within ``HEADING_WITHIN``, among the stops of the line that are set up: its
-    destination ("kierunek"), route ("trasa"), notes ("symbol_1/2"), the stop and the time. The City's positions say none of it, but the
-    timetable of every stop names the brigade of each departure. None when no stop of the line has such a departure."""
+    """The departure of this brigade that is nearest to now among the stops of the line that are set up: its destination ("kierunek"),
+    route ("trasa"), notes ("symbol_1/2"), the stop and the time. The City's positions say none of it, but the timetable of every stop
+    names the brigade of each departure. None when no stop of the line has such a departure near now."""
     now = dt_util.utcnow()
-    best: tuple[timedelta, Any, str] | None = None
+    best: tuple[timedelta, Any, ZTMStopCoordinator] | None = None
     for runtime in runtimes(entry).values():
-        coordinator = runtime["coordinator"]
-        for reading in coordinator.known():  # the late departures of the day before too, that the coordinator still keeps after the rollover
-            if reading.dt is None or reading.brygada is None or brigade_key(reading.brygada) != brigade:
-                continue
-            gap = abs(reading.dt - now)
-            if gap <= HEADING_WITHIN and reading.kierunek not in ("", "unknown") and (best is None or gap < best[0]):
-                name = stop_info_of(coordinator).get("nazwa_zespolu")
-                best = (gap, reading, f"{name} {coordinator.stop_nr}" if name else f"{coordinator.stop_id}/{coordinator.stop_nr}")
+        coordinator: ZTMStopCoordinator = runtime["coordinator"]
+        found = _nearest_departure(coordinator, brigade, now)
+        if found is not None and (best is None or found[0] < best[0]):
+            best = (found[0], found[1], coordinator)
     if best is None:
         return None
-    reading = best[1]
+    _gap, reading, coordinator = best
+    name = stop_info_of(coordinator).get("nazwa_zespolu")
+    stop = f"{name} {coordinator.stop_nr}" if name else f"{coordinator.stop_id}/{coordinator.stop_nr}"
     notes = ", ".join(str(n) for n in (reading.symbol_1, reading.symbol_2) if n)
-    return Planned(reading.kierunek, reading.trasa or None, notes or None, best[2], dt_util.as_local(reading.dt).isoformat())
+    return Planned(reading.kierunek, reading.trasa or None, notes or None, stop, dt_util.as_local(reading.dt).isoformat())
 
 
 async def _retire(hass: HomeAssistant, pin: "_Pin") -> None:

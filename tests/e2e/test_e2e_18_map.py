@@ -413,3 +413,24 @@ async def test_e2e_48_a_line_that_reloads_while_another_keeps_the_feed_is_not_re
     assert await env.hass.config_entries.async_setup(a.entry_id)
     await env.settle()
     assert env.entity_registry.async_get("geo_location.line_151_4711").name == "My bus", "nothing is deleted before the line has been polled again"
+
+
+async def test_e2e_48_a_failed_daily_refresh_of_the_fleet_is_retried_after_an_hour_and_keeps_what_was_read(env):
+    env.city.fleet = [_record("4711")]
+    await env.add_entry(line="151", api_key=DEFAULT_TOKEN, options={"show_vehicles": True})
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=31)
+    assert env.city.count("fleet") == 1
+    env.city.fleet = []  # the City stops answering with vehicles
+    for _ in range(7):  # a day and a bit, the positions kept fresh
+        await env.advance(seconds=3600 * 4)
+        env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+        await env.advance(seconds=31)
+    failed_at = env.city.count("fleet")
+    assert failed_at >= 2, "the daily refresh was tried"
+    env.city.fleet = [_record("4711", nazwaZajezdni="Redutowa")]
+    await env.advance(seconds=3500)
+    env.city.vehicles = [_row(line="151", brigade="x", number="4711")]
+    await env.advance(seconds=130)
+    (pin,) = _vehicles(env)
+    assert pin.attributes["Depot"] == "Redutowa", "an hour after the failed refresh it was asked again, not a day after"
