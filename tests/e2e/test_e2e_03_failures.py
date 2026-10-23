@@ -13,9 +13,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.ztm_warsaw.client import ZTMStopClient
+from custom_components.ztm_warsaw.coordinator import FAILURES_BEFORE_NOTICE
 
 from .fake_city import (
     DEFAULT_KEY,
@@ -524,6 +526,37 @@ async def test_e2e_16_a_failed_refresh_covered_by_the_cache_is_retried_in_minute
     await env.advance(seconds=360)
     assert coord.data is not cached, "the retry fetched a fresh timetable long before the next hourly refresh"
     assert coord._retry_unsub is None, "a retry that worked does not schedule another"
+
+
+def _silent_notices(env):
+    """The Repairs notices that say the City has not answered for hours."""
+    registry = ir.async_get(env.hass)
+    return [issue_id for (domain, issue_id) in registry.issues if domain == "ztm_warsaw" and issue_id.startswith("silent_")]
+
+
+async def test_e2e_16_a_token_the_city_never_answers_is_made_a_notice_and_the_notice_goes_with_the_answer(env):
+    """The City answers a rejected token like an outage: after hours of silence the user is told, and the notice clears itself."""
+    await env.add_entry(api_key=DEFAULT_TOKEN)
+    coord = coordinator_of(env)
+    env.city.always(None, Reset())
+    for _ in range(3):
+        await env.hourly_tick()
+    assert not _silent_notices(env), "a few hours of silence is an outage, not yet a notice"
+    for _ in range(coord._failures, FAILURES_BEFORE_NOTICE + 2):
+        await env.hourly_tick()
+    assert len(_silent_notices(env)) == 1
+    env.city.heal()
+    await env.hourly_tick()
+    assert not _silent_notices(env), "an answer takes the notice back"
+
+
+async def test_e2e_16_an_old_key_is_never_made_a_silence_notice(env):
+    """The old API's outage is said once for every stop and has its own notice; the token's notice is not added to it."""
+    await env.add_entry(api_key=DEFAULT_KEY)
+    env.city.always(None, Reset())
+    for _ in range(FAILURES_BEFORE_NOTICE + 2):
+        await env.hourly_tick()
+    assert not _silent_notices(env)
 
 
 async def test_e2e_16_a_pending_retry_is_not_doubled_and_an_unload_cancels_it(env):

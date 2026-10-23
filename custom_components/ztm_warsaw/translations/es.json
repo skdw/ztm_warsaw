@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Línea {line}: credenciales compartidas",
       "description": "**Las paradas de la línea {line} utilizaban distintas claves API o tokens.**\n\nLas paradas se han agrupado en una sola configuración y ahora toda la línea comparte las mismas credenciales. Si alguna parada tenía un token guardado, se ha elegido ese token. En caso contrario, se ha conservado la clave de la configuración más antigua.\n\nSi una parada deja de funcionar, abre la integración y selecciona **Configurar** en esta línea para introducir la clave API o el token correcto.\n\nPuedes cerrar este aviso."
+    },
+    "silent_city": {
+      "title": "Sin respuesta de la ciudad desde hace horas: línea {line}",
+      "description": "**La ciudad de Varsovia no da el horario de la línea {line} en la parada {stop} desde hace varias horas.**\n\nLos sensores conservan el horario de hoy, pero no llegarán cambios ni vehículos. Lo habitual es que la ciudad esté caída y todo se recupere solo. Si no, es posible que su token haya sido revocado o haya caducado: abra **Ajustes > Dispositivos y servicios > Transporte público de Varsovia**, elija **Configurar** en la línea e introduzca un token nuevo.\n\nEste aviso desaparece cuando la ciudad vuelva a responder."
     }
   },
   "config_subentries": {

@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Ligne {line} : identifiants d’accès communs",
       "description": "**Les arrêts de la ligne {line} utilisaient des clés API ou des jetons différents.**\n\nLes arrêts ont été regroupés dans une seule configuration. Toute la ligne utilise désormais les mêmes identifiants d’accès. Si un arrêt disposait d’un jeton enregistré, celui-ci a été retenu. Sinon, la clé de la configuration la plus ancienne a été conservée.\n\nSi un arrêt ne fonctionne plus, ouvrez l’intégration et choisissez **Configurer** pour cette ligne afin de saisir la bonne clé API ou le bon jeton.\n\nVous pouvez fermer cet avis."
+    },
+    "silent_city": {
+      "title": "Pas de réponse de la ville depuis des heures : ligne {line}",
+      "description": "**La ville de Varsovie ne fournit plus l’horaire de la ligne {line} à l’arrêt {stop} depuis plusieurs heures.**\n\nLes capteurs gardent l’horaire du jour, mais les changements et les véhicules n’arriveront pas. Le plus souvent, la ville a simplement une panne et tout revient seul. Sinon, votre jeton a peut-être été révoqué ou a expiré : ouvrez **Paramètres > Appareils et services > Transports publics de Varsovie**, choisissez **Configurer** sur la ligne et saisissez un nouveau jeton.\n\nCet avis disparaît dès que la ville répond de nouveau."
     }
   },
   "config_subentries": {

@@ -332,6 +332,10 @@
     "merged_keys": {
       "title": "Linea {line}: credenziali condivise",
       "description": "**Le fermate della linea {line} utilizzavano chiavi API o token diversi.**\n\nLe fermate sono state raggruppate in un’unica configurazione e ora l’intera linea utilizza le stesse credenziali. Se una fermata aveva un token salvato, è stato scelto quel token. Altrimenti è stata mantenuta la chiave della configurazione più vecchia.\n\nSe una fermata non funziona più, apri l’integrazione e scegli **Configura** per questa linea per inserire la chiave API o il token corretto.\n\nPuoi chiudere questo avviso."
+    },
+    "silent_city": {
+      "title": "Nessuna risposta della città da ore: linea {line}",
+      "description": "**La città di Varsavia non fornisce da diverse ore l’orario della linea {line} alla fermata {stop}.**\n\nI sensori mantengono l’orario di oggi, ma modifiche e veicoli non arriveranno. Di solito la città è semplicemente fuori servizio e tutto torna a posto da solo. In caso contrario, il token potrebbe essere stato revocato o scaduto: apri **Impostazioni > Dispositivi e servizi > Trasporto pubblico di Varsavia**, scegli **Configura** sulla linea e inserisci un nuovo token.\n\nQuesto avviso scompare quando la città risponde di nuovo."
     }
   },
   "config_subentries": {

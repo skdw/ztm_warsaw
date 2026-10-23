@@ -20,6 +20,7 @@ Upgrading from 1.1.4: update through HACS and restart Home Assistant. Nothing ha
 
 ### Added
 
+- **A notice when the City stays silent**: if a line gets no answer for hours (a revoked or expired token looks exactly like that), Repairs says so and tells you what to check, and the notice goes by itself when the City answers.
 - **Works with the City's new API**: log in with a token from the new portal, and each key goes only to the right server.
 - **Change your key any time**: **Configure** on an entry swaps the key or token, so there is nothing to remove and add again.
 - **A calendar of departures** (off by default): switch it on in the entity settings to see the whole day in Home Assistant's calendar, or start an automation "8 minutes before the bus".
